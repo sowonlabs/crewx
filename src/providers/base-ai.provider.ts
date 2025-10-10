@@ -195,6 +195,40 @@ export abstract class BaseAIProvider implements AIProvider {
   /**
    * Parse provider-specific error messages to provide better user feedback
    */
+  /**
+   * Filter out tool_use JSON blocks from AI responses
+   * This prevents raw JSON tool calls from appearing in Slack messages
+   */
+  protected filterToolUseFromResponse(content: string): string {
+    if (!content) return content;
+
+    let filteredContent = content;
+
+    // Remove standalone JSON blocks with tool_use
+    // Pattern: JSON objects on their own lines with "type": "tool_use"
+    filteredContent = filteredContent.replace(
+      /^\s*\{[^}]*"type"\s*:\s*"tool_use"[^}]*\}\s*$/gm,
+      ''
+    );
+
+    // Remove multiple consecutive JSON objects with tool_use
+    // This handles cases where multiple tool calls are made
+    filteredContent = filteredContent.replace(
+      /(?:^\s*\{[^}]*"type"\s*:\s*"tool_use"[^}]*\}\s*\n?)+/gm,
+      ''
+    );
+
+    // Clean up excessive blank lines left after filtering
+    filteredContent = filteredContent.replace(/\n{3,}/g, '\n\n');
+
+    // If the entire response was just tool_use JSON, return a placeholder
+    if (filteredContent.trim() === '') {
+      return '[Tool operations completed]';
+    }
+
+    return filteredContent.trim();
+  }
+
   public parseProviderError(
     stderr: string,
     stdout: string,
@@ -392,9 +426,11 @@ Started: ${timestamp}
 
           // If exit code is 0 and we have stdout, it's a success (ignore stderr debug logs)
           if (exitCode === 0 && stdout && stdout.trim().length > 0) {
+            // Filter out tool_use JSON blocks from the response
+            const filteredContent = this.filterToolUseFromResponse(stdout.trim());
             this.appendTaskLog(taskId, 'INFO', `${this.name} query completed successfully`);
             resolve({
-              content: stdout.trim(),
+              content: filteredContent,
               provider: this.name,
               command,
               success: true,
@@ -434,8 +470,11 @@ Started: ${timestamp}
             this.appendTaskLog(taskId, 'INFO', 'Plain text output (not JSON)');
           }
 
+          // Filter out tool_use JSON blocks from the response
+          const filteredContent = this.filterToolUseFromResponse(parsedContent);
+
           resolve({
-            content: parsedContent,
+            content: filteredContent,
             provider: this.name,
             command,
             success: true,
@@ -575,9 +614,11 @@ Started: ${timestamp}
 
           // If exit code is 0 and we have stdout, it's a success (ignore stderr debug logs)
           if (exitCode === 0 && stdout && stdout.trim().length > 0) {
+            // Filter out tool_use JSON blocks from the response
+            const filteredContent = this.filterToolUseFromResponse(stdout.trim());
             this.appendTaskLog(taskId, 'INFO', `${this.name} execution completed successfully`);
             resolve({
-              content: stdout.trim(),
+              content: filteredContent,
               provider: this.name,
               command,
               success: true,
