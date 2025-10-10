@@ -1,0 +1,21 @@
+/dist
+/node_modules
+**/package-lock.json
+sowonai-*.tgz
+credentials.json
+.env*
+!.env.example
+# Code CLI logs
+.crewx/
+.crewcode/
+
+# Worktrees
+worktree/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Claude Code settings
+.claude/settings.local.json

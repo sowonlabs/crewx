@@ -1,0 +1,295 @@
+# CLI Guide
+
+Complete reference for CrewX's command-line interface.
+
+## Core Commands
+
+### `crewx` (default)
+Shows help and available commands.
+
+```bash
+crewx
+```
+
+### `crewx init`
+Initialize project with `crewx.yaml` configuration.
+
+```bash
+crewx init                          # Initialize with default configuration
+crewx init --config custom.yaml    # Use custom config filename
+crewx init --force                 # Overwrite existing configuration
+```
+
+**Features:**
+- Creates `crewx.yaml` with default agents (Claude, Gemini, Copilot)
+- Sets up `.crewx/logs` directory
+- Prevents accidental overwrites (use `--force` to override)
+
+> **Note:** For backward compatibility, `agents.yaml` is still supported, but `crewx.yaml` is preferred.
+
+### `crewx doctor`
+System health check and diagnostics.
+
+```bash
+crewx doctor                        # Full system diagnosis
+crewx doctor --config path/to/config.yaml  # Use custom config
+```
+
+**Checks:**
+- Configuration file (`crewx.yaml` or `agents.yaml`) validity
+- AI CLI tool availability (Claude, Gemini, Copilot)
+- Real test queries to verify responses
+- Session limits and performance
+- Provides troubleshooting recommendations
+
+### `crewx query`
+Read-only analysis and queries.
+
+```bash
+# Basic queries
+crewx query "@claude analyze this function"
+crewx query "@gemini explain the algorithm"
+
+# Multiple agents in parallel
+crewx query "@claude @gemini @copilot review security"
+
+# With model selection
+crewx query "@claude:opus detailed code review"
+crewx query "@gemini:gemini-2.5-pro optimize algorithm"
+crewx query "@copilot:gpt-5 suggest best practices"
+
+# With conversation history
+crewx query "@claude explain auth" --thread "auth-session"
+
+# Pipeline input
+echo "user auth code" | crewx query "@claude explain this"
+```
+
+**Available Models:**
+- **Claude**: `opus`, `sonnet`, `haiku`, `claude-sonnet-4-5`, `claude-sonnet-4-5-20250929`
+- **Gemini**: `gemini-2.5-pro` (default), `gemini-2.5-flash`
+- **Copilot**: `gpt-5`, `claude-sonnet-4`, `claude-sonnet-4.5`
+
+### `crewx execute`
+Execute tasks with file creation/modification.
+
+```bash
+# Basic execution
+crewx execute "@claude create a React component"
+
+# Multiple agents in parallel
+crewx execute "@claude @gemini implement different sorting algorithms"
+
+# With model selection
+crewx execute "@claude:opus implement complex auth system"
+crewx execute "@gemini:gemini-2.5-pro optimize critical code"
+
+# With conversation history
+crewx execute "@claude implement login" --thread "auth-feature"
+
+# Pipeline workflows
+crewx query "@architect design API" | \
+crewx execute "@backend implement the design"
+```
+
+## Pipeline Workflows
+
+Chain commands for complex multi-step workflows:
+
+```bash
+# Multi-step development
+crewx query "@architect design user auth system" | \
+crewx execute "@backend implement API endpoints" | \
+crewx execute "@frontend create UI components"
+
+# Code review and improvement
+crewx query "@claude analyze code quality" | \
+crewx execute "@gemini implement improvements"
+
+# Design, implement, test
+crewx query "@architect design feature" | \
+crewx execute "@developer build it" | \
+crewx query "@tester verify implementation"
+```
+
+## Conversation History with `--thread`
+
+Maintain context across multiple queries and executions:
+
+```bash
+# Start a thread
+crewx query "@claude design a login system" --thread "auth-feature"
+
+# Continue in same thread (Claude remembers previous context)
+crewx query "@claude add 2FA support" --thread "auth-feature"
+
+# Execute with thread context
+crewx execute "@claude implement the design" --thread "auth-feature"
+```
+
+**Features:**
+- **Persistent context** - Stored in `.crewx/conversations/`
+- **Cross-session** - Available after restart
+- **Thread isolation** - Different threads maintain separate contexts
+- **Works with all commands** - `query`, `execute`, `chat`
+
+**Example workflow:**
+```bash
+# Design phase
+crewx query "@architect design REST API" --thread "api-project"
+
+# Implementation (remembers design)
+crewx execute "@backend implement endpoints" --thread "api-project"
+
+# Testing (remembers design + implementation)
+crewx query "@tester review implementation" --thread "api-project"
+```
+
+## Slack Bot Integration
+
+Run CrewX as a Slack bot:
+
+```bash
+crewx slack                        # Start with Claude (default)
+crewx slack --agent gemini         # Use Gemini
+crewx slack --agent copilot        # Use GitHub Copilot
+crewx slack --agent custom_agent   # Use custom agent
+```
+
+**Features:**
+- Natural conversation with chosen AI agent
+- Thread history maintenance
+- @mentions and DMs
+- Clean responses
+- Reaction indicators (👀 processing, ✅ completed, ❌ error)
+
+**Setup:**
+1. Create Slack App and configure bot tokens
+2. Set environment variables in `.env.slack`:
+   ```bash
+   SLACK_BOT_TOKEN=xoxb-...
+   SLACK_APP_TOKEN=xapp-...
+   SLACK_SIGNING_SECRET=...
+   SLACK_MAX_RESPONSE_LENGTH=400000  # Optional
+   ```
+3. Start: `npm run start:slack`
+
+See [SLACK_INSTALL.md](../SLACK_INSTALL.md) for full setup guide.
+
+## Advanced Features
+
+### Task Tracking
+Every operation is logged with unique task IDs:
+
+```bash
+# Operations automatically create logs
+crewx execute "@claude create component"
+# Output includes: Task ID: abc123
+
+# View task logs
+crewx logs abc123
+```
+
+### Performance Metrics
+- Execution time tracking
+- Success/failure rates
+- Parallel vs sequential comparison
+
+### Error Recovery
+- Detailed error messages
+- Resolution suggestions
+- Session limit handling
+
+### Configuration Validation
+Validates agent configurations before execution:
+- Provider availability
+- Required options
+- Working directory existence
+
+## Environment Variables
+
+Customize timeout values via `.env` or environment variables:
+
+```bash
+# Claude Provider
+CODECREW_TIMEOUT_CLAUDE_QUERY=600000        # 10 min
+CODECREW_TIMEOUT_CLAUDE_EXECUTE=45000       # 45 sec
+
+# Gemini Provider
+CODECREW_TIMEOUT_GEMINI_QUERY=600000        # 10 min
+CODECREW_TIMEOUT_GEMINI_EXECUTE=1200000     # 20 min
+
+# Copilot Provider
+CODECREW_TIMEOUT_COPILOT_QUERY=600000       # 10 min
+CODECREW_TIMEOUT_COPILOT_EXECUTE=1200000    # 20 min
+
+# System
+CODECREW_TIMEOUT_PARALLEL=300000            # 5 min
+CODECREW_TIMEOUT_STDIN_INITIAL=30000        # 30 sec
+CODECREW_TIMEOUT_STDIN_CHUNK=600000         # 10 min
+CODECREW_TIMEOUT_STDIN_COMPLETE=100         # 100ms
+```
+
+**Usage:**
+```bash
+# Using .env file
+echo "CODECREW_TIMEOUT_CLAUDE_QUERY=900000" >> .env
+crewx query "@claude complex analysis"
+
+# Inline
+CODECREW_TIMEOUT_CLAUDE_QUERY=1800000 crewx query "@claude deep analysis"
+```
+
+## Examples
+
+### Basic Analysis
+```bash
+# Single agent query
+crewx query "@claude explain this function"
+
+# Multiple agents compare
+crewx query "@claude @gemini @copilot which approach is better?"
+```
+
+### File Operations
+```bash
+# Create files
+crewx execute "@claude create a login component"
+
+# Modify files
+crewx execute "@claude refactor authentication"
+
+# Multiple tasks
+crewx execute "@claude create tests" "@gemini write docs"
+```
+
+### Complex Workflows
+```bash
+# Design → Implement → Test
+crewx query "@architect design user management" --thread "user-mgmt" && \
+crewx execute "@backend implement it" --thread "user-mgmt" && \
+crewx query "@tester create test plan" --thread "user-mgmt"
+
+# Code review pipeline
+git diff | crewx query "@claude review these changes" | \
+crewx execute "@refactor improve code quality"
+```
+
+### Model Selection
+```bash
+# Use specific models for different tasks
+crewx query "@claude:haiku quick analysis"           # Fast, concise
+crewx query "@claude:opus comprehensive review"      # Detailed, thorough
+crewx execute "@gemini:gemini-2.5-flash rapid prototyping"  # Fast execution
+crewx execute "@gemini:gemini-2.5-pro production code"      # High quality
+```
+
+## Tips
+
+1. **Use `query` for analysis** - Safe, read-only, no file changes
+2. **Use `execute` for implementation** - Can modify files, create new ones
+3. **Leverage `--thread`** - Maintain context across commands
+4. **Combine agents** - Use strengths of different AI models
+5. **Pipeline complex tasks** - Chain commands for multi-step workflows
+6. **Check with `doctor`** - Diagnose issues before running tasks
+7. **Use specific models** - Choose right model for the task complexity

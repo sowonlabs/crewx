@@ -1,0 +1,25 @@
+# CrewX Custom Agents Configuration
+# 
+# This file is for your project-specific custom agents.
+# Built-in agents (@claude, @gemini, @copilot, @crewx) are always available
+# and don't need to be defined here.
+#
+# Add your custom agents below:
+
+agents: []
+  # Example custom agent:
+  # - id: "my_agent"
+  #   name: "My Custom Agent"
+  #   role: "developer"
+  #   team: "My Team"
+  #   working_directory: "./"
+  #   options:
+  #     query:
+  #       - "--add-dir=."
+  #   inline:
+  #     type: "agent"
+  #     provider: "claude"
+  #     model: "sonnet"  # Optional: specify model
+  #     system_prompt: |
+  #       Your custom system prompt here...
+

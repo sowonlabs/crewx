@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "crewx": {
+      "command": "node",
+      "args": ["dist/main.js"],
+      "cwd": ".",
+      "env": {
+        "CREWX_CONFIG": "./crewx.yaml"
+      }
+    }
+  }
+}
