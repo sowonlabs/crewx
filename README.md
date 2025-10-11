@@ -14,6 +14,29 @@ Bring AI agents directly into your team's workspace:
 - **Natural integration** - Works like chatting with team members
 - **Shared knowledge** - Team learns from AI interactions, not isolated sessions
 
+### 🔌 **Plugin Provider System** - Universal AI Integration
+Transform any CLI tool or AI service into an agent:
+- **Bring Your Own AI** - OpenAI, Anthropic, Ollama, LiteLLM, or any AI service
+- **Bring Your Own Tools** - jq, curl, ffmpeg, or any CLI tool becomes an agent
+- **Bring Your Own Framework** - Integrate LangChain, CrewAI, AutoGPT seamlessly
+- **No coding required** - Simple YAML configuration
+- **Mix and match** - Combine different AI services in one workflow
+
+```yaml
+# Example: Add any AI service as a plugin
+providers:
+  - id: ollama
+    type: plugin
+    cli_command: ollama
+    default_model: "llama3"
+    query_args: ["run", "{model}"]
+    prompt_in_args: false
+
+agents:
+  - id: "local_llama"
+    provider: "plugin/ollama"
+```
+
 ### ✨ Other Benefits
 - **No additional costs** - Use existing Claude Pro, Gemini, or GitHub Copilot subscriptions
 - **Multi-agent collaboration** - Different AI models working on specialized tasks

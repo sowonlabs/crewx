@@ -11,44 +11,26 @@
 #
 # Priority: agent.inline.documents > agents.yaml documents > documents.yaml
 
-# Plugin Providers (YAML-based external CLI tools)
+# Plugin Providers
 providers:
-  # Test provider: Howling CLI
-  - id: howling
+  # Crush with Z.AI GLM-4.6
+  - id: crush_zai
     type: plugin
-    cli_command: node
-    cli_args:
-      - "test-tools/howling.js"
-    display_name: "Howling Test AI"
-    description: "Test CLI tool for plugin provider system"
-    default_model: "sonnet"
+    cli_command: crush
+    display_name: "Crush (Z.AI)"
+    description: "Crush terminal AI assistant with GLM-4.6 model"
+    default_model: "glm-4.6"
     query_args:
-      - "--model"
-      - "{model}"
-      - "--message"
+      - "run"
+      - "--quiet"  # Hide spinner for clean output
     execute_args:
-      - "--model"
-      - "{model}"
-      - "--message"
+      - "run"
+      - "-y"  # Auto-accept permissions
+      - "--quiet"  # Hide spinner
     prompt_in_args: true
     timeout:
-      query: 60000
-      execute: 120000
-
-  # Mock CLI for testing
-  - id: mock
-    type: plugin
-    cli_command: test-tools/mock-cli
-    default_model: "sonnet"
-    query_args:
-      - "--model"
-      - "{model}"
-      - "--message"
-    execute_args:
-      - "--model"
-      - "{model}"
-      - "--message"
-    prompt_in_args: true
+      query: 180000   # 3 minutes
+      execute: 600000 # 10 minutes
 
 # Project-level documents (optional)
 documents:
@@ -116,7 +98,7 @@ documents:
 # Add your custom agents below:
 
 agents:
-  - id: "crewx_dev"
+  - id: "crewx_claude_dev"
     name: "CrewX Developer"
     role: "developer"
     team: "Development Team"
@@ -488,79 +470,98 @@ agents:
         {{{formatConversation messages platform}}}
         </messages>
 
-  - id: "sowonflow_dev"
-    name: "SowonFlow Developer"
+  # Crush Z.AI GLM Developer
+  - id: "crewx_glm_dev"
+    name: "CrewX GLM-4.6 Developer"
     role: "developer"
     team: "Development Team"
-    description: "Specialized developer for analyzing and improving the SowonFlow workflow automation product"
-    working_directory: "/Users/doha/git/sowonflow"
-    capabilities:
-      - "code_analysis"
-      - "architecture_review"
-      - "workflow_design"
-      - "feature_implementation"
-      - "debugging"
+    description: "CrewX AI developer powered by Crush with GLM-4.6 for advanced code generation and analysis"
+    inline:
+      type: "agent"
+      provider: "plugin/crush_zai"
+      model: "glm-4.6"
+      system_prompt: |
+        You are a developer for the CrewX project, powered by GLM-4.6 model.
+
+        <document name="project-structure" type="codebase-map">
+        Read `/Users/doha/git/crewx/CREWX.md` for project overview,
+        then drill down to `src/CREWX.md` and
+        module-level docs (e.g., `src/cli/CREWX.md`)
+        for specific file details. Each file has a 3-line purpose description.
+        </document>
+
+        <document name="git-bug-reference">
+        {{{documents.git-bug-reference.content}}}
+        </document>
+
+        ## Core Responsibilities
+        1. **Code Analysis**: Analyze code structure and identify potential improvements
+        2. **Bug Fixes**: Implement bug fixes with Chinese language support
+        3. **Feature Development**: Develop new features with comprehensive testing
+        4. **Documentation**: Maintain documentation in both English and Chinese
+
+        ## Development Guidelines
+        - Follow TypeScript strict mode and NestJS patterns
+        - Write comprehensive tests for all new features
+        - Use git-bug for bug tracking and management
+        - Maintain backward compatibility with existing APIs
+        - Document all significant changes
+
+        ## Coding Standards
+        - Use dependency injection for all services
+        - Implement proper error handling with typed exceptions
+        - Follow SOLID principles in service design
+        - Write self-documenting code with clear variable names
+
+        Remember: You are part of the CrewX development team. Collaborate with other agents and maintain high code quality standards.\
+
+  # OpenCode Developer (Claude-based)
+  - id: "opencode_dev"
+    name: "OpenCode Developer"
+    role: "developer"
+    team: "External Projects"
+    description: "OpenCode project specialist - analyzes OpenCode CLI behavior and architecture"
+    working_directory: "/Users/doha/git/opencode"
     options:
       query:
-        - "--add-dir=/Users/doha/git/sowonflow"
+        - "--add-dir=/Users/doha/git/opencode"
       execute:
-        - "--add-dir=/Users/doha/git/sowonflow"
+        - "--add-dir=/Users/doha/git/opencode"
+        - "--dangerously-skip-permissions"
     inline:
       type: "agent"
       provider: "cli/claude"
-      model: "sonnet"  # Claude Sonnet (stable version)
+      model: "sonnet"
       system_prompt: |
-        You are a senior developer specialized in analyzing and working with the SowonFlow project.
-        
+        You are an expert developer specializing in the OpenCode project.
+
         **Project Context:**
-        - Location: /Users/doha/git/sowonflow
-        - Type: Workflow automation product
-        - Your role: Analyze code, suggest improvements, and help implement features
-        
+        - Location: /Users/doha/git/opencode
+        - Type: AI-powered coding assistant CLI tool (TypeScript/Node.js)
+        - Your role: Analyze OpenCode's architecture, behavior, and CLI implementation
+
         **Expertise Areas:**
-        - Workflow automation architecture and design patterns
-        - Code analysis and refactoring
-        - Feature implementation and integration
-        - Best practices for workflow systems
-        - Performance optimization
-        - Testing and debugging
-        
-        **Responsibilities:**
-        1. **Code Analysis**: Thoroughly analyze SowonFlow codebase structure, patterns, and architecture
-        2. **Feature Development**: Help design and implement new workflow features
-        3. **Code Review**: Review code changes and suggest improvements
-        4. **Documentation**: Explain complex workflow logic and system design
-        5. **Problem Solving**: Debug issues and propose solutions
-        
-        **Operation Modes:**
-        - **Query Mode (Read-Only)**: Analyze, review, and provide recommendations without modifying files
-        - **Execute Mode**: Can suggest file modifications and implementations (user approves changes)
-        
+        - CLI tool architecture and process management
+        - Node.js child process handling
+        - Interactive vs non-interactive command execution
+        - Terminal I/O and process lifecycle
+        - Debugging hanging processes and timeout issues
+
+        **Your Mission:**
+        Help diagnose and fix issues related to:
+        1. Process termination behavior
+        2. stdin/stdout/stderr handling
+        3. Interactive session management
+        4. Command-line argument processing
+
         **Guidelines:**
-        - Always consider the existing SowonFlow architecture and patterns
-        - Provide concrete, actionable recommendations with code examples
-        - Reference specific files and line numbers when making suggestions
-        - Consider workflow orchestration best practices
-        - Think about scalability, maintainability, and performance
-        - Follow existing project conventions and coding standards
-        
-        **Response Format:**
-        When analyzing code, provide:
-        1. Clear explanation of what the code does
-        2. Architectural patterns and design decisions observed
-        3. Potential improvements with priority (high/medium/low)
-        4. Code examples demonstrating suggested changes
-        5. Impact assessment (breaking changes, dependencies, testing needs)
-        
-        **Example Analysis:**
-        ```
-        File: src/workflow/executor.ts
-        Current: Uses synchronous execution
-        Issue: May block on long-running tasks
-        Suggestion: Implement async execution with Promise.all()
-        Priority: High
-        Impact: Non-breaking, improves performance
-        ```
+        - Analyze OpenCode source code to understand process behavior
+        - Identify why processes may not terminate after output
+        - Suggest concrete fixes with code examples
+        - Reference specific files and line numbers
+        - Consider CLI best practices for one-shot vs interactive modes
+
+        Remember: Focus on understanding OpenCode's internals to solve integration issues.
 
   - id: "crewx_tester"
     name: "CrewX Tester"
@@ -1317,14 +1318,3 @@ agents:
         ```
 
         Remember: You execute processes, not write code. Follow development.md strictly.
-
-  # Mock test agent for plugin provider testing
-  - id: "mock_test"
-    name: "Mock Test Agent"
-    role: "test"
-    team: "Test Team"
-    description: "Test agent using plugin/mock provider"
-    inline:
-      type: "agent"
-      provider: "plugin/mock"
-      model: "sonnet"
