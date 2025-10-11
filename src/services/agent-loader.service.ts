@@ -18,6 +18,7 @@ import { DocumentLoaderService } from './document-loader.service';
 import { TemplateService } from './template.service';
 import { ConfigValidatorService } from './config-validator.service';
 import { AIProviderService } from '../ai-provider.service';
+import { ConfigService } from './config.service';
 
 /**
  * AgentLoaderService - Centralized agent configuration loading
@@ -40,6 +41,7 @@ export class AgentLoaderService {
     @Optional() private readonly templateService?: TemplateService,
     @Optional() private readonly configValidatorService?: ConfigValidatorService,
     @Optional() @Inject(forwardRef(() => AIProviderService)) private readonly aiProviderService?: AIProviderService,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   /**
@@ -136,27 +138,32 @@ export class AgentLoaderService {
       const path = await import('path');
       const fs = await import('fs');
 
-      let agentsConfigPath: string;
-      if (process.env.CREWX_CONFIG) {
-        // Explicit config path takes highest priority
-        agentsConfigPath = process.env.CREWX_CONFIG;
-      } else {
-        // Priority: crewx.yaml > agents.yaml
-        const crewConfigPath = path.join(process.cwd(), 'crewx.yaml');
-        const agentsYamlPath = path.join(process.cwd(), 'agents.yaml');
+      // Get config path from ConfigService (respects --config option)
+      let agentsConfigPath: string | null = null;
 
-        if (fs.existsSync(crewConfigPath)) {
-          agentsConfigPath = crewConfigPath;
-          this.logger.log('Using crewx.yaml for agent configuration');
-        } else if (fs.existsSync(agentsYamlPath)) {
-          agentsConfigPath = agentsYamlPath;
-          this.logger.log('Using agents.yaml for agent configuration (backward compatibility)');
+      if (this.configService) {
+        agentsConfigPath = this.configService.getCurrentConfigPath();
+      }
+
+      if (!agentsConfigPath) {
+        // Fallback if ConfigService is not available
+        if (process.env.CREWX_CONFIG) {
+          agentsConfigPath = process.env.CREWX_CONFIG;
         } else {
-          agentsConfigPath = crewConfigPath; // Default to crewx.yaml for error message
+          const crewConfigPath = path.join(process.cwd(), 'crewx.yaml');
+          const agentsYamlPath = path.join(process.cwd(), 'agents.yaml');
+
+          if (fs.existsSync(crewConfigPath)) {
+            agentsConfigPath = crewConfigPath;
+          } else if (fs.existsSync(agentsYamlPath)) {
+            agentsConfigPath = agentsYamlPath;
+          } else {
+            agentsConfigPath = crewConfigPath; // Default to crewx.yaml for error message
+          }
         }
       }
 
-      this.logger.log(`Loading user agents from config: ${agentsConfigPath}`);
+      this.logger.log(`Loading agents from config: ${agentsConfigPath}`);
 
       try {
         const userAgents = await this.loadAgentsFromConfig(agentsConfigPath);

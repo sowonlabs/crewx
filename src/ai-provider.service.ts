@@ -38,7 +38,7 @@ export class AIProviderService implements OnModuleInit {
       const pluginConfigs = this.configService.getPluginProviders();
 
       if (!pluginConfigs || pluginConfigs.length === 0) {
-        this.logger.log('No plugin providers defined in crewx.yaml');
+        this.logger.log('No plugin providers defined in config');
         return;
       }
 
@@ -65,6 +65,23 @@ export class AIProviderService implements OnModuleInit {
     } catch (error: any) {
       this.logger.error('Failed to load plugin providers:', error);
     }
+  }
+
+  /**
+   * Reload plugin providers after config change
+   * Public method to support --config option
+   */
+  async reloadPluginProviders(): Promise<void> {
+    // Clear existing plugin providers (keep built-in CLI providers)
+    const builtInProviders = ['cli/claude', 'cli/gemini', 'cli/copilot'];
+    for (const [name] of this.providers) {
+      if (!builtInProviders.includes(name)) {
+        this.providers.delete(name);
+      }
+    }
+
+    // Reload from config
+    await this.loadPluginProviders();
   }
 
   private registerProvider(provider: AIProvider): void {

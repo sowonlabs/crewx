@@ -82,25 +82,6 @@ agents:
 - Tries providers in order until one is available
 - If model is specified, uses first provider without fallback
 
-### Provider-Specific Options
-
-Configure different options for each provider:
-
-```yaml
-agents:
-  - id: "multi_provider"
-    provider: ["cli/claude", "cli/gemini", "cli/copilot"]
-    options:
-      execute:
-        cli/claude:
-          - "--permission-mode=acceptEdits"
-          - "--add-dir=."
-        cli/gemini:
-          - "--include-directories=."
-        cli/copilot:
-          - "--add-dir=."
-```
-
 ## Mode-Specific Options
 
 ### Query Mode vs Execute Mode
@@ -219,12 +200,8 @@ agents:
     working_directory: "./src/backend"
     options:
       execute:
-        cli/gemini:
-          - "--include-directories=."
-          - "--yolo"
-        cli/claude:
-          - "--add-dir=."
-          - "--allowedTools=Edit,Bash"
+        - "--add-dir=."
+        - "--allowedTools=Edit,Bash"
     inline:
       type: "agent"
       system_prompt: |

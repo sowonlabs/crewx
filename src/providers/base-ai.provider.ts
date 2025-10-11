@@ -372,10 +372,11 @@ Started: ${timestamp}
         args = this.substituteModelPlaceholders(args, modelToUse);
       }
 
-      // For built-in providers (claude, gemini, copilot), add --model option if not already in args
-      // For plugin providers, the {model} placeholder substitution handles it
+      // For built-in providers (cli/*), add --model option if not already in args
+      // For plugin providers (plugin/*), the {model} placeholder substitution handles it
+      const isBuiltInProvider = this.name.startsWith('cli/');
       const hasModelInArgs = args.some(arg => arg.includes('--model') || arg.includes('{model}'));
-      if (options.model && !hasModelInArgs) {
+      if (isBuiltInProvider && options.model && !hasModelInArgs) {
         args.unshift(`--model=${options.model}`);
       }
 
@@ -575,10 +576,11 @@ Started: ${timestamp}
         args = this.substituteModelPlaceholders(args, modelToUse);
       }
 
-      // For built-in providers (claude, gemini, copilot), add --model option if not already in args
-      // For plugin providers, the {model} placeholder substitution handles it
+      // For built-in providers (cli/*), add --model option if not already in args
+      // For plugin providers (plugin/*), the {model} placeholder substitution handles it
+      const isBuiltInProvider = this.name.startsWith('cli/');
       const hasModelInArgs = args.some(arg => arg.includes('--model') || arg.includes('{model}'));
-      if (options.model && !hasModelInArgs) {
+      if (isBuiltInProvider && options.model && !hasModelInArgs) {
         args.unshift(`--model=${options.model}`);
       }
 

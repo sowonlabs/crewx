@@ -1,41 +1,144 @@
-# CrewX Configuration Example
-# Rename this file to crewx.yaml to use it
+# CrewX Configuration Example - Local AI Integration
+# This file demonstrates how to integrate local AI tools (Ollama, Aider)
+# Copy sections you need to your crewx.yaml file
 
-# Plugin Providers (Optional)
-# Provider names follow the format: {namespace}/{id}
-# - cli/*: Built-in CLI providers (claude, gemini, copilot)
-# - plugin/*: User-defined external CLI tools
-# - api/*: API-based providers (future)
+# Plugin Providers
+# Turn any CLI tool into an AI agent with simple YAML configuration
 providers:
-  # Mock CLI for testing plugin provider system
-  - id: mock
+  # Ollama - Local LLM Integration
+  # Run open-source models locally (Llama, Qwen, DeepSeek, etc.)
+  - id: ollama
     type: plugin
-    cli_command: test-tools/mock-cli
-    default_model: "sonnet"
-    query_args: ["--model", "{model}", "--message"]
-    execute_args: ["--model", "{model}", "--message"]
-    prompt_in_args: true
+    cli_command: ollama
+    display_name: "Ollama Local LLM"
+    description: "Local LLM via Ollama"
+    default_model: "qwen3:8b"
+    query_args:
+      - "run"
+      - "{model}"
+    execute_args:
+      - "run"
+      - "{model}"
+    prompt_in_args: false  # Ollama reads from stdin
+    timeout:
+      query: 120000   # 2 minutes
+      execute: 300000 # 5 minutes
+
+  # Aider - AI Pair Programming
+  # AI-powered code editing with local models
+  - id: aider
+    type: plugin
+    cli_command: aider
+    display_name: "Aider AI Coding Assistant"
+    description: "AI pair programming tool with Ollama integration"
+    default_model: "ollama/qwen3:8b"
+    query_args:
+      - "--yes-always"
+      - "--no-browser"
+      - "--no-auto-commits"
+      - "--model"
+      - "{model}"
+      - "--message"
+    execute_args:
+      - "--yes-always"
+      - "--no-browser"
+      - "--no-auto-commits"
+      - "--model"
+      - "{model}"
+      - "--message"
+    prompt_in_args: true  # Aider takes message as argument
+    timeout:
+      query: 180000   # 3 minutes
+      execute: 600000 # 10 minutes
+
+  # Crush - Z.AI Coding Assistant
+  # Terminal-based AI assistant with GLM models
+  - id: crush
+    type: plugin
+    cli_command: crush
+    display_name: "Crush (Z.AI)"
+    description: "Powerful terminal AI assistant with GLM-4.6 model"
+    default_model: "glm-4.6"
+    query_args:
+      - "run"
+    execute_args:
+      - "run"
+      - "-y"  # Auto-accept permissions in execute mode
+    prompt_in_args: true  # Crush takes message as argument
+    timeout:
+      query: 180000   # 3 minutes
+      execute: 600000 # 10 minutes
 
 # Agents Configuration
 agents:
-  - id: claude
-    provider: cli/claude  # Namespace format
-    name: "Claude Assistant"
-    capabilities:
-      - query
-      - implementation
+  # Ollama Qwen Agent
+  - id: "ollama_qwen"
+    name: "Qwen 3 (Local)"
+    role: "assistant"
+    team: "Local AI"
+    description: "Local Qwen 3 model via Ollama"
+    inline:
+      type: "agent"
+      provider: "plugin/ollama"
+      model: "qwen3:8b"
+      system_prompt: "You are a helpful AI assistant running locally via Ollama."
 
-  - id: gemini
-    provider: cli/gemini  # Namespace format
-    name: "Gemini Assistant"
-    capabilities:
-      - query
-      - implementation
+  # Ollama DeepSeek Agent
+  - id: "ollama_deepseek"
+    name: "DeepSeek R1 (Local)"
+    role: "assistant"
+    team: "Local AI"
+    description: "Local DeepSeek R1 model via Ollama"
+    inline:
+      type: "agent"
+      provider: "plugin/ollama"
+      model: "deepseek-r1:8b"
+      system_prompt: "You are DeepSeek R1, a helpful AI assistant with reasoning capabilities."
 
-  # Example: Plugin provider agent
-  - id: mock_test
-    provider: plugin/mock  # Namespace format
-    name: "Mock Test Agent"
-    capabilities:
-      - query
-      - implementation
+  # Aider Coding Assistant
+  - id: "aider_qwen"
+    name: "Aider (Qwen 3)"
+    role: "coding_assistant"
+    team: "AI Pair Programming"
+    description: "AI pair programming assistant using Aider with local Qwen 3 model"
+    inline:
+      type: "agent"
+      provider: "plugin/aider"
+      model: "ollama/qwen3:8b"
+
+  # Crush AI Assistant (Z.AI GLM-4.6)
+  - id: "crush_glm"
+    name: "Crush GLM-4.6"
+    role: "coding_assistant"
+    team: "Cloud AI"
+    description: "Z.AI Crush terminal assistant with GLM-4.6 model"
+    inline:
+      type: "agent"
+      provider: "plugin/crush"
+      model: "glm-4.6"
+
+# Usage Examples:
+#
+# 1. Chat with local Ollama model:
+#    crewx query "@ollama_qwen explain quantum computing"
+#
+# 2. Generate code with Aider:
+#    crewx query "@aider_qwen create a fibonacci function in fib.js"
+#
+# 3. Use reasoning model:
+#    crewx query "@ollama_deepseek solve this logic puzzle: ..."
+#
+# 4. Use Crush with Z.AI GLM-4.6:
+#    crewx query "@crush_glm review this code for security issues"
+#
+# Prerequisites:
+# - Ollama: brew install ollama (macOS) or visit https://ollama.ai
+# - Pull models: ollama pull qwen3:8b && ollama pull deepseek-r1:8b
+# - Aider: pip install aider-chat
+# - Crush: npm install -g @charmland/crush (requires Z.AI API key)
+#
+# Benefits:
+# - Local + Cloud options available
+# - Ollama: 100% local, no API costs, privacy, works offline
+# - Crush: Cloud-based Z.AI GLM-4.6, powerful coding assistant
+# - Mix and match different AI services in one workflow
