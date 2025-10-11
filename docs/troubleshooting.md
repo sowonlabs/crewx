@@ -126,9 +126,9 @@ crewx doctor
 **Valid YAML:**
 ```yaml
 agents:
-  - id: "my_agent"      # ✓ Correct indentation
-    name: "My Agent"    # ✓ Quotes around strings
-    provider: "claude"  # ✓ Proper spacing
+  - id: "my_agent"         # ✓ Correct indentation
+    name: "My Agent"       # ✓ Quotes around strings
+    provider: "cli/claude" # ✓ Proper namespace format
 ```
 
 **Invalid YAML:**
@@ -136,7 +136,7 @@ agents:
 agents:
 - id: my_agent         # ✗ No quotes (may break with special chars)
   name: My Agent       # ✗ No quotes
-   provider: claude    # ✗ Wrong indentation
+   provider: claude    # ✗ Wrong indentation, old format
 ```
 
 ## MCP Integration Issues
@@ -242,7 +242,7 @@ gh auth status
 
 # Use provider fallback
 crewx query "@flexible_agent your question"
-# Where flexible_agent has: provider: ["claude", "gemini", "copilot"]
+# Where flexible_agent has: provider: ["cli/claude", "cli/gemini", "cli/copilot"]
 ```
 
 ## Execution Issues
@@ -279,7 +279,7 @@ working_directory: "./src"  # Ensure path exists
 CODECREW_TIMEOUT_CLAUDE_EXECUTE=120000 crewx execute "@claude task"
 
 # Use provider fallback
-provider: ["claude", "gemini", "copilot"]
+provider: ["cli/claude", "cli/gemini", "cli/copilot"]
 ```
 
 ### Cross-Platform Path Issues

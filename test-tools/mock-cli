@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+
+/**
+ * Mock CLI - Test tool for CrewX plugin provider system
+ *
+ * This simulates an AI CLI tool that echoes back all arguments
+ * to test the plugin provider integration.
+ *
+ * Usage:
+ *   mock-cli --model sonnet --message "your prompt"
+ */
+
+const args = process.argv.slice(2);
+
+// Parse arguments
+const parsedArgs = {};
+let currentKey = null;
+
+for (const arg of args) {
+  if (arg.startsWith('--')) {
+    currentKey = arg.substring(2);
+    parsedArgs[currentKey] = true;
+  } else if (currentKey) {
+    parsedArgs[currentKey] = arg;
+    currentKey = null;
+  }
+}
+
+// Output format
+console.log('🤖 Mock CLI - Test Provider');
+console.log('================================');
+console.log('');
+console.log('📝 Received Arguments:');
+console.log(JSON.stringify(parsedArgs, null, 2));
+console.log('');
+
+// Simulate response
+const model = parsedArgs.model || 'default';
+const message = parsedArgs.message || 'No message provided';
+
+console.log(`🤖 Model: ${model}`);
+console.log(`💬 Message: ${message}`);
+console.log('');
+console.log('✅ Response:');
+console.log(`I am the ${model} model responding to: "${message}"`);
+console.log('');
+console.log('🎉 Mock CLI completed successfully!');
+
+// Exit with success
+process.exit(0);

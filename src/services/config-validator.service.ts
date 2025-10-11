@@ -4,6 +4,7 @@ import type { ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import { existsSync } from 'fs';
 import { resolve, dirname } from 'path';
+import { BuiltInProviders, ProviderNamespace } from '../providers/ai-provider.interface';
 
 export interface ValidationError {
   path: string;
@@ -39,8 +40,12 @@ export class ConfigValidatorService {
   private readonly logger = new Logger('ConfigValidatorService');
   private readonly ajv: Ajv;
 
-  // Valid provider values
-  private readonly VALID_PROVIDERS = ['claude', 'gemini', 'copilot'];
+  // Valid built-in provider values (with namespace)
+  private readonly VALID_BUILTIN_PROVIDERS = [
+    BuiltInProviders.CLAUDE,
+    BuiltInProviders.GEMINI,
+    BuiltInProviders.COPILOT,
+  ];
 
   // Known field names for typo detection
   private readonly KNOWN_AGENT_FIELDS = [
@@ -96,6 +101,21 @@ export class ConfigValidatorService {
    * JSON Schema validation
    */
   private validateSchema(config: any): ValidationError[] {
+    // Build dynamic list of valid providers
+    const validProviders: string[] = [...this.VALID_BUILTIN_PROVIDERS];
+
+    // Add plugin providers from config (with plugin/ namespace)
+    if (config.providers && Array.isArray(config.providers)) {
+      config.providers.forEach((provider: any) => {
+        if (provider.type === 'plugin' && provider.id) {
+          const pluginProviderName = `${ProviderNamespace.PLUGIN}/${provider.id}`;
+          if (!validProviders.includes(pluginProviderName)) {
+            validProviders.push(pluginProviderName);
+          }
+        }
+      });
+    }
+
     const schema = {
       type: 'object',
       required: ['agents'],
@@ -113,10 +133,10 @@ export class ConfigValidatorService {
               team: { type: 'string' },
               provider: {
                 oneOf: [
-                  { type: 'string', enum: this.VALID_PROVIDERS },
+                  { type: 'string', enum: validProviders },
                   {
                     type: 'array',
-                    items: { type: 'string', enum: this.VALID_PROVIDERS },
+                    items: { type: 'string', enum: validProviders },
                     minItems: 1
                   }
                 ]
@@ -145,7 +165,7 @@ export class ConfigValidatorService {
                   model: { type: 'string' },
                   provider: {
                     type: 'string',
-                    enum: this.VALID_PROVIDERS
+                    enum: validProviders
                   }
                 },
                 additionalProperties: true
@@ -219,7 +239,7 @@ export class ConfigValidatorService {
           if ('allowedValues' in error.params) {
             message = `Invalid value: '${error.data}'. Must be one of: ${(error.params.allowedValues as string[]).join(', ')}`;
             if (error.instancePath?.includes('provider')) {
-              suggestion = `Valid providers: ${this.VALID_PROVIDERS.join(', ')}`;
+              suggestion = `Valid providers: ${this.VALID_BUILTIN_PROVIDERS.join(', ')} + plugin providers`;
             }
           } else {
             message = 'Invalid enum value';
@@ -368,6 +388,19 @@ export class ConfigValidatorService {
   private validateValues(config: any): ValidationError[] {
     const errors: ValidationError[] = [];
 
+    // Build dynamic list of valid providers (with namespaces)
+    const validProviders: string[] = [...this.VALID_BUILTIN_PROVIDERS];
+    if (config.providers && Array.isArray(config.providers)) {
+      config.providers.forEach((provider: any) => {
+        if (provider.type === 'plugin' && provider.id) {
+          const pluginProviderName = `${ProviderNamespace.PLUGIN}/${provider.id}`;
+          if (!validProviders.includes(pluginProviderName)) {
+            validProviders.push(pluginProviderName);
+          }
+        }
+      });
+    }
+
     if (config.agents && Array.isArray(config.agents)) {
       config.agents.forEach((agent: any, index: number) => {
         // Check that provider exists either at agent level or in inline
@@ -378,7 +411,7 @@ export class ConfigValidatorService {
           errors.push({
             path: `agents[${index}]`,
             message: `Missing provider: must have 'provider' field at agent level or in 'inline.provider'`,
-            suggestion: `Add 'provider' field with value: ${this.VALID_PROVIDERS.join(', ')}`
+            suggestion: `Add 'provider' field with value: ${validProviders.join(', ')}`
           });
         }
 
@@ -386,19 +419,19 @@ export class ConfigValidatorService {
         if (agent.provider) {
           if (Array.isArray(agent.provider)) {
             agent.provider.forEach((p: string, pIndex: number) => {
-              if (!this.VALID_PROVIDERS.includes(p)) {
+              if (!validProviders.includes(p)) {
                 errors.push({
                   path: `agents[${index}].provider[${pIndex}]`,
                   message: `Invalid provider: '${p}'`,
-                  suggestion: `Valid providers: ${this.VALID_PROVIDERS.join(', ')}`
+                  suggestion: `Valid providers: ${validProviders.join(', ')}`
                 });
               }
             });
-          } else if (typeof agent.provider === 'string' && !this.VALID_PROVIDERS.includes(agent.provider)) {
+          } else if (typeof agent.provider === 'string' && !validProviders.includes(agent.provider)) {
             errors.push({
               path: `agents[${index}].provider`,
               message: `Invalid provider: '${agent.provider}'`,
-              suggestion: `Valid providers: ${this.VALID_PROVIDERS.join(', ')}`
+              suggestion: `Valid providers: ${validProviders.join(', ')}`
             });
           }
         }
@@ -419,11 +452,11 @@ export class ConfigValidatorService {
         }
 
         // Validate inline.provider
-        if (agent.inline?.provider && !this.VALID_PROVIDERS.includes(agent.inline.provider)) {
+        if (agent.inline?.provider && !validProviders.includes(agent.inline.provider)) {
           errors.push({
             path: `agents[${index}].inline.provider`,
             message: `Invalid provider: '${agent.inline.provider}'`,
-            suggestion: `Valid providers: ${this.VALID_PROVIDERS.join(', ')}`
+            suggestion: `Valid providers: ${validProviders.join(', ')}`
           });
         }
       });

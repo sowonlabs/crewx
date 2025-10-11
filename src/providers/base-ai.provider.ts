@@ -8,7 +8,7 @@ import { getTimeoutConfig } from '../config/timeout.config';
 
 @Injectable()
 export abstract class BaseAIProvider implements AIProvider {
-  abstract readonly name: 'claude' | 'gemini' | 'copilot';
+  abstract readonly name: string; // Format: {namespace}/{id} (e.g., "cli/claude", "plugin/mock")
   protected readonly logger: Logger;
   protected toolCallService?: ToolCallService;
   private readonly logsDir = join(process.cwd(), '.crewx', 'logs');
@@ -72,6 +72,21 @@ export abstract class BaseAIProvider implements AIProvider {
     if (this.name === 'gemini') return this.timeoutConfig.geminiExecute;
     if (this.name === 'copilot') return this.timeoutConfig.copilotExecute;
     return 1200000; // Fallback
+  }
+
+  /**
+   * Get default model for this provider
+   * Can be overridden by plugin providers
+   */
+  protected getDefaultModel(): string | null {
+    return null; // Built-in providers don't have a default model
+  }
+
+  /**
+   * Substitute {model} placeholders in arguments
+   */
+  protected substituteModelPlaceholders(args: string[], model: string): string[] {
+    return args.map(arg => arg.replace(/\{model\}/g, model));
   }
 
   /**
@@ -344,16 +359,26 @@ Started: ${timestamp}
     const executablePath = this.getCliCommand();
 
     try {
+      // Determine model to use (options.model > default_model)
+      const modelToUse = options.model || this.getDefaultModel();
+
       let args = [
         ...(options.additionalArgs || []),
         ...this.getDefaultArgs(),
       ];
-      
-      // Add --model option if specified
-      if (options.model) {
+
+      // Substitute {model} placeholders if model is specified
+      if (modelToUse) {
+        args = this.substituteModelPlaceholders(args, modelToUse);
+      }
+
+      // For built-in providers (claude, gemini, copilot), add --model option if not already in args
+      // For plugin providers, the {model} placeholder substitution handles it
+      const hasModelInArgs = args.some(arg => arg.includes('--model') || arg.includes('{model}'));
+      if (options.model && !hasModelInArgs) {
         args.unshift(`--model=${options.model}`);
       }
-      
+
       // Providers handle prompts differently
       const promptInArgs = this.getPromptInArgs();
       if (promptInArgs) {
@@ -537,16 +562,26 @@ Started: ${timestamp}
     const executablePath = this.getCliCommand();
 
     try {
+      // Determine model to use (options.model > default_model)
+      const modelToUse = options.model || this.getDefaultModel();
+
       let args = [
         ...(options.additionalArgs || []),
         ...this.getExecuteArgs(),
       ];
-      
-      // Add --model option if specified
-      if (options.model) {
+
+      // Substitute {model} placeholders if model is specified
+      if (modelToUse) {
+        args = this.substituteModelPlaceholders(args, modelToUse);
+      }
+
+      // For built-in providers (claude, gemini, copilot), add --model option if not already in args
+      // For plugin providers, the {model} placeholder substitution handles it
+      const hasModelInArgs = args.some(arg => arg.includes('--model') || arg.includes('{model}'));
+      if (options.model && !hasModelInArgs) {
         args.unshift(`--model=${options.model}`);
       }
-      
+
       // Providers handle prompts differently
       if (this.getPromptInArgs()) {
         // Include prompt in args like Copilot, Gemini
@@ -579,14 +614,23 @@ Started: ${timestamp}
           env.PYTHONIOENCODING = 'utf-8';
           env.LANG = 'en_US.UTF-8';
         }
-        
-        // Use command name directly with shell: true for cross-platform execution
-        const child = spawn(executablePath, args, {
+
+        // For Windows, use the full path to .cmd file if needed
+        let executable = executablePath;
+        let spawnArgs = args;
+        let useShell = false;
+
+        if (process.platform === 'win32' && !executablePath.match(/\.(cmd|bat|ps1)$/i)) {
+          // On Windows, if executable doesn't have extension, spawn needs shell
+          useShell = true;
+        }
+
+        const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
           cwd: options.workingDirectory || process.cwd(),
           env,
-          shell: true, // Let shell handle .cmd/.bat files on Windows
-        });
+          shell: useShell,
+        } as any);
 
         let stdout = '';
         let stderr = '';

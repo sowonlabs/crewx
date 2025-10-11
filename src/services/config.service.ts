@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { readFileSync, existsSync } from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
+import { PluginProviderConfig } from '../providers/dynamic-provider.factory';
 
 export interface AgentConfig {
   id: string;
@@ -20,13 +21,24 @@ export interface AgentConfig {
   };
 }
 
+export interface CrewXConfig {
+  agents: AgentConfig[];
+  providers?: PluginProviderConfig[];
+}
+
 @Injectable()
 export class ConfigService implements OnModuleInit {
   private readonly logger = new Logger(ConfigService.name);
   private agents: Map<string, AgentConfig> = new Map();
+  private pluginProviders: PluginProviderConfig[] = [];
+
+  constructor() {
+    // Load config in constructor to ensure it's available before other services' onModuleInit()
+    this.loadAgentConfigs();
+  }
 
   onModuleInit() {
-    this.loadAgentConfigs();
+    // Config already loaded in constructor
   }
 
   private loadAgentConfigs() {
@@ -57,8 +69,12 @@ export class ConfigService implements OnModuleInit {
 
     try {
       const configContent = readFileSync(configPath, 'utf8');
+
+      // Use default (JSON) schema for proper type conversion
+      // FAILSAFE_SCHEMA was too restrictive - it treats all values as strings
       const config = yaml.load(configContent) as any;
 
+      // Load agents
       if (config.agents && Array.isArray(config.agents)) {
         for (const agent of config.agents) {
           if (agent.id) {
@@ -66,6 +82,14 @@ export class ConfigService implements OnModuleInit {
           }
         }
         this.logger.log(`Loaded ${this.agents.size} agent configurations from ${configName}.`);
+      }
+
+      // Load plugin providers
+      if (config.providers && Array.isArray(config.providers)) {
+        this.pluginProviders = config.providers.filter(
+          (p: any) => p.type === 'plugin'
+        );
+        this.logger.log(`Loaded ${this.pluginProviders.length} plugin provider configurations.`);
       }
     } catch (error) {
       this.logger.error(`Failed to load or parse ${configName}`, error);
@@ -78,5 +102,9 @@ export class ConfigService implements OnModuleInit {
 
   getAllAgentIds(): string[] {
     return Array.from(this.agents.keys());
+  }
+
+  getPluginProviders(): PluginProviderConfig[] {
+    return this.pluginProviders;
   }
 }

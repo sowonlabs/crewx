@@ -1,12 +1,12 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseAIProvider } from './base-ai.provider';
-import { AIQueryOptions, AIResponse } from './ai-provider.interface';
+import { AIQueryOptions, AIResponse, BuiltInProviders } from './ai-provider.interface';
 import { ToolCallService, Tool } from '../services/tool-call.service';
 
 @Injectable()
 export class CopilotProvider extends BaseAIProvider {
-  readonly name = 'copilot' as const;
+  readonly name = BuiltInProviders.COPILOT;
 
   constructor(toolCallService?: ToolCallService) {
     super('CopilotProvider');

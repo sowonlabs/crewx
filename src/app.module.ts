@@ -11,6 +11,7 @@ import { AIProviderService } from './ai-provider.service';
 import { ClaudeProvider } from './providers/claude.provider';
 import { CopilotProvider } from './providers/copilot.provider';
 import { GeminiProvider } from './providers/gemini.provider';
+import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ParallelProcessingService } from './services/parallel-processing.service';
 import { TaskManagementService } from './services/task-management.service';
 import { ResultFormatterService } from './services/result-formatter.service';
@@ -54,6 +55,7 @@ export class AppModule {
         ClaudeProvider,
         CopilotProvider,
         GeminiProvider,
+        DynamicProviderFactory,
         ParallelProcessingService,
         TaskManagementService,
         ResultFormatterService,

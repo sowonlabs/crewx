@@ -69,12 +69,12 @@ export class SlackBot {
     }
   }
 
-  // /**
-  //  * Check if bot should respond to this message
-  //  * - Must be explicitly mentioned OR
-  //  * - Must be the last speaker in the thread (prevents multiple bots responding) OR
-  //  * - No mention present and not in a thread (default agent responds)
-  //  */
+  /**
+   * Check if bot should respond to this message
+   * - Must be explicitly mentioned OR
+   * - Must be the last speaker in the thread (prevents multiple bots responding) OR
+   * - No mention present and not in a thread (default agent responds)
+   */
   private async shouldRespondToMessage(message: any, client: any): Promise<boolean> {
     const botUserId = await this.getBotUserId(client);
     const text = message.text || '';
@@ -191,10 +191,9 @@ export class SlackBot {
       }
     }
 
-    // // 5. No mention present - respond with default agent
-    // this.logger.log(`✅ DECISION: No mention, no thread → Default agent RESPOND`);
-    // return true;
-    return false;
+    // 5. No mention present - respond with default agent
+    this.logger.log(`✅ DECISION: No mention, no thread → Default agent RESPOND`);
+    return true;
   }
 
   private registerHandlers() {
