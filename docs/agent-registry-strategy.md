@@ -128,7 +128,7 @@ capabilities:
   - database-migration
 
 # AI 설정
-provider: claude
+provider: cli/claude
 model: sonnet
 
 # 시스템 프롬프트

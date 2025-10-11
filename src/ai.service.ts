@@ -11,7 +11,7 @@ const execAsync = promisify(exec);
 
 export interface AIResponse {
   content: string;
-  provider: 'claude' | 'gemini' | 'copilot';
+  provider: string;
   command: string;
   success: boolean;
   error?: string;
@@ -674,8 +674,8 @@ Started: ${timestamp}
   }
 
   async queryAI(
-    prompt: string, 
-    provider: 'claude' | 'gemini' | 'copilot' = 'claude',
+    prompt: string,
+    provider: string = 'claude',
     options: AIQueryOptions & { taskId?: string } = {}
   ): Promise<AIResponse> {
     // Use the new provider system
@@ -684,7 +684,7 @@ Started: ${timestamp}
 
   async executeAI(
     prompt: string,
-    provider: 'claude' | 'gemini' | 'copilot' = 'claude',
+    provider: string = 'claude',
     options: AIQueryOptions & { taskId?: string } = {}
   ): Promise<AIResponse> {
     // Use the new provider system's execute method

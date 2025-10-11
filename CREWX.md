@@ -76,7 +76,11 @@ crewx/
 ## 📦 Key Technologies
 
 - **Framework**: NestJS (Dependency Injection, Modularity)
-- **AI Providers**: Claude Code, Gemini CLI, GitHub Copilot CLI
+- **AI Providers**:
+  - Built-in CLI providers (cli/*): Claude Code, Gemini CLI, GitHub Copilot CLI
+  - Plugin providers (plugin/*): User-defined external AI tools via YAML config
+  - Future API providers (api/*): Direct API integrations (planned)
+- **Provider Namespace System**: `{namespace}/{id}` format for organized provider management
 - **Protocols**: Model Context Protocol (MCP)
 - **Integrations**: Slack Bolt SDK
 - **Template Engine**: Handlebars

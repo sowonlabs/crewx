@@ -110,7 +110,7 @@ Create `crewx.yaml` (or `agents.yaml` for backward compatibility):
 agents:
   - id: "frontend_dev"
     name: "React Expert"
-    provider: "claude"
+    provider: "cli/claude"  # Built-in CLI provider
     working_directory: "./src"
     inline:
       type: "agent"

@@ -1,0 +1,41 @@
+# CrewX Configuration Example
+# Rename this file to crewx.yaml to use it
+
+# Plugin Providers (Optional)
+# Provider names follow the format: {namespace}/{id}
+# - cli/*: Built-in CLI providers (claude, gemini, copilot)
+# - plugin/*: User-defined external CLI tools
+# - api/*: API-based providers (future)
+providers:
+  # Mock CLI for testing plugin provider system
+  - id: mock
+    type: plugin
+    cli_command: test-tools/mock-cli
+    default_model: "sonnet"
+    query_args: ["--model", "{model}", "--message"]
+    execute_args: ["--model", "{model}", "--message"]
+    prompt_in_args: true
+
+# Agents Configuration
+agents:
+  - id: claude
+    provider: cli/claude  # Namespace format
+    name: "Claude Assistant"
+    capabilities:
+      - query
+      - implementation
+
+  - id: gemini
+    provider: cli/gemini  # Namespace format
+    name: "Gemini Assistant"
+    capabilities:
+      - query
+      - implementation
+
+  # Example: Plugin provider agent
+  - id: mock_test
+    provider: plugin/mock  # Namespace format
+    name: "Mock Test Agent"
+    capabilities:
+      - query
+      - implementation

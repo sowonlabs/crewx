@@ -3,6 +3,8 @@ import { AIProvider, AIQueryOptions, AIResponse, ProviderNotAvailableError } fro
 import { ClaudeProvider } from './providers/claude.provider';
 import { CopilotProvider } from './providers/copilot.provider';
 import { GeminiProvider } from './providers/gemini.provider';
+import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
+import { ConfigService } from './services/config.service';
 
 @Injectable()
 export class AIProviderService implements OnModuleInit {
@@ -14,12 +16,55 @@ export class AIProviderService implements OnModuleInit {
     private readonly claudeProvider: ClaudeProvider,
     private readonly copilotProvider: CopilotProvider,
     private readonly geminiProvider: GeminiProvider,
+    private readonly dynamicProviderFactory: DynamicProviderFactory,
+    private readonly configService: ConfigService,
   ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
+    // Register built-in providers
     this.registerProvider(this.claudeProvider);
     this.registerProvider(this.copilotProvider);
     this.registerProvider(this.geminiProvider);
+
+    // Load and register plugin providers from YAML config
+    await this.loadPluginProviders();
+  }
+
+  /**
+   * Load plugin providers from YAML configuration
+   */
+  private async loadPluginProviders(): Promise<void> {
+    try {
+      const pluginConfigs = this.configService.getPluginProviders();
+
+      if (!pluginConfigs || pluginConfigs.length === 0) {
+        this.logger.log('No plugin providers defined in crewx.yaml');
+        return;
+      }
+
+      for (const providerConfig of pluginConfigs) {
+        try {
+          // Validate configuration
+          if (!this.dynamicProviderFactory.validateConfig(providerConfig)) {
+            this.logger.warn(`Invalid plugin provider config: ${(providerConfig as any).id}`);
+            this.logger.debug(`Config dump: ${JSON.stringify(providerConfig, null, 2)}`);
+            continue;
+          }
+
+          // Create dynamic provider instance with security validation
+          const provider = this.dynamicProviderFactory.createProvider(providerConfig);
+          this.registerProvider(provider);
+          this.logger.log(`✅ Registered plugin provider: ${providerConfig.id}`);
+        } catch (error: any) {
+          this.logger.error(
+            `Failed to load plugin provider '${(providerConfig as any).id || 'unknown'}': ${error.message}`,
+            error.stack
+          );
+        }
+      }
+    } catch (error: any) {
+      this.logger.error('Failed to load plugin providers:', error);
+    }
   }
 
   private registerProvider(provider: AIProvider): void {
@@ -50,8 +95,8 @@ export class AIProviderService implements OnModuleInit {
   }
 
   async queryAI(
-    prompt: string, 
-    providerName: 'claude' | 'gemini' | 'copilot' = 'claude',
+    prompt: string,
+    providerName: string = 'claude',
     options: AIQueryOptions = {}
   ): Promise<AIResponse> {
     const provider = this.providers.get(providerName);
@@ -87,7 +132,7 @@ export class AIProviderService implements OnModuleInit {
 
   async executeAI(
     prompt: string,
-    providerName: 'claude' | 'gemini' | 'copilot',
+    providerName: string,
     options: AIQueryOptions = {}
   ): Promise<AIResponse> {
     const provider = this.providers.get(providerName);
@@ -138,11 +183,18 @@ export class AIProviderService implements OnModuleInit {
 
   async validateCLIInstallation(): Promise<{ [key: string]: boolean }> {
     const installation: { [key: string]: boolean } = {};
-    
+
     for (const [name, provider] of this.providers) {
       installation[name] = await provider.isAvailable();
     }
-    
+
     return installation;
+  }
+
+  /**
+   * Get plugin provider configurations
+   */
+  getPluginProviders(): any[] {
+    return this.configService.getPluginProviders();
   }
 }
