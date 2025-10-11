@@ -19,12 +19,12 @@ export class ClaudeProvider extends BaseAIProvider {
   }
 
   protected getDefaultArgs(): string[] {
-    return ['--output-format', 'stream-json', '--verbose', '-p'];
+    return ['--verbose', '-p'];
   }
 
   protected getExecuteArgs(): string[] {
     // Set basic execution mode only. All security options are controlled in agents.yaml
-    return ['--output-format', 'stream-json', '--verbose', '-p'];
+    return ['--verbose', '-p'];
   }
 
   protected getNotInstalledMessage(): string {

@@ -148,6 +148,17 @@ async function runCli() {
     const app = await NestFactory.createApplicationContext(AppModule.forRoot(args), {
       logger: args.log ? new StderrLogger('CodeCrewCLI', { timestamp: true }) : false,
     });
+
+    // Set custom config path if provided via --config
+    if (args.config) {
+      const configService = app.get(ConfigService);
+      const aiProviderService = app.get(AIProviderService);
+
+      configService.setConfigPath(args.config);
+      configService.loadAgentConfigs();
+      await aiProviderService.reloadPluginProviders();
+    }
+
     const cliHandler = new CLIHandler();
     await cliHandler.handleCommand(app, args);
   } else {
@@ -155,6 +166,17 @@ async function runCli() {
     const app = await NestFactory.createApplicationContext(AppModule.forRoot(args), {
       logger: args.log ? new StderrLogger('CodeCrewCLI', { timestamp: true }) : false,
     });
+
+    // Set custom config path if provided via --config
+    if (args.config) {
+      const configService = app.get(ConfigService);
+      const aiProviderService = app.get(AIProviderService);
+
+      configService.setConfigPath(args.config);
+      configService.loadAgentConfigs();
+      await aiProviderService.reloadPluginProviders();
+    }
+
     const cliHandler = new CLIHandler();
     await cliHandler.handleCommand(app, { ...args, command: 'help' });
   }

@@ -17,7 +17,7 @@ export async function handleChat(app: any, args: CliOptions) {
 
   try {
     const crewXTool = app.get(CrewXTool);
-    const providerFactory = new ConversationProviderFactory();
+    const providerFactory = app.get(ConversationProviderFactory);
     const chatHandler = new ChatHandler(crewXTool, providerFactory);
 
     // Parse options from args

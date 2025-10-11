@@ -26,6 +26,7 @@ import { ConfigService } from './services/config.service';
 import { ContextEnhancementService } from './services/context-enhancement.service';
 import { IntelligentCompressionService } from './services/intelligent-compression.service';
 import { ConfigValidatorService } from './services/config-validator.service';
+import { ConversationProviderFactory } from './conversation';
 
 @Module({})
 export class AppModule {
@@ -65,6 +66,8 @@ export class AppModule {
         // Enhanced Context Services
         ContextEnhancementService,
         IntelligentCompressionService,
+        // Conversation System
+        ConversationProviderFactory,
         // Tool System
         ToolCallService,
         AgentLoaderService,

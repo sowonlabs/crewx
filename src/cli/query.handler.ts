@@ -43,7 +43,7 @@ export async function handleQuery(app: any, args: CliOptions) {
     let conversationThread: any = null;
 
     if (args.thread) {
-      const providerFactory = new ConversationProviderFactory();
+      const providerFactory = app.get(ConversationProviderFactory);
       conversationProvider = providerFactory.getProvider('cli') as CliConversationHistoryProvider;
       await conversationProvider.initialize();
 

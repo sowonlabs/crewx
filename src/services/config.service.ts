@@ -31,32 +31,61 @@ export class ConfigService implements OnModuleInit {
   private readonly logger = new Logger(ConfigService.name);
   private agents: Map<string, AgentConfig> = new Map();
   private pluginProviders: PluginProviderConfig[] = [];
+  private customConfigPath: string | null = null;
 
   constructor() {
-    // Load config in constructor to ensure it's available before other services' onModuleInit()
+    // Load config in constructor to ensure it's available before other services
+    // This ensures AIProviderService can access plugin providers in its onModuleInit
     this.loadAgentConfigs();
+  }
+
+  /**
+   * Set custom config path from CLI --config option
+   * Must be called before loadAgentConfigs()
+   */
+  setConfigPath(configPath: string) {
+    this.customConfigPath = configPath;
   }
 
   onModuleInit() {
     // Config already loaded in constructor
   }
 
-  private loadAgentConfigs() {
-    // Priority: crewx.yaml > agents.yaml (backward compatibility)
-    const configPaths = [
-      { path: path.join(process.cwd(), 'crewx.yaml'), name: 'crewx.yaml' },
-      { path: path.join(process.cwd(), 'agents.yaml'), name: 'agents.yaml' },
-    ];
+  loadAgentConfigs() {
+    // Clear existing configurations when reloading
+    this.agents.clear();
+    this.pluginProviders = [];
 
     let configPath: string | null = null;
     let configName: string | null = null;
 
-    // Find first existing config file
-    for (const config of configPaths) {
-      if (existsSync(config.path)) {
-        configPath = config.path;
-        configName = config.name;
-        break;
+    // Priority: CLI --config option > crewx.yaml > agents.yaml
+    if (this.customConfigPath) {
+      const customPath = path.isAbsolute(this.customConfigPath)
+        ? this.customConfigPath
+        : path.join(process.cwd(), this.customConfigPath);
+
+      if (existsSync(customPath)) {
+        configPath = customPath;
+        configName = path.basename(customPath);
+      } else {
+        this.logger.error(`Custom config file not found: ${customPath}`);
+        return;
+      }
+    } else {
+      // Default: search for crewx.yaml or agents.yaml
+      const configPaths = [
+        { path: path.join(process.cwd(), 'crewx.yaml'), name: 'crewx.yaml' },
+        { path: path.join(process.cwd(), 'agents.yaml'), name: 'agents.yaml' },
+      ];
+
+      // Find first existing config file
+      for (const config of configPaths) {
+        if (existsSync(config.path)) {
+          configPath = config.path;
+          configName = config.name;
+          break;
+        }
       }
     }
 
@@ -106,5 +135,29 @@ export class ConfigService implements OnModuleInit {
 
   getPluginProviders(): PluginProviderConfig[] {
     return this.pluginProviders;
+  }
+
+  /**
+   * Get the currently loaded config file path
+   * Used by AgentLoaderService to load from the same config
+   */
+  getCurrentConfigPath(): string | null {
+    if (this.customConfigPath) {
+      return path.isAbsolute(this.customConfigPath)
+        ? this.customConfigPath
+        : path.join(process.cwd(), this.customConfigPath);
+    }
+
+    // Default paths
+    const crewxPath = path.join(process.cwd(), 'crewx.yaml');
+    const agentsPath = path.join(process.cwd(), 'agents.yaml');
+
+    if (existsSync(crewxPath)) {
+      return crewxPath;
+    } else if (existsSync(agentsPath)) {
+      return agentsPath;
+    }
+
+    return null;
   }
 }
