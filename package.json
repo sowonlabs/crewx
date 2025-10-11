@@ -1,6 +1,6 @@
 {
   "name": "crewx",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "Apache-2.0",
   "description": "Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
   "main": "dist/main.js",
