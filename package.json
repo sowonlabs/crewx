@@ -1,6 +1,6 @@
 {
   "name": "crewx",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "Apache-2.0",
   "description": "Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
   "main": "dist/main.js",
@@ -18,7 +18,8 @@
     "dist",
     "README.md",
     "crewx.yaml",
-    "docs"
+    "docs",
+    "templates"
   ],
   "repository": {
     "type": "git",
