@@ -30,13 +30,13 @@ src/
 │   ├── help.handler.ts           # Help system
 │   └── cli.handler.ts            # CLI orchestration
 │
-├── providers/                    # AI Provider System
-│   ├── ai-provider.interface.ts  # Provider contract
-│   ├── base-ai.provider.ts       # Base implementation
-│   ├── claude.provider.ts        # Claude Code integration
-│   ├── gemini.provider.ts        # Gemini CLI integration
-│   ├── copilot.provider.ts       # GitHub Copilot integration
-│   └── dynamic-provider.factory.ts # Plugin system
+├── providers/                    # AI Provider System (Namespace-based)
+│   ├── ai-provider.interface.ts  # Provider contract & namespace constants
+│   ├── base-ai.provider.ts       # Base implementation with model substitution
+│   ├── claude.provider.ts        # cli/claude - Claude Code integration
+│   ├── gemini.provider.ts        # cli/gemini - Gemini CLI integration
+│   ├── copilot.provider.ts       # cli/copilot - GitHub Copilot integration
+│   └── dynamic-provider.factory.ts # plugin/* - YAML-based plugin system
 │
 ├── services/                     # Business Logic Services
 │   ├── tool-call.service.ts              # Tool execution engine
@@ -134,9 +134,11 @@ The heart of the application:
   - Response handling
 
 - **Provider System** (`providers/`)
-  - Abstract provider interface
-  - Built-in providers (Claude, Gemini, Copilot)
-  - Plugin system for external providers
+  - Namespace-based provider organization: `{namespace}/{id}`
+  - Built-in CLI providers: `cli/claude`, `cli/gemini`, `cli/copilot`
+  - Plugin providers: `plugin/{id}` for YAML-defined external tools
+  - Future API providers: `api/*` (planned for direct API integrations)
+  - Model placeholder substitution: `{model}` → actual model name
 
 - **Tool System** (`services/tool-call.service.ts`)
   - Tool discovery & loading
@@ -226,11 +228,11 @@ NestJS providers registered in `app.module.ts`:
 - `AIProviderService` - Provider management
 - `ProjectService` - Project context
 
-### Providers
-- `ClaudeProvider` - Claude Code
-- `CopilotProvider` - GitHub Copilot
-- `GeminiProvider` - Gemini CLI
-- `DynamicProviderFactory` - Plugin loader
+### Providers (Namespace-based)
+- `ClaudeProvider` - cli/claude (Claude Code integration)
+- `CopilotProvider` - cli/copilot (GitHub Copilot CLI)
+- `GeminiProvider` - cli/gemini (Gemini CLI)
+- `DynamicProviderFactory` - plugin/* (YAML-based plugin loader)
 
 ### Services
 - `ToolCallService` - Tool execution

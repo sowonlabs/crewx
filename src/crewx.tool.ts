@@ -368,8 +368,8 @@ agents:
         this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Model: ${model}` });
       }
 
-      // Dynamically load agent configuration using AgentLoaderService
-      const agents = await this.agentLoaderService.loadAvailableAgents();
+      // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
+      const agents = await this.agentLoaderService.getAllAgents();
       const agent = agents.find(a => a.id === agentId);
 
       if (!agent) {
@@ -458,7 +458,7 @@ ${query}
 
       // Use agent's AI provider - using queryAI wrapper
       let response;
-      let provider: 'claude' | 'gemini' | 'copilot';
+      let provider: string;
       
       // Determine provider strategy based on agent configuration
       if (Array.isArray(agent.provider)) {
@@ -590,8 +590,8 @@ Read-Only Mode: No files were modified.`
         this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Model: ${model}` });
       }
 
-      // Dynamically load agent configuration using AgentLoaderService
-      const agents = await this.agentLoaderService.loadAvailableAgents();
+      // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
+      const agents = await this.agentLoaderService.getAllAgents();
       const agent = agents.find(a => a.id === agentId);
 
       if (!agent) {
@@ -673,7 +673,7 @@ Task: ${task}
 
       // Use agent's AI provider (execution mode)
       let response;
-      let provider: 'claude' | 'gemini' | 'copilot';
+      let provider: string;
       
       // Determine provider strategy based on agent configuration
       if (Array.isArray(agent.provider)) {

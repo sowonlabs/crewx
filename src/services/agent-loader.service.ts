@@ -8,7 +8,7 @@
  * Total: 9 essential tests that validate agent loading with document templates.
  */
 
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
 import { AgentInfo } from '../agent.types';
 import * as yaml from 'js-yaml';
 import { readFile } from 'fs/promises';
@@ -17,6 +17,7 @@ import type { TemplateContext } from '../utils/template-processor';
 import { DocumentLoaderService } from './document-loader.service';
 import { TemplateService } from './template.service';
 import { ConfigValidatorService } from './config-validator.service';
+import { AIProviderService } from '../ai-provider.service';
 
 /**
  * AgentLoaderService - Centralized agent configuration loading
@@ -38,6 +39,7 @@ export class AgentLoaderService {
     @Optional() private readonly documentLoaderService?: DocumentLoaderService,
     @Optional() private readonly templateService?: TemplateService,
     @Optional() private readonly configValidatorService?: ConfigValidatorService,
+    @Optional() @Inject(forwardRef(() => AIProviderService)) private readonly aiProviderService?: AIProviderService,
   ) {}
 
   /**
@@ -86,6 +88,9 @@ export class AgentLoaderService {
    * @returns Promise<AgentInfo[]> - Combined list of all agents
    */
   async getAllAgents(): Promise<AgentInfo[]> {
+    // Just return agents from configuration
+    // Plugin providers are already referenced by agents via their 'provider' field
+    // No need to create synthetic agents for providers
     return this.loadAvailableAgents();
   }
 

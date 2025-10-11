@@ -252,11 +252,11 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
             return false;
           }
 
-          // Exclude footer blocks (context blocks with crewx branding)
-          // Footer pattern: "$ crewx | github.com/sowonlabs/crewx"
+          // Exclude footer blocks (context blocks with crewcode branding)
+          // Footer pattern: "$ crewcode | github.com/sowonlabs/crewcode"
           if (b.type === 'context' && b.elements) {
             const text = b.elements[0]?.text || '';
-            if (text.includes('$ crewx') || text.includes('github.com/sowonlabs/crewx')) {
+            if (text.includes('$ crewcode') || text.includes('github.com/sowonlabs/crewcode')) {
               return false;
             }
           }

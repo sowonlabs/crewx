@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { BaseAIProvider } from './base-ai.provider';
-import { AIQueryOptions, AIResponse } from './ai-provider.interface';
+import { AIQueryOptions, AIResponse, BuiltInProviders } from './ai-provider.interface';
 import { ToolCallService, Tool } from '../services/tool-call.service';
 
 @Injectable()
 export class GeminiProvider extends BaseAIProvider {
-  readonly name = 'gemini' as const;
+  readonly name = BuiltInProviders.GEMINI;
 
   constructor(toolCallService?: ToolCallService) {
     super('GeminiProvider');

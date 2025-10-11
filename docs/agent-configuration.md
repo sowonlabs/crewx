@@ -10,7 +10,7 @@ Create a `crewx.yaml` file in your project:
 agents:
   - id: "frontend_dev"
     name: "React Expert"
-    provider: "claude"
+    provider: "cli/claude"  # Built-in CLI provider
     working_directory: "./src"
     inline:
       type: "agent"
@@ -25,24 +25,35 @@ agents:
 
 ```yaml
 agents:
-  - id: "agent_id"                    # Required: Unique identifier
-    name: "Human Readable Name"       # Optional: Display name
-    provider: "claude"                # Required: AI provider (string or array)
-    working_directory: "/path/to/dir" # Optional: Working directory
-    options:                          # Optional: CLI options
-      query:                          # Options for query mode
+  - id: "agent_id"                       # Required: Unique identifier
+    name: "Human Readable Name"          # Optional: Display name
+    provider: "cli/claude"               # Required: AI provider (namespace/id format)
+    working_directory: "/path/to/dir"    # Optional: Working directory
+    options:                             # Optional: CLI options
+      query:                             # Options for query mode
         - "--add-dir=."
-      execute:                        # Options for execute mode
+      execute:                           # Options for execute mode
         - "--add-dir=."
         - "--allowedTools=Edit,Bash"
-    inline:                           # Required: Agent definition
-      type: "agent"                   # Required: Type
-      model: "opus"                   # Optional: Specific model
-      system_prompt: |                # Required: Instructions
+    inline:                              # Required: Agent definition
+      type: "agent"                      # Required: Type
+      model: "opus"                      # Optional: Specific model
+      system_prompt: |                   # Required: Instructions
         Your agent's system prompt
 ```
 
 ## Provider Configuration
+
+### Provider Namespace Format
+
+CrewX uses a namespace-based provider naming system:
+
+**Format:** `{namespace}/{id}`
+
+**Available Namespaces:**
+- `cli/*` - Built-in CLI providers (claude, gemini, copilot)
+- `plugin/*` - User-defined plugin providers
+- `api/*` - API-based providers (future: openai, anthropic, ollama, litellm)
 
 ### Single Provider (Fixed)
 
@@ -51,7 +62,10 @@ Use a single string to fix the provider:
 ```yaml
 agents:
   - id: "claude_only"
-    provider: "claude"  # Always uses Claude, no fallback
+    provider: "cli/claude"  # Always uses Claude CLI, no fallback
+
+  - id: "custom_agent"
+    provider: "plugin/my-tool"  # Uses custom plugin provider
 ```
 
 ### Multiple Providers (Fallback)
@@ -61,7 +75,7 @@ Use an array for automatic fallback:
 ```yaml
 agents:
   - id: "flexible_agent"
-    provider: ["claude", "gemini", "copilot"]  # Tries in order
+    provider: ["cli/claude", "cli/gemini", "cli/copilot"]  # Tries in order
 ```
 
 **Behavior:**
@@ -75,15 +89,15 @@ Configure different options for each provider:
 ```yaml
 agents:
   - id: "multi_provider"
-    provider: ["claude", "gemini", "copilot"]
+    provider: ["cli/claude", "cli/gemini", "cli/copilot"]
     options:
       execute:
-        claude:
+        cli/claude:
           - "--permission-mode=acceptEdits"
           - "--add-dir=."
-        gemini:
+        cli/gemini:
           - "--include-directories=."
-        copilot:
+        cli/copilot:
           - "--add-dir=."
 ```
 
@@ -117,7 +131,7 @@ Specify AI models in configuration or at runtime:
 ```yaml
 agents:
   - id: "opus_agent"
-    provider: "claude"
+    provider: "cli/claude"
     inline:
       model: "opus"  # Fixed model
       system_prompt: "You are an expert."
@@ -171,7 +185,7 @@ agents:
   # Frontend specialist
   - id: "frontend_developer"
     name: "React Expert"
-    provider: "claude"
+    provider: "cli/claude"
     working_directory: "./src/frontend"
     options:
       query:
@@ -201,14 +215,14 @@ agents:
   # Backend specialist with fallback
   - id: "backend_developer"
     name: "Backend Expert"
-    provider: ["gemini", "claude", "copilot"]
+    provider: ["cli/gemini", "cli/claude", "cli/copilot"]
     working_directory: "./src/backend"
     options:
       execute:
-        gemini:
+        cli/gemini:
           - "--include-directories=."
           - "--yolo"
-        claude:
+        cli/claude:
           - "--add-dir=."
           - "--allowedTools=Edit,Bash"
     inline:
@@ -231,7 +245,7 @@ agents:
   # DevOps specialist
   - id: "devops_engineer"
     name: "DevOps Expert"
-    provider: "copilot"
+    provider: "cli/copilot"
     working_directory: "."
     options:
       query:
@@ -341,7 +355,7 @@ options:
 ### 5. Use Provider Fallback
 Ensure availability with multiple providers:
 ```yaml
-provider: ["claude", "gemini", "copilot"]
+provider: ["cli/claude", "cli/gemini", "cli/copilot"]
 ```
 
 ### 6. Write Clear System Prompts
