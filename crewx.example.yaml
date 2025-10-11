@@ -63,7 +63,7 @@ providers:
       - "run"
     execute_args:
       - "run"
-      - "-y"  # Auto-accept permissions in execute mode
+      - "--yolo"  # Auto-accept permissions in execute mode
     prompt_in_args: true  # Crush takes message as argument
     timeout:
       query: 180000   # 3 minutes
