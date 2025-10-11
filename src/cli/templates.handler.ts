@@ -33,7 +33,7 @@ Available commands:
   crewcode templates update  - Clear cache and re-download templates
 
 Templates are downloaded from:
-  https://github.com/sowonlabs/crewx/tree/main/templates
+  https://github.com/sowonlabs/crewcode/tree/main/templates
 
 Examples:
   # List available templates

@@ -677,7 +677,7 @@ documents:
       - id: "my_agent"
         name: "My Custom Agent"
         role: "developer"
-        provider: "claude"  # Fixed provider (no fallback)
+        provider: "cli/claude"  # Fixed provider (no fallback)
         inline:
           model: "sonnet"
           system_prompt: |
@@ -690,36 +690,36 @@ documents:
     ```yaml
     # Always uses specified provider, no fallback
     - id: "claude_expert"
-      provider: "claude"
+      provider: "cli/claude"
       inline:
         system_prompt: |
           You are a Claude-specific expert...
     ```
-    
+
     **Fallback Provider (Array):**
     ```yaml
     # Tries providers in order: claude → gemini → copilot
     - id: "flexible_agent"
-      provider: ["claude", "gemini", "copilot"]
+      provider: ["cli/claude", "cli/gemini", "cli/copilot"]
       options:
         execute:
-          claude:  # Provider-specific options
+          cli/claude:  # Provider-specific options
             - "--permission-mode=acceptEdits"
             - "--add-dir=."
-          gemini:
+          cli/gemini:
             - "--include-directories=."
-          copilot:
+          cli/copilot:
             - "--add-dir=."
       inline:
         system_prompt: |
           You are a flexible assistant that works with multiple providers...
     ```
-    
+
     **Provider Fallback Behavior:**
     - **Single string**: Fixed provider, no fallback
     - **Array**: Tries each provider in order until one is available
     - **With model specified**: Uses first provider in array, no fallback
-    - Example: `@crewx` uses `["claude", "gemini", "copilot"]` for automatic fallback
+    - Example: `@crewx` uses `["cli/claude", "cli/gemini", "cli/copilot"]` for automatic fallback
     
     **Use Cases:**
     - **Fixed provider**: When you need specific provider features
@@ -777,13 +777,13 @@ documents:
       - id: "my_agent"
         name: "My Smart Agent"
         inline:
-          provider: "claude"
+          provider: "cli/claude"
           model: "sonnet"
           system_prompt: |
             You are {{agent.name}} (ID: {{agent.id}}).
             Running on {{agent.provider}} using {{agent.model}} model.
             Working directory: {{agent.workingDirectory}}
-            
+
             {{#if (eq agent.model "haiku")}}
             Provide fast, concise responses.
             {{else if (eq agent.model "opus")}}
@@ -800,10 +800,10 @@ documents:
       Development mode: Experiment freely
       {{/if}}
       
-      {{#if (or (eq agent.provider "claude") (eq agent.provider "gemini"))}}
+      {{#if (or (eq agent.provider "cli/claude") (eq agent.provider "cli/gemini"))}}
       Web search available!
       {{/if}}
-      
+
       {{#if (eq agent.model "haiku")}}
       Fast response mode
       {{else if (eq agent.model "opus")}}
@@ -831,10 +831,10 @@ documents:
             Debug mode enabled: Provide verbose explanations
             {{/if}}
             
-            {{#if (eq agent.provider "claude")}}
+            {{#if (eq agent.provider "cli/claude")}}
             Using Claude - complex reasoning available
             {{/if}}
-            
+
             Provider: {{agent.provider}}
             Model: {{agent.model}}
     ```
@@ -954,7 +954,7 @@ agents:
     name: "CrewX Assistant"
     role: "assistant"
     team: "CrewX"
-    provider: ["claude", "gemini", "copilot"]  # Fallback order: claude → gemini → copilot
+    provider: ["cli/claude", "cli/gemini", "cli/copilot"]  # Fallback order: claude → gemini → copilot
     working_directory: "."
     # Note: Uses provider array for automatic fallback when no model is specified
     inline:
@@ -1090,19 +1090,19 @@ agents:
         </system_prompt>
     options:
       execute:
-        claude:
+        cli/claude:
           - "--permission-mode=acceptEdits"
           - "--add-dir=."
-        gemini:
+        cli/gemini:
           - "--include-directories=."
-        copilot:
+        cli/copilot:
           - "--add-dir=."
 
   - id: "claude"
     name: "Claude AI"
     role: "general"
     team: "Anthropic"
-    provider: "claude"
+    provider: "cli/claude"
     working_directory: "."
     inline:
       system_prompt: |
@@ -1166,7 +1166,7 @@ agents:
     name: "Google Gemini"
     role: "general"
     team: "Google"
-    provider: "gemini"
+    provider: "cli/gemini"
     working_directory: "."
     inline:
       system_prompt: |
@@ -1229,7 +1229,7 @@ agents:
     name: "GitHub Copilot"
     role: "general"
     team: "GitHub"
-    provider: "copilot"
+    provider: "cli/copilot"
     working_directory: "."
     inline:
       system_prompt: |

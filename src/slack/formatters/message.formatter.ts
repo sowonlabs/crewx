@@ -120,7 +120,7 @@ export class SlackMessageFormatter {
         elements: [
           {
             type: 'mrkdwn',
-            text: '$ crewx | <https://github.com/sowonlabs/crewx|github.com/sowonlabs/crewx>',
+            text: '$ crewcode | <https://github.com/sowonlabs/crewcode|github.com/sowonlabs/crewcode>',
           },
         ],
       },

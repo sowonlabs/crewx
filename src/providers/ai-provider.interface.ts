@@ -1,3 +1,28 @@
+/**
+ * Provider Namespace Constants
+ *
+ * Provider names follow the format: {namespace}/{id}
+ * - cli/*: CLI-based providers (claude, gemini, copilot)
+ * - plugin/*: User-defined external CLI tools
+ * - api/*: API-based providers (future: openai, anthropic, ollama)
+ */
+export const ProviderNamespace = {
+  CLI: 'cli',
+  PLUGIN: 'plugin',
+  API: 'api',
+} as const;
+
+export type ProviderNamespaceType = typeof ProviderNamespace[keyof typeof ProviderNamespace];
+
+/**
+ * Built-in CLI provider IDs
+ */
+export const BuiltInProviders = {
+  CLAUDE: 'cli/claude',
+  GEMINI: 'cli/gemini',
+  COPILOT: 'cli/copilot',
+} as const;
+
 export interface AIQueryOptions {
   timeout?: number;
   workingDirectory?: string;
@@ -9,7 +34,7 @@ export interface AIQueryOptions {
 
 export interface AIResponse {
   content: string;
-  provider: 'claude' | 'gemini' | 'copilot';
+  provider: string; // Format: {namespace}/{id} (e.g., "cli/claude", "plugin/mock")
   command: string;
   success: boolean;
   error?: string;
@@ -22,7 +47,7 @@ export interface AIResponse {
 }
 
 export interface AIProvider {
-  readonly name: 'claude' | 'gemini' | 'copilot';
+  readonly name: string;
   
   /**
    * Check if this AI provider is available on the system

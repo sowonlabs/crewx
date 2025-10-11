@@ -1,5 +1,5 @@
 # CrewX Custom Agents Configuration
-# 
+#
 # This file is for your project-specific custom agents.
 # Built-in agents (@claude, @gemini, @copilot, @crewx) are always available
 # and don't need to be defined here.
@@ -10,6 +10,45 @@
 # 3. agent.inline.documents: (agent-specific)
 #
 # Priority: agent.inline.documents > agents.yaml documents > documents.yaml
+
+# Plugin Providers (YAML-based external CLI tools)
+providers:
+  # Test provider: Howling CLI
+  - id: howling
+    type: plugin
+    cli_command: node
+    cli_args:
+      - "test-tools/howling.js"
+    display_name: "Howling Test AI"
+    description: "Test CLI tool for plugin provider system"
+    default_model: "sonnet"
+    query_args:
+      - "--model"
+      - "{model}"
+      - "--message"
+    execute_args:
+      - "--model"
+      - "{model}"
+      - "--message"
+    prompt_in_args: true
+    timeout:
+      query: 60000
+      execute: 120000
+
+  # Mock CLI for testing
+  - id: mock
+    type: plugin
+    cli_command: test-tools/mock-cli
+    default_model: "sonnet"
+    query_args:
+      - "--model"
+      - "{model}"
+      - "--message"
+    execute_args:
+      - "--model"
+      - "{model}"
+      - "--message"
+    prompt_in_args: true
 
 # Project-level documents (optional)
 documents:
@@ -90,7 +129,7 @@ agents:
         - "--dangerously-skip-permissions"
     inline:
       type: "agent"
-      provider: "claude"
+      provider: "cli/claude"
       model: "sonnet"
       system_prompt: |
         You are a developer for the CrewX project.
@@ -468,7 +507,7 @@ agents:
         - "--add-dir=/Users/doha/git/sowonflow"
     inline:
       type: "agent"
-      provider: "claude"
+      provider: "cli/claude"
       model: "sonnet"  # Claude Sonnet (stable version)
       system_prompt: |
         You are a senior developer specialized in analyzing and working with the SowonFlow project.
@@ -537,7 +576,7 @@ agents:
         - "--dangerously-skip-permissions"
     inline:
       type: "agent"
-      provider: "claude"
+      provider: "cli/claude"
       model: "sonnet"
       system_prompt: |
         You are a testing expert for the CrewX project.
@@ -676,7 +715,7 @@ agents:
         - "--dangerously-skip-permissions"
     inline:
       type: "agent"
-      provider: "claude"
+      provider: "cli/claude"
       model: "sonnet"
       system_prompt: |
         You are the QA Team Lead for the CrewX project.
@@ -964,7 +1003,7 @@ agents:
         - "--dangerously-skip-permissions"
     inline:
       type: "agent"
-      provider: "claude"
+      provider: "cli/claude"
       model: "sonnet"
       system_prompt: |
         You are the Release Manager for the CrewX project.
@@ -1278,3 +1317,14 @@ agents:
         ```
 
         Remember: You execute processes, not write code. Follow development.md strictly.
+
+  # Mock test agent for plugin provider testing
+  - id: "mock_test"
+    name: "Mock Test Agent"
+    role: "test"
+    team: "Test Team"
+    description: "Test agent using plugin/mock provider"
+    inline:
+      type: "agent"
+      provider: "plugin/mock"
+      model: "sonnet"

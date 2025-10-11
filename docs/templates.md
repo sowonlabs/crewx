@@ -142,7 +142,7 @@ agents:
 ```handlebars
 {{agent.id}}               - Agent ID
 {{agent.name}}             - Agent name
-{{agent.provider}}         - AI provider (claude, gemini, copilot)
+{{agent.provider}}         - AI provider (cli/claude, cli/gemini, cli/copilot, plugin/*)
 {{agent.model}}            - Model name (sonnet, haiku, etc.)
 {{agent.workingDirectory}} - Working directory
 ```
@@ -161,7 +161,7 @@ agents:
 
 #### Equality Check
 ```handlebars
-{{#if (eq agent.provider "claude")}}
+{{#if (eq agent.provider "cli/claude")}}
 You are using Claude AI.
 {{else}}
 You are using another AI provider.
@@ -191,7 +191,7 @@ Model: {{agent.model}}, Debug enabled
 
 #### Logical OR
 ```handlebars
-{{#if (or (eq agent.provider "claude") (eq agent.provider "gemini"))}}
+{{#if (or (eq agent.provider "cli/claude") (eq agent.provider "cli/gemini"))}}
 Web search is available.
 {{/if}}
 ```
@@ -336,7 +336,7 @@ agents:
       system_prompt: |
         You are a research assistant.
 
-        {{#if (or (eq agent.provider "claude") (eq agent.provider "gemini"))}}
+        {{#if (or (eq agent.provider "cli/claude") (eq agent.provider "cli/gemini"))}}
         ## Web Search Available
         You have access to web search capabilities.
         Use them to find the latest information.
