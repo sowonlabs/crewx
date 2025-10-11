@@ -1,6 +1,6 @@
 {
   "name": "crewx",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "license": "Apache-2.0",
   "description": "Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
   "main": "dist/main.js",
@@ -39,7 +39,7 @@
     "build:install": "npm run build && npm install -g .",
     "start": "node dist/main.js",
     "start:mcp": "node dist/main.js mcp",
-    "start:slack": "caffeinate -i dotenv -e .env.slack -- node dist/main.js slack --log --agent crewx_dev",
+    "start:slack": "caffeinate -i dotenv -e .env.slack -- node dist/main.js slack --log --agent crewx_glm_dev",
     "dev": "dotenv -e .env.test -- nest start --watch -- --log",
     "dev:install": "ts-node src/main.ts --install --log",
     "debug": "dotenv -e .env.test -- nest start --debug --watch -- --log --protocol HTTP",
