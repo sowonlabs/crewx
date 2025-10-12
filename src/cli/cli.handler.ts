@@ -45,6 +45,11 @@ export class CLIHandler {
           await handleChat(app, args);
           break;
 
+        case 'mcp':
+          const { handleMcp } = await import('./mcp.handler');
+          await handleMcp(app, args);
+          break;
+
         case 'help':
           const { handleHelp } = await import('./help.handler');
           await handleHelp(app);

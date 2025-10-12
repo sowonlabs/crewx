@@ -19,6 +19,7 @@ import { ToolCallService } from './services/tool-call.service';
 import { AgentLoaderService } from './services/agent-loader.service';
 import { TemplateService } from './services/template.service';
 import { DocumentLoaderService } from './services/document-loader.service';
+import { RemoteAgentService } from './services/remote-agent.service';
 import { InitHandler } from './cli/init.handler';
 import { DoctorHandler } from './cli/doctor.handler';
 import { HelpService } from './services/help.service';
@@ -68,6 +69,7 @@ export class AppModule {
         // Tool System
         ToolCallService,
         AgentLoaderService,
+        RemoteAgentService,
         // CLI Handlers
         InitHandler,
         DoctorHandler,

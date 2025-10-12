@@ -9,7 +9,7 @@
  */
 
 import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
-import { AgentInfo } from '../agent.types';
+import { AgentInfo, RemoteAgentInfo } from '../agent.types';
 import * as yaml from 'js-yaml';
 import { readFile } from 'fs/promises';
 import { getErrorMessage } from '../utils/error-utils';
@@ -333,6 +333,7 @@ export class AgentLoaderService {
               ...agent.inline,
               system_prompt: systemPrompt, // Use the original (unprocessed) system_prompt
             } : undefined,
+            remote: this.parseRemoteConfig(agent),
           };
         })
       );
@@ -349,7 +350,10 @@ export class AgentLoaderService {
    * Parse provider from agent configuration
    * Supports both single string and array formats
    */
-  private parseProviderConfig(agent: any): 'claude' | 'gemini' | 'copilot' | ('claude' | 'gemini' | 'copilot')[] {
+  private parseProviderConfig(agent: any): 'claude' | 'gemini' | 'copilot' | 'remote' | ('claude' | 'gemini' | 'copilot')[] {
+    if (agent.remote && agent.remote.type === 'mcp-http') {
+      return 'remote';
+    }
     // Priority: agent.provider > agent.inline.provider > default 'claude'
     const configProvider = agent.provider || agent.inline?.provider;
 
@@ -380,5 +384,41 @@ export class AgentLoaderService {
     }
 
     return 'AI Agent';
+  }
+
+  private parseRemoteConfig(agent: any): RemoteAgentInfo | undefined {
+    const remoteConfig = agent.remote;
+
+    if (!remoteConfig || typeof remoteConfig !== 'object') {
+      return undefined;
+    }
+
+    if (remoteConfig.type !== 'mcp-http') {
+      this.logger.warn(`Unsupported remote agent type for ${agent.id}: ${remoteConfig.type}`);
+      return undefined;
+    }
+
+    const url = remoteConfig.url;
+
+    if (!url || typeof url !== 'string') {
+      this.logger.error(`Remote agent ${agent.id} is missing a valid url property`);
+      return undefined;
+    }
+
+    const tools = remoteConfig.tools && typeof remoteConfig.tools === 'object'
+      ? {
+          query: remoteConfig.tools.query,
+          execute: remoteConfig.tools.execute,
+        }
+      : undefined;
+
+    return {
+      type: 'mcp-http',
+      url,
+      apiKey: remoteConfig.apiKey ?? remoteConfig.api_key,
+      agentId: remoteConfig.agentId ?? remoteConfig.agent_id ?? agent.id,
+      timeoutMs: remoteConfig.timeoutMs ?? remoteConfig.timeout_ms,
+      tools,
+    };
   }
 }

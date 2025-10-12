@@ -17,6 +17,7 @@ import { TemplateService } from './services/template.service';
 import { DocumentLoaderService } from './services/document-loader.service';
 import { ToolCallService } from './services/tool-call.service';
 import { AgentLoaderService } from './services/agent-loader.service';
+import { RemoteAgentService } from './services/remote-agent.service';
 import type { TemplateContext } from './utils/template-processor';
 
 @Injectable()
@@ -65,6 +66,7 @@ export class CrewXTool implements OnModuleInit {
     private readonly documentLoaderService: DocumentLoaderService,
     private readonly toolCallService: ToolCallService,
     private readonly agentLoaderService: AgentLoaderService,
+    private readonly remoteAgentService: RemoteAgentService,
   ) {}
 
   /**
@@ -394,6 +396,54 @@ Please check the agent ID and try again.`
         };
       }
 
+      if (agent.remote?.type === 'mcp-http' || agent.provider === 'remote') {
+        try {
+          const remoteResult = await this.remoteAgentService.queryRemoteAgent(agent, {
+            query,
+            context,
+            model,
+          });
+
+          const normalized = this.normalizeRemoteResult(agent, taskId, remoteResult);
+          normalized.readOnlyMode = normalized.readOnlyMode ?? true;
+          normalized.readOnly = normalized.readOnly ?? true;
+
+          const logLevel = normalized.success ? 'info' : 'error';
+          this.taskManagementService.addTaskLog(taskId, {
+            level: logLevel,
+            message: normalized.success
+              ? 'Remote agent query completed successfully'
+              : `Remote agent query failed: ${normalized.error || 'Unknown error'}`,
+          });
+
+          this.taskManagementService.completeTask(taskId, normalized, normalized.success !== false);
+          return normalized;
+        } catch (error) {
+          const errorMessage = getErrorMessage(error);
+          this.taskManagementService.addTaskLog(taskId, {
+            level: 'error',
+            message: `Remote agent query failed: ${errorMessage}`,
+          });
+          this.taskManagementService.completeTask(taskId, { success: false, error: errorMessage }, false);
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `❌ **Remote agent error**\n\`\`\`${errorMessage}\`\`\``,
+              },
+            ],
+            success: false,
+            agent: agentId,
+            provider: 'remote',
+            error: errorMessage,
+            taskId,
+            readOnlyMode: true,
+            readOnly: true,
+          };
+        }
+      }
+
       // Configure agent's system prompt
       // Use current directory to avoid non-existent directory issues
       const workingDir = agent.workingDirectory || process.cwd();
@@ -616,6 +666,56 @@ Please check the agent ID and try again.`
         };
       }
 
+      if (agent.remote?.type === 'mcp-http' || agent.provider === 'remote') {
+        try {
+          const remoteResult = await this.remoteAgentService.executeRemoteAgent(agent, {
+            task,
+            context,
+            model,
+            platform,
+            messages,
+          });
+
+          const normalized = this.normalizeRemoteResult(agent, taskId, remoteResult);
+          normalized.readOnlyMode = normalized.readOnlyMode ?? false;
+          normalized.readOnly = normalized.readOnly ?? false;
+
+          const logLevel = normalized.success ? 'info' : 'error';
+          this.taskManagementService.addTaskLog(taskId, {
+            level: logLevel,
+            message: normalized.success
+              ? 'Remote agent task completed successfully'
+              : `Remote agent task failed: ${normalized.error || 'Unknown error'}`,
+          });
+
+          this.taskManagementService.completeTask(taskId, normalized, normalized.success !== false);
+          return normalized;
+        } catch (error) {
+          const errorMessage = getErrorMessage(error);
+          this.taskManagementService.addTaskLog(taskId, {
+            level: 'error',
+            message: `Remote agent task failed: ${errorMessage}`,
+          });
+          this.taskManagementService.completeTask(taskId, { success: false, error: errorMessage }, false);
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `❌ **Remote agent error**\n\`\`\`${errorMessage}\`\`\``,
+              },
+            ],
+            success: false,
+            agent: agentId,
+            provider: 'remote',
+            error: errorMessage,
+            taskId,
+            readOnlyMode: false,
+            readOnly: false,
+          };
+        }
+      }
+
       // Configure agent's system prompt
       const workingDir = projectPath || agent.workingDirectory || './';
       let systemPrompt = agent.systemPrompt || agent.description || `You are an expert ${agentId}.`;
@@ -763,6 +863,39 @@ Task: ${task}
   /**
    * Get mode-specific options for a given agent and execution mode
    */
+  private normalizeRemoteResult(agent: AgentInfo, taskId: string, remoteResult: any) {
+    const normalizedAgentId = remoteResult?.agent ?? agent.remote?.agentId ?? agent.id;
+    const provider = remoteResult?.provider ?? 'remote';
+
+    let content = remoteResult?.content;
+    if (!Array.isArray(content) || content.length === 0) {
+      let fallbackText: unknown = remoteResult?.response ?? remoteResult?.implementation ?? remoteResult?.message;
+      if (fallbackText === undefined) {
+        fallbackText = remoteResult ? JSON.stringify(remoteResult, null, 2) : 'Remote agent returned no content.';
+      }
+
+      if (typeof fallbackText !== 'string') {
+        fallbackText = JSON.stringify(fallbackText, null, 2);
+      }
+
+      content = [
+        {
+          type: 'text',
+          text: fallbackText as string,
+        },
+      ];
+    }
+
+    return {
+      ...remoteResult,
+      content,
+      agent: normalizedAgentId,
+      provider,
+      taskId: remoteResult?.taskId ?? taskId,
+      success: remoteResult?.success !== false,
+    };
+  }
+
   private getOptionsForAgent(agent: AgentInfo, mode: 'query' | 'execute', provider?: string): string[] {
     try {
       // Handle new structure: agent.options.query / agent.options.execute

@@ -63,7 +63,8 @@ export class DynamicProviderFactory {
 
     // Create dynamic provider class
     class DynamicAIProvider extends BaseAIProvider {
-      readonly name = `${ProviderNamespace.PLUGIN}/${config.id}`;
+      readonly name = config.id;
+      readonly namespacedName = `${ProviderNamespace.PLUGIN}/${config.id}`;
 
       constructor() {
         super(`DynamicProvider:${ProviderNamespace.PLUGIN}/${config.id}`);
@@ -170,6 +171,14 @@ export class DynamicProviderFactory {
       );
     }
 
+    // Prevent path separators or traversal attempts
+    if (normalized.includes('/') || normalized.includes('\\')) {
+      throw new Error(
+        `Security: CLI command cannot contain path separators ('/' or '\\'). ` +
+        `Use command names available in PATH or simple relative names without directories.`
+      );
+    }
+
     // Prevent absolute paths and path traversal
     if (normalized.startsWith('/') || normalized.startsWith('\\')) {
       throw new Error(
@@ -180,7 +189,7 @@ export class DynamicProviderFactory {
 
     if (normalized.includes('..')) {
       throw new Error(
-        `Security: Path traversal (..) is not allowed. ` +
+        `Security: Path traversal (..) is not allowed. CLI command cannot contain path separators or traversal tokens. ` +
         `Use relative paths within the project directory only.`
       );
     }

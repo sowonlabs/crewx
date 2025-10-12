@@ -8,15 +8,18 @@ import { getTimeoutConfig } from '../config/timeout.config';
 
 @Injectable()
 export abstract class BaseAIProvider implements AIProvider {
-  abstract readonly name: string; // Format: {namespace}/{id} (e.g., "cli/claude", "plugin/mock")
+  abstract readonly name: string; // Display name for provider (e.g., "cli/claude" or "aider")
+  readonly namespacedName?: string;
   protected readonly logger: Logger;
   protected toolCallService?: ToolCallService;
   private readonly logsDir = join(process.cwd(), '.crewx', 'logs');
   private cachedPath: string | null = null;
   protected readonly timeoutConfig = getTimeoutConfig();
+  protected readonly providerKey: string;
 
   constructor(loggerContext: string) {
     this.logger = new Logger(loggerContext);
+    this.providerKey = (this as unknown as { namespacedName?: string }).namespacedName ?? this.name;
 
     // Create log directory
     try {
@@ -58,9 +61,9 @@ export abstract class BaseAIProvider implements AIProvider {
    * Get default timeout for query mode (ms)
    */
   protected getDefaultQueryTimeout(): number {
-    if (this.name === 'claude') return this.timeoutConfig.claudeQuery;
-    if (this.name === 'gemini') return this.timeoutConfig.geminiQuery;
-    if (this.name === 'copilot') return this.timeoutConfig.copilotQuery;
+    if (this.providerKey === 'cli/claude') return this.timeoutConfig.claudeQuery;
+    if (this.providerKey === 'cli/gemini') return this.timeoutConfig.geminiQuery;
+    if (this.providerKey === 'cli/copilot') return this.timeoutConfig.copilotQuery;
     return 600000; // Fallback
   }
 
@@ -68,9 +71,9 @@ export abstract class BaseAIProvider implements AIProvider {
    * Get default timeout for execute mode (ms)
    */
   protected getDefaultExecuteTimeout(): number {
-    if (this.name === 'claude') return this.timeoutConfig.claudeExecute;
-    if (this.name === 'gemini') return this.timeoutConfig.geminiExecute;
-    if (this.name === 'copilot') return this.timeoutConfig.copilotExecute;
+    if (this.providerKey === 'cli/claude') return this.timeoutConfig.claudeExecute;
+    if (this.providerKey === 'cli/gemini') return this.timeoutConfig.geminiExecute;
+    if (this.providerKey === 'cli/copilot') return this.timeoutConfig.copilotExecute;
     return 1200000; // Fallback
   }
 
@@ -289,11 +292,11 @@ export abstract class BaseAIProvider implements AIProvider {
         finalPath = path;
       }
       
-      this.logger.log(`✅ Found ${this.name} CLI at: ${finalPath}`);
+      this.logger.log(`✅ Found ${this.providerKey} CLI at: ${finalPath}`);
       this.cachedPath = finalPath;
       return finalPath;
     } catch (error: any) {
-      this.logger.error(`❌ ${this.name} not found in PATH: ${error.message}`);
+      this.logger.error(`❌ ${this.providerKey} not found in PATH: ${error.message}`);
       this.cachedPath = '';
       return null;
     }
@@ -353,7 +356,7 @@ Started: ${timestamp}
   }
 
   async query(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
-    const taskId = options.taskId || `${this.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const taskId = options.taskId || `${this.providerKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Use command name directly - let the shell find it in PATH
     const executablePath = this.getCliCommand();
@@ -374,7 +377,7 @@ Started: ${timestamp}
 
       // For built-in providers (cli/*), add --model option if not already in args
       // For plugin providers (plugin/*), the {model} placeholder substitution handles it
-      const isBuiltInProvider = this.name.startsWith('cli/');
+      const isBuiltInProvider = this.providerKey.startsWith('cli/');
       const hasModelInArgs = args.some(arg => arg.includes('--model') || arg.includes('{model}'));
       if (isBuiltInProvider && options.model && !hasModelInArgs) {
         args.unshift(`--model=${options.model}`);
@@ -392,14 +395,14 @@ Started: ${timestamp}
         : `${this.getCliCommand()} ${args.join(' ')}`;
       
       // Create task log file
-      this.createTaskLogFile(taskId, this.name, command);
-      this.appendTaskLog(taskId, 'INFO', `Starting ${this.name} query mode`);
+      this.createTaskLogFile(taskId, this.providerKey, command);
+      this.appendTaskLog(taskId, 'INFO', `Starting ${this.providerKey} query mode`);
       this.appendTaskLog(taskId, 'INFO', `Prompt length: ${prompt.length} characters`);
       
       // Log prompt content (entire content for debugging)
       this.appendTaskLog(taskId, 'INFO', `Prompt content:\n${prompt}`);
 
-      this.logger.log(`Executing ${this.name} with prompt (length: ${prompt.length})`);
+      this.logger.log(`Executing ${this.providerKey} with prompt (length: ${prompt.length})`);
 
       return new Promise((resolve) => {
         // Set UTF-8 encoding for Windows PowerShell to handle Korean/Unicode correctly
@@ -447,17 +450,17 @@ Started: ${timestamp}
           this.appendTaskLog(taskId, 'INFO', `Process closed with exit code: ${exitCode}`);
 
           if (stderr) {
-            this.logger.warn(`[${taskId}] ${this.name} stderr: ${stderr}`);
+            this.logger.warn(`[${taskId}] ${this.providerKey} stderr: ${stderr}`);
           }
 
           // If exit code is 0 and we have stdout, it's a success (ignore stderr debug logs)
           if (exitCode === 0 && stdout && stdout.trim().length > 0) {
             // Filter out tool_use JSON blocks from the response
             const filteredContent = this.filterToolUseFromResponse(stdout.trim());
-            this.appendTaskLog(taskId, 'INFO', `${this.name} query completed successfully`);
+            this.appendTaskLog(taskId, 'INFO', `${this.providerKey} query completed successfully`);
             resolve({
               content: filteredContent,
-              provider: this.name,
+              provider: this.providerKey,
               command,
               success: true,
               taskId,
@@ -469,19 +472,19 @@ Started: ${timestamp}
           const providerError = this.parseProviderError(stderr, stdout);
           if (exitCode !== 0 || providerError.error) {
             const errorMessage = providerError.message || stderr || `Exit code ${exitCode}`;
-            this.appendTaskLog(taskId, 'ERROR', `${this.name} CLI failed: ${errorMessage}`);
+            this.appendTaskLog(taskId, 'ERROR', `${this.providerKey} CLI failed: ${errorMessage}`);
             resolve({
               content: '',
-              provider: this.name,
+              provider: this.providerKey,
               command,
               success: false,
-              error: `${this.name} CLI failed: ${errorMessage}`,
+              error: `${this.providerKey} CLI failed: ${errorMessage}`,
               taskId,
             });
             return;
           }
 
-          this.appendTaskLog(taskId, 'INFO', `${this.name} query completed successfully`);
+          this.appendTaskLog(taskId, 'INFO', `${this.providerKey} query completed successfully`);
 
           // Try to parse JSON output if available
           let parsedContent = stdout.trim();
@@ -501,7 +504,7 @@ Started: ${timestamp}
 
           resolve({
             content: filteredContent,
-            provider: this.name,
+            provider: this.providerKey,
             command,
             success: true,
             taskId,
@@ -512,7 +515,7 @@ Started: ${timestamp}
           this.appendTaskLog(taskId, 'ERROR', `Process error: ${error.message}`);
           resolve({
             content: '',
-            provider: this.name,
+            provider: this.providerKey,
             command,
             success: false,
             error: error.code === 'ENOENT' ? this.getNotInstalledMessage() : error.message,
@@ -533,10 +536,10 @@ Started: ${timestamp}
           child.kill();
           resolve({
             content: '',
-            provider: this.name,
+            provider: this.providerKey,
             command,
             success: false,
-            error: `${this.name} CLI timeout`,
+            error: `${this.providerKey} CLI timeout`,
             taskId,
           });
         }, options.timeout || this.getDefaultQueryTimeout());
@@ -544,10 +547,10 @@ Started: ${timestamp}
         child.on('close', () => clearTimeout(timeout));
       });
     } catch (error: any) {
-      this.logger.error(`${this.name} execution failed: ${error.message}`, error.stack);
+      this.logger.error(`${this.providerKey} execution failed: ${error.message}`, error.stack);
       return {
         content: '',
-        provider: this.name,
+        provider: this.providerKey,
         command: `${this.getCliCommand()} (error)`,
         success: false,
         error: error.message || 'Unknown error occurred',
@@ -557,7 +560,7 @@ Started: ${timestamp}
   }
 
   async execute(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
-    const taskId = options.taskId || `${this.name}_execute_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const taskId = options.taskId || `${this.providerKey}_execute_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Use command name directly - let the shell find it in PATH
     const executablePath = this.getCliCommand();
@@ -578,7 +581,7 @@ Started: ${timestamp}
 
       // For built-in providers (cli/*), add --model option if not already in args
       // For plugin providers (plugin/*), the {model} placeholder substitution handles it
-      const isBuiltInProvider = this.name.startsWith('cli/');
+      const isBuiltInProvider = this.providerKey.startsWith('cli/');
       const hasModelInArgs = args.some(arg => arg.includes('--model') || arg.includes('{model}'));
       if (isBuiltInProvider && options.model && !hasModelInArgs) {
         args.unshift(`--model=${options.model}`);
@@ -592,13 +595,13 @@ Started: ${timestamp}
       const command = `${this.getCliCommand()} ${args.join(' ')}`;
       
       // Create task log file
-      this.createTaskLogFile(taskId, this.name, command);
+      this.createTaskLogFile(taskId, this.providerKey, command);
       
       // Debugging: add option logging
       this.appendTaskLog(taskId, 'INFO', `Additional Args: ${JSON.stringify(options.additionalArgs || [])}`);
       this.appendTaskLog(taskId, 'INFO', `Execute Args: ${JSON.stringify(this.getExecuteArgs())}`);
       this.appendTaskLog(taskId, 'INFO', `Final Args: ${JSON.stringify(args)}`);
-      this.appendTaskLog(taskId, 'INFO', `Starting ${this.name} execute mode`);
+      this.appendTaskLog(taskId, 'INFO', `Starting ${this.providerKey} execute mode`);
       this.appendTaskLog(taskId, 'INFO', `Prompt length: ${prompt.length} characters`);
       
       // Log prompt content
@@ -607,7 +610,7 @@ Started: ${timestamp}
         prompt;
       this.appendTaskLog(taskId, 'INFO', `Prompt content:\n${promptPreview}`);
 
-      this.logger.log(`Executing ${this.name} in execute mode (length: ${prompt.length})`);
+      this.logger.log(`Executing ${this.providerKey} in execute mode (length: ${prompt.length})`);
 
       return new Promise((resolve) => {
         // Set UTF-8 encoding for Windows PowerShell to handle Korean/Unicode correctly
@@ -655,17 +658,17 @@ Started: ${timestamp}
           this.appendTaskLog(taskId, 'INFO', `Process closed with exit code: ${exitCode}`);
 
           if (stderr) {
-            this.logger.warn(`[${taskId}] ${this.name} stderr: ${stderr}`);
+            this.logger.warn(`[${taskId}] ${this.providerKey} stderr: ${stderr}`);
           }
 
           // If exit code is 0 and we have stdout, it's a success (ignore stderr debug logs)
           if (exitCode === 0 && stdout && stdout.trim().length > 0) {
             // Filter out tool_use JSON blocks from the response
             const filteredContent = this.filterToolUseFromResponse(stdout.trim());
-            this.appendTaskLog(taskId, 'INFO', `${this.name} execution completed successfully`);
+            this.appendTaskLog(taskId, 'INFO', `${this.providerKey} execution completed successfully`);
             resolve({
               content: filteredContent,
-              provider: this.name,
+              provider: this.providerKey,
               command,
               success: true,
               taskId,
@@ -677,19 +680,19 @@ Started: ${timestamp}
           const providerError = this.parseProviderError(stderr, stdout);
           if (exitCode !== 0 || providerError.error) {
             const errorMessage = providerError.message || stderr || `Exit code ${exitCode}`;
-            this.appendTaskLog(taskId, 'ERROR', `${this.name} CLI failed: ${errorMessage}`);
+            this.appendTaskLog(taskId, 'ERROR', `${this.providerKey} CLI failed: ${errorMessage}`);
             resolve({
               content: '',
-              provider: this.name,
+              provider: this.providerKey,
               command,
               success: false,
-              error: `${this.name} CLI execute failed: ${errorMessage}`,
+              error: `${this.providerKey} CLI execute failed: ${errorMessage}`,
               taskId,
             });
             return;
           }
 
-          this.appendTaskLog(taskId, 'INFO', `${this.name} execute completed successfully`);
+          this.appendTaskLog(taskId, 'INFO', `${this.providerKey} execute completed successfully`);
 
           // Try to parse JSON output if available
           let parsedContent = stdout.trim();
@@ -706,7 +709,7 @@ Started: ${timestamp}
 
           resolve({
             content: parsedContent,
-            provider: this.name,
+            provider: this.providerKey,
             command,
             success: true,
             taskId,
@@ -717,7 +720,7 @@ Started: ${timestamp}
           this.appendTaskLog(taskId, 'ERROR', `Process error: ${error.message}`);
           resolve({
             content: '',
-            provider: this.name,
+            provider: this.providerKey,
             command,
             success: false,
             error: error.code === 'ENOENT' ? this.getNotInstalledMessage() : error.message,
@@ -738,10 +741,10 @@ Started: ${timestamp}
           child.kill();
           resolve({
             content: '',
-            provider: this.name,
+            provider: this.providerKey,
             command,
             success: false,
-            error: `${this.name} CLI execute timeout`,
+            error: `${this.providerKey} CLI execute timeout`,
             taskId,
           });
         }, options.timeout || this.getDefaultExecuteTimeout());
@@ -749,10 +752,10 @@ Started: ${timestamp}
         child.on('close', () => clearTimeout(timeout));
       });
     } catch (error: any) {
-      this.logger.error(`${this.name} execute failed: ${error.message}`, error.stack);
+      this.logger.error(`${this.providerKey} execute failed: ${error.message}`, error.stack);
       return {
         content: '',
-        provider: this.name,
+        provider: this.providerKey,
         command: `${this.getCliCommand()} execute (error)`,
         success: false,
         error: error.message || 'Unknown error occurred',

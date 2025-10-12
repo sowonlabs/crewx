@@ -8,6 +8,8 @@ export interface CliOptions {
   log: boolean;
   protocol: 'STDIO' | 'HTTP';
   port: number;
+  host: string;
+  apiKey?: string;
   allowTool: string[]; // Support for --allow-tool=terminal,files,web
   raw: boolean; // Output only AI response (for piping)
   // Context enhancement options
@@ -28,6 +30,10 @@ export interface CliOptions {
   force?: boolean;
   // Slack options
   slackAgent?: string; // Default agent for Slack bot
+  // MCP utility commands
+  mcpSubcommand?: string;
+  mcpToolName?: string;
+  mcpToolInput?: string;
   // API keys removed for security - use environment variables or CLI tool authentication instead
 }
 
@@ -91,7 +97,7 @@ export function parseCliOptions(): CliOptions {
       yargs.command('list', 'List available templates');
       yargs.command('update', 'Clear cache and re-download templates');
     })
-    .command('mcp', 'Start MCP server for IDE integration', () => {})
+    .command('mcp', 'Start MCP server for IDE integration or run MCP utilities', () => {})
     .command('slack', 'Start Slack Bot server', (yargs) => {
       yargs.option('agent', {
         alias: 'a',
@@ -116,10 +122,32 @@ export function parseCliOptions(): CliOptions {
       default: 'STDIO' as const,
       description: 'MCP protocol to use'
     })
+    .option('http', {
+      type: 'boolean',
+      default: false,
+      description: 'Shortcut for --protocol HTTP when running MCP server'
+    })
     .option('port', {
       type: 'number',
       default: 3000,
       description: 'Port for HTTP protocol (if used)'
+    })
+    .option('host', {
+      type: 'string',
+      default: '127.0.0.1',
+      description: 'Host for MCP HTTP server'
+    })
+    .option('key', {
+      type: 'string',
+      description: 'Bearer token required for MCP HTTP requests (also read from CREWX_MCP_KEY)'
+    })
+    .option('tool', {
+      type: 'string',
+      description: 'Tool name when using "crewx mcp call_tool"'
+    })
+    .option('input', {
+      type: 'string',
+      description: 'JSON string payload passed to "crewx mcp call_tool"'
     })
     .option('config', {
       alias: 'c',
@@ -167,12 +195,22 @@ export function parseCliOptions(): CliOptions {
     .help(false)
     .parseSync();
 
+  const positional = (parsed._ as (string | number)[]).map(value => value.toString());
+  const command = positional[0] as string;
+  const mcpArgs = positional.slice(1);
+  const protocol = parsed.http ? 'HTTP' : (parsed.protocol as 'STDIO' | 'HTTP');
+  const mcpSubcommand = mcpArgs[0];
+  const resolvedToolName = (parsed.tool as string | undefined) ?? (mcpSubcommand === 'call_tool' ? mcpArgs[1] : undefined);
+  const resolvedToolInput = (parsed.input as string | undefined) ?? (mcpSubcommand === 'call_tool' ? (mcpArgs.slice(2).join(' ') || undefined) : undefined);
+
   return {
     install: parsed.install,
     log: parsed.log,
-    protocol: parsed.protocol as 'STDIO' | 'HTTP',
+    protocol,
     port: parsed.port,
-    allowTool: parsed['allow-tool'] as string[] || [],
+    host: parsed.host as string,
+    apiKey: (parsed.key as string | undefined) ?? process.env.CREWX_MCP_KEY ?? undefined,
+    allowTool: (parsed['allow-tool'] as string[]) || [],
     raw: parsed.raw,
     // Context enhancement options
     loadProjectContext: parsed['load-project-context'] as boolean,
@@ -180,18 +218,22 @@ export function parseCliOptions(): CliOptions {
     enableIntelligentCompression: parsed['enable-intelligent-compression'] as boolean,
     // Conversation thread options
     thread: parsed.thread as string,
-    command: parsed._[0] as string,
+    command,
     // Keep query as array for parallel processing support
     query: Array.isArray(parsed.message) ? parsed.message : (parsed.message ? [parsed.message as string] : undefined),
     // Keep execute as array for parallel processing support
     execute: Array.isArray(parsed.task) ? parsed.task : (parsed.task ? [parsed.task as string] : undefined),
-    doctor: parsed._[0] === 'doctor',
+    doctor: command === 'doctor',
     config: parsed.config,
     // Init options
     template: parsed.template as string,
     templateVersion: parsed['template-version'] as string,
     force: parsed.force as boolean,
     // Slack options
-    slackAgent: parsed.agent as string
+    slackAgent: parsed.agent as string,
+    // MCP utilities
+    mcpSubcommand,
+    mcpToolName: resolvedToolName,
+    mcpToolInput: resolvedToolInput,
   };
 }

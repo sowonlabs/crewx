@@ -108,7 +108,12 @@ async function bootstrap() {
     }
 
     await app.init();
-    await app.listen(args.port);
+    if (args.protocol === 'HTTP') {
+      await app.listen(args.port, args.host);
+      logger.log(`MCP HTTP server listening on http://${args.host}:${args.port}/mcp`);
+    } else {
+      await app.listen(args.port);
+    }
 
     process.on('uncaughtException', (err) => {
       logger.error('Unexpected error occurred:', err);
@@ -133,7 +138,9 @@ async function bootstrap() {
       process.exit(0);
     });
     
-    logger.log('Code CLI MCP Server initialized successfully');
+    if (args.protocol !== 'HTTP') {
+      logger.log('Code CLI MCP Server initialized successfully');
+    }
     return app;
 
   } catch (error) {
@@ -265,9 +272,15 @@ async function main() {
     // Installation mode
     await cli();
   } else if (args.command === 'mcp') {
-    // Explicit MCP Server mode
-    if (args.log) logger.log('Starting MCP server mode...');
-    await bootstrap();
+    if (!args.mcpSubcommand || args.mcpSubcommand === 'server') {
+      // Explicit MCP Server mode
+      if (args.log) logger.log('Starting MCP server mode...');
+      await bootstrap();
+    } else {
+      // MCP utility commands (e.g., call_tool)
+      if (args.log) logger.log(`Running MCP utility command: ${args.mcpSubcommand}`);
+      await runCli();
+    }
   } else if (args.command === 'slack') {
     // Slack Bot mode
     if (args.log) logger.log('Starting Slack Bot mode...');

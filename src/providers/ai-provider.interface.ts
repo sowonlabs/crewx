@@ -48,7 +48,8 @@ export interface AIResponse {
 
 export interface AIProvider {
   readonly name: string;
-  
+  readonly namespacedName?: string;
+
   /**
    * Check if this AI provider is available on the system
    */

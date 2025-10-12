@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
 import { PluginProviderConfig } from '../providers/dynamic-provider.factory';
+import { RemoteAgentConfigInput } from '../agent.types';
 
 export interface AgentConfig {
   id: string;
@@ -19,6 +20,7 @@ export interface AgentConfig {
     provider: 'claude' | 'gemini' | 'copilot';
     system_prompt: string;
   };
+  remote?: RemoteAgentConfigInput;
 }
 
 export interface CrewXConfig {

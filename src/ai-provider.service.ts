@@ -85,8 +85,9 @@ export class AIProviderService implements OnModuleInit {
   }
 
   private registerProvider(provider: AIProvider): void {
-    this.providers.set(provider.name, provider);
-    this.logger.log(`Registered AI provider: ${provider.name}`);
+    const providerKey = provider.namespacedName ?? provider.name;
+    this.providers.set(providerKey, provider);
+    this.logger.log(`Registered AI provider: ${providerKey}`);
   }
 
   async initializeProviders(): Promise<void> {
