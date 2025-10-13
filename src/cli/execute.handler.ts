@@ -28,20 +28,33 @@ export async function handleExecute(app: any, args: CliOptions) {
     // Initialize conversation provider if thread is specified
     let conversationProvider: CliConversationHistoryProvider | undefined;
     let conversationContext = '';
-    
+
     if (args.thread) {
       const conversationFactory = app.get(ConversationProviderFactory);
-      conversationProvider = conversationFactory.createCliProvider({
-        platform: 'cli',
-        sessionId: args.thread,
-        userId: os.userInfo().username
-      });
+      conversationProvider = conversationFactory.getProvider('cli') as CliConversationHistoryProvider;
+      await conversationProvider.initialize();
+
+      const threadId = args.thread;
+      const exists = await conversationProvider.hasHistory(threadId);
+
+      if (!exists) {
+        console.log(`📝 Creating new conversation thread: ${threadId}`);
+        await conversationProvider.createThread(threadId);
+      } else {
+        console.log(`🔗 Continuing conversation thread: ${threadId}`);
+      }
 
       // Get conversation history and format for context
-      if (conversationProvider) {
-        const history = await conversationProvider.fetchHistory(args.thread);
-        const formattedHistory = await conversationProvider.formatForAI(history);
-        
+      const history = await conversationProvider.fetchHistory(args.thread, {
+        limit: 100,
+        maxContextLength: 4000,
+      });
+
+      if (history.messages.length > 0) {
+        const formattedHistory = await conversationProvider.formatForAI(history, {
+          excludeCurrent: false,
+        });
+
         if (formattedHistory && formattedHistory.trim()) {
           conversationContext = `Previous conversation context from thread "${args.thread}":\n${formattedHistory}\n\n`;
           logger.log(`Loaded conversation context for thread: ${args.thread}`);
@@ -185,9 +198,10 @@ export async function handleExecute(app: any, args: CliOptions) {
         if (result.success && result.content) {
           await conversationProvider.addMessage(
             args.thread,
-            `${agentId}${model ? `:${model}` : ''}`,
+            'assistant',
             result.content,
-            true
+            true,
+            agentId
           );
         }
       }
@@ -250,16 +264,18 @@ export async function handleExecute(app: any, args: CliOptions) {
       if (conversationProvider && args.thread && result.results) {
         for (const agentResult of result.results) {
           if (agentResult.success && agentResult.content) {
-            const responseText = agentResult.implementation || 
-                              (agentResult.content && agentResult.content[0]?.text) || 
-                              agentResult.response || 
+            const responseText = agentResult.implementation ||
+                              (agentResult.content && agentResult.content[0]?.text) ||
+                              agentResult.response ||
                               'No response content';
-            
+            const agentName = agentResult.agentId || agentResult.agent;
+
             await conversationProvider.addMessage(
               args.thread,
-              `${agentResult.agent}${agentResult.model ? `:${agentResult.model}` : ''}`,
+              'assistant',
               responseText,
-              true
+              true,
+              agentName
             );
           }
         }

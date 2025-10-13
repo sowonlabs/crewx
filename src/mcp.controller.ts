@@ -1,10 +1,12 @@
-import { Controller, Post, Get, Body, HttpCode, UseFilters, Req, Res, Logger } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, UseFilters, UseGuards, Req, Res, Logger } from '@nestjs/common';
 import { McpHandler, JsonRpcRequest, JsonRpcExceptionFilter } from '@sowonai/nestjs-mcp-adapter';
 import { Request, Response } from 'express';
 import { SERVER_NAME } from './constants';
+import { BearerAuthGuard } from './guards/bearer-auth.guard';
 
 @Controller('mcp')
 @UseFilters(JsonRpcExceptionFilter)
+@UseGuards(BearerAuthGuard)
 export class McpController {
   private readonly logger = new Logger('McpController');
   

@@ -2,11 +2,13 @@
 
 > Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions
 
-Transform Claude, Gemini, and Copilot into a collaborative development team. No extra costs—just your existing AI subscriptions working together.
+Transform Claude, Gemini, Codex and Copilot into a collaborative development team. No extra costs—just your existing AI subscriptions working together.
+
+![CrewX usage overview](docs/diagram1.svg)
 
 ## Why CrewX?
 
-### 💬 **Slack Team Collaboration** - Your AI Team in Slack
+### **Slack Team Collaboration** - Your AI Team in Slack
 Bring AI agents directly into your team's workspace:
 - **Team-wide AI access** - Everyone benefits from AI expertise in Slack channels
 - **Thread-based context** - Maintains conversation history automatically
@@ -14,7 +16,27 @@ Bring AI agents directly into your team's workspace:
 - **Natural integration** - Works like chatting with team members
 - **Shared knowledge** - Team learns from AI interactions, not isolated sessions
 
-### 🔌 **Plugin Provider System** - Universal AI Integration
+### **Remote Agents** - Distributed AI Teams
+Connect and orchestrate CrewX instances across projects and servers:
+- **Cross-project experts** - Frontend dev asks backend team's API specialist agent
+- **Team collaboration** - Each team builds their own agents, entire org can use them
+- **Expert knowledge sharing** - Ask senior's code review agent, security team's audit agent anytime
+- **Separate but connected** - Each project keeps its own context, collaborate when needed
+
+```yaml
+# Access another project's specialized agents
+providers:
+  - id: backend_project
+    type: remote
+    location: "file:///workspace/backend-api/crewx.yaml"
+    external_agent_id: "api_expert"
+
+# Use their expertise in your project
+crewx query "@api_expert design user authentication API"
+crewx execute "@api_expert implement OAuth flow"
+```
+
+### **Plugin Provider System** - Universal AI Integration
 Transform any CLI tool or AI service into an agent:
 - **Bring Your Own AI** - OpenAI, Anthropic, Ollama, LiteLLM, or any AI service
 - **Bring Your Own Tools** - jq, curl, ffmpeg, or any CLI tool becomes an agent
@@ -37,8 +59,8 @@ agents:
     provider: "plugin/ollama"
 ```
 
-### ✨ Other Benefits
-- **No additional costs** - Use existing Claude Pro, Gemini, or GitHub Copilot subscriptions
+### Other Benefits
+- **No additional costs** - Use existing Claude Pro, Gemini, Codex or GitHub Copilot subscriptions
 - **Multi-agent collaboration** - Different AI models working on specialized tasks
 - **Parallel execution** - Multiple agents working simultaneously
 - **Flexible integration** - CLI, MCP server, or Slack bot
@@ -62,10 +84,13 @@ crewx execute "@claude create a login component"
 
 ## Three Ways to Use
 
-### 💬 Slack Mode - Team Collaboration (Recommended)
+### Slack Mode - Team Collaboration (Recommended)
 ```bash
-# Start CrewX in your Slack workspace
+# Start CrewX in your Slack workspace (read-only query mode)
 crewx slack
+
+# Allow agents to run execute tasks (file changes, migrations, etc.)
+crewx slack --mode execute
 
 # Your team can now:
 # - @mention AI agents in channels
@@ -74,14 +99,14 @@ crewx slack
 ```
 👉 **[Complete Slack Setup Guide →](./SLACK_INSTALL.md)**
 
-### 🖥️ CLI Mode - Direct terminal usage
+### CLI Mode - Direct terminal usage
 ```bash
 crewx query "@claude review this code"
 crewx execute "@gemini optimize performance"
 crewx query "@claude @gemini @copilot compare approaches"
 ```
 
-### 🔌 MCP Server Mode - IDE integration
+### MCP Server Mode - IDE integration
 ```bash
 crewx mcp  # VS Code, Claude Desktop, Cursor
 ```
@@ -91,6 +116,7 @@ crewx mcp  # VS Code, Claude Desktop, Cursor
 - **Claude Code** - Advanced reasoning and analysis
 - **Gemini CLI** - Real-time web access
 - **GitHub Copilot CLI** - Specialized coding assistant
+- **Codex CLI** - Open inference with workspace-aware execution
 
 ## Basic Usage
 
@@ -110,8 +136,18 @@ crewx execute "@backend implement it"
 
 # Thread-based conversations
 crewx query "@claude design login" --thread "auth-feature"
-crewx execute "@claude implement it" --thread "auth-feature"
+crewx execute "@gemini implement it" --thread "auth-feature"
+
+# Codex CLI agent
+crewx query "@codex draft a release checklist"
 ```
+
+Built-in CLI providers:
+
+- `cli/claude`
+- `cli/gemini`
+- `cli/copilot`
+- `cli/codex`
 
 ## Create Custom Agents
 
@@ -144,12 +180,43 @@ agents:
 
 > **Note:** `crewx.yaml` is the preferred configuration file name. The legacy `agents.yaml` is still supported for backward compatibility. If both files exist, `crewx.yaml` takes priority.
 
+## Remote Agents
+
+Connect to other CrewX instances and delegate tasks across projects or servers.
+
+**Quick Example:**
+```bash
+# Add a remote CrewX instance
+providers:
+  - id: backend_server
+    type: remote
+    location: "http://api.example.com:3000"
+    external_agent_id: "backend_team"
+
+agents:
+  - id: "remote_backend"
+    provider: "remote/backend_server"
+
+# Use it like any other agent
+crewx query "@remote_backend check API status"
+```
+
+**Use Cases:**
+- **Project isolation** - Separate configurations for different codebases
+- **Distributed teams** - Each team runs their own CrewX with specialized agents
+- **Resource sharing** - Access powerful compute resources remotely
+- **Multi-project coordination** - Orchestrate work across multiple projects
+
+👉 **[Remote Agents Guide →](./docs/remote-agents.md)** for detailed setup and configuration
+
 ## Documentation
 
 - [📖 CLI Guide](docs/cli-guide.md) - Complete CLI reference
 - [🔌 MCP Integration](docs/mcp-integration.md) - IDE setup and MCP servers
 - [⚙️ Agent Configuration](docs/agent-configuration.md) - Custom agents and advanced config
+- [🌐 Remote Agents](docs/remote-agents.md) - Connect to remote CrewX instances
 - [📚 Template System](docs/templates.md) - Knowledge management and dynamic prompts for agents
+- [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations
 - [🔧 Tool System](docs/tools.md) - Tool integration and creation guide
 - [🔧 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 - [💬 Slack Integration](SLACK_INSTALL.md) - Slack bot setup

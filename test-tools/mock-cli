@@ -34,6 +34,22 @@ console.log('📝 Received Arguments:');
 console.log(JSON.stringify(parsedArgs, null, 2));
 console.log('');
 
+// Show relevant environment variables for testing
+console.log('🌍 Environment Variables:');
+const envVars = ['TEST_ENV', 'MOCK_API_URL', 'MOCK_TOKEN', 'CUSTOM_VAR'];
+const receivedEnvs = {};
+for (const envVar of envVars) {
+  if (process.env[envVar]) {
+    receivedEnvs[envVar] = process.env[envVar];
+  }
+}
+if (Object.keys(receivedEnvs).length > 0) {
+  console.log(JSON.stringify(receivedEnvs, null, 2));
+} else {
+  console.log('(no test environment variables set)');
+}
+console.log('');
+
 // Simulate response
 const model = parsedArgs.model || 'default';
 const message = parsedArgs.message || 'No message provided';

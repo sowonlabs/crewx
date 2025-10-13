@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { readFileSync, statSync } from 'fs';
+import { readFileSync, statSync, writeFileSync } from 'fs';
+import { spawn } from 'child_process';
+import { resolve } from 'path';
 import { AgentLoaderService } from './agent-loader.service';
 import { DocumentManager } from '../knowledge/DocumentManager';
 
@@ -149,6 +151,167 @@ export class ToolCallService {
       }
     );
 
+    // Run shell command tool
+    this.register(
+      {
+        name: 'run_shell',
+        description: 'Execute a shell command in the current workspace directory',
+        input_schema: {
+          type: 'object',
+          properties: {
+            command: {
+              type: 'string',
+              description: 'Shell command to execute (executed via bash -lc)',
+            },
+            cwd: {
+              type: 'string',
+              description: 'Optional working directory (relative or absolute)',
+            },
+            timeout: {
+              type: 'number',
+              description: 'Optional timeout in milliseconds (default: 120000)',
+            },
+          },
+          required: ['command'],
+        },
+        output_schema: {
+          type: 'object',
+          properties: {
+            stdout: { type: 'string', description: 'Standard output from the command' },
+            stderr: { type: 'string', description: 'Standard error from the command' },
+            exitCode: { type: 'number', description: 'Process exit code' },
+            timedOut: { type: 'boolean', description: 'Indicates whether the process was terminated due to timeout' },
+          },
+        },
+      },
+      {
+        execute: async (context: ToolExecutionContext): Promise<ToolExecutionResult> => {
+          const startTime = Date.now();
+          const { command, cwd, timeout } = context.input;
+          if (!command || typeof command !== 'string') {
+            return {
+              success: false,
+              error: 'Invalid input: command is required and must be a string',
+              metadata: {
+                executionTime: Date.now() - startTime,
+                toolName: 'run_shell',
+                runId: context.runId,
+              },
+            };
+          }
+
+          const workingDir = cwd && typeof cwd === 'string' ? resolve(process.cwd(), cwd) : process.cwd();
+          const maxTimeout = typeof timeout === 'number' && timeout > 0 ? timeout : 120000;
+
+          return await new Promise<ToolExecutionResult>((resolveResult) => {
+            try {
+              const child = spawn('bash', ['-lc', command], {
+                cwd: workingDir,
+                env: { ...process.env },
+              });
+
+              let stdout = '';
+              let stderr = '';
+              let timedOut = false;
+
+              child.stdout.on('data', (data) => {
+                stdout += data.toString();
+              });
+
+              child.stderr.on('data', (data) => {
+                stderr += data.toString();
+              });
+
+              const timeoutId = setTimeout(() => {
+                timedOut = true;
+                child.kill('SIGTERM');
+              }, maxTimeout);
+
+              child.on('error', (error) => {
+                clearTimeout(timeoutId);
+                resolveResult({
+                  success: false,
+                  error: `Failed to execute command: ${error.message}`,
+                  metadata: {
+                    executionTime: Date.now() - startTime,
+                    toolName: 'run_shell',
+                    runId: context.runId,
+                  },
+                });
+              });
+
+              child.on('close', (code) => {
+                clearTimeout(timeoutId);
+                const executionTime = Date.now() - startTime;
+
+                if (timedOut) {
+                  resolveResult({
+                    success: false,
+                    error: `Command timed out after ${maxTimeout}ms`,
+                    metadata: {
+                      executionTime,
+                      toolName: 'run_shell',
+                      runId: context.runId,
+                    },
+                    data: {
+                      stdout,
+                      stderr,
+                      exitCode: code ?? -1,
+                      timedOut: true,
+                    },
+                  });
+                  return;
+                }
+
+                if (code === 0) {
+                  resolveResult({
+                    success: true,
+                    data: {
+                      stdout: stdout.trim(),
+                      stderr: stderr.trim(),
+                      exitCode: code ?? 0,
+                      timedOut: false,
+                    },
+                    metadata: {
+                      executionTime,
+                      toolName: 'run_shell',
+                      runId: context.runId,
+                    },
+                  });
+                } else {
+                  resolveResult({
+                    success: false,
+                    error: stderr.trim() || `Command exited with code ${code}`,
+                    data: {
+                      stdout: stdout.trim(),
+                      stderr: stderr.trim(),
+                      exitCode: code ?? -1,
+                      timedOut: false,
+                    },
+                    metadata: {
+                      executionTime,
+                      toolName: 'run_shell',
+                      runId: context.runId,
+                    },
+                  });
+                }
+              });
+            } catch (error: any) {
+              resolveResult({
+                success: false,
+                error: `Failed to execute command: ${error.message}`,
+                metadata: {
+                  executionTime: Date.now() - startTime,
+                  toolName: 'run_shell',
+                  runId: context.runId,
+                },
+              });
+            }
+          });
+        },
+      }
+    );
+
     // Read file tool
     this.register(
       {
@@ -209,6 +372,104 @@ export class ToolCallService {
               metadata: {
                 executionTime: Date.now() - startTime,
                 toolName: 'read_file',
+                runId: context.runId,
+              },
+            };
+          }
+        },
+      }
+    );
+
+    // Write file tool
+    this.register(
+      {
+        name: 'write_to_file',
+        description: 'Write content to a file on the filesystem. Creates the file if it does not exist, or overwrites it if it does.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: 'The path to the file to write',
+            },
+            content: {
+              type: 'string',
+              description: 'The content to write to the file',
+            },
+          },
+          required: ['path', 'content'],
+        },
+        output_schema: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              description: 'Whether the write operation succeeded',
+            },
+            path: {
+              type: 'string',
+              description: 'The path of the written file',
+            },
+            bytesWritten: {
+              type: 'number',
+              description: 'Number of bytes written',
+            },
+          },
+          required: ['success', 'path'],
+        },
+      },
+      {
+        execute: async (context: ToolExecutionContext): Promise<ToolExecutionResult> => {
+          const startTime = Date.now();
+          try {
+            const { path, content } = context.input;
+            if (!path || typeof path !== 'string') {
+              return {
+                success: false,
+                error: 'Invalid input: path is required and must be a string',
+                metadata: {
+                  executionTime: Date.now() - startTime,
+                  toolName: 'write_to_file',
+                  runId: context.runId,
+                },
+              };
+            }
+            if (content === undefined || content === null) {
+              return {
+                success: false,
+                error: 'Invalid input: content is required',
+                metadata: {
+                  executionTime: Date.now() - startTime,
+                  toolName: 'write_to_file',
+                  runId: context.runId,
+                },
+              };
+            }
+
+            const contentStr = String(content);
+            writeFileSync(path, contentStr, 'utf-8');
+            const bytesWritten = Buffer.byteLength(contentStr, 'utf-8');
+
+            return {
+              success: true,
+              data: {
+                success: true,
+                path,
+                bytesWritten,
+              },
+              metadata: {
+                executionTime: Date.now() - startTime,
+                toolName: 'write_to_file',
+                runId: context.runId,
+              },
+            };
+          } catch (error: any) {
+            return {
+              success: false,
+              error: `Failed to write file: ${error.message}`,
+              metadata: {
+                executionTime: Date.now() - startTime,
+                toolName: 'write_to_file',
                 runId: context.runId,
               },
             };
@@ -586,7 +847,7 @@ export class ToolCallService {
       }
     );
 
-    this.logger.log('Built-in tools registered: hello, read_file, list_agents, get_markdown_headings, get_markdown_sections');
+    this.logger.log('Built-in tools registered: hello, read_file, write_to_file, run_shell, list_agents, get_markdown_headings, get_markdown_sections');
   }
 
   /**

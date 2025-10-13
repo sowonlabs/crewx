@@ -6,6 +6,7 @@ import {
   ConversationThread,
   FetchHistoryOptions,
 } from './conversation-history.interface';
+import { ConversationStorageService } from './conversation-storage.service';
 
 @Injectable()
 export class SlackConversationHistoryProvider extends BaseConversationHistoryProvider {
@@ -16,6 +17,9 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
   > = new Map();
   private readonly CACHE_TTL = 0; // Cache disabled
   private botInfo?: { userId: string; username: string }; // Bot 정보 캐시
+  private storage?: ConversationStorageService;
+  private storageInitPromise?: Promise<void>;
+  private loggingEnabled = false;
 
   constructor() {
     super(SlackConversationHistoryProvider.name);
@@ -26,6 +30,28 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
    */
   initialize(client: WebClient) {
     this.client = client;
+  }
+
+  /**
+   * Enable local conversation logging (writes Slack history to .crewx/conversations)
+   */
+  async enableLocalLogging(): Promise<void> {
+    if (this.loggingEnabled && this.storageInitPromise) {
+      return this.storageInitPromise;
+    }
+
+    this.storage = new ConversationStorageService();
+    this.loggingEnabled = true;
+    this.storageInitPromise = this.storage.initialize().catch(error => {
+      this.logger.warn(`Failed to initialize Slack conversation logging: ${error.message}`);
+      this.loggingEnabled = false;
+    });
+
+    return this.storageInitPromise;
+  }
+
+  isLocalLoggingEnabled(): boolean {
+    return this.loggingEnabled;
   }
 
   /**
@@ -78,6 +104,7 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
     const cached = this.getCachedThread(threadId);
     if (cached) {
       this.logger.debug(`Using cached thread history for ${threadId}`);
+      await this.persistThread(cached);
       return cached;
     }
 
@@ -198,6 +225,8 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
       // Cache the result for performance
       this.cacheThread(threadId, thread);
 
+      await this.persistThread(thread);
+
       this.logger.log(`Retrieved ${messages.length} messages from thread (Slack API)`);
       return thread;
     } catch (error: any) {
@@ -252,11 +281,11 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
             return false;
           }
 
-          // Exclude footer blocks (context blocks with crewcode branding)
-          // Footer pattern: "$ crewcode | github.com/sowonlabs/crewcode"
+          // Exclude footer blocks (context blocks with crewx branding)
+          // Footer pattern: "$ crewx | github.com/sowonlabs/crewx"
           if (b.type === 'context' && b.elements) {
             const text = b.elements[0]?.text || '';
-            if (text.includes('$ crewcode') || text.includes('github.com/sowonlabs/crewcode')) {
+            if (text.includes('$ crewx') || text.includes('github.com/sowonlabs/crewx')) {
               return false;
             }
           }
@@ -346,5 +375,27 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
   invalidateCache(threadId: string): void {
     this.cache.delete(threadId);
     this.logger.debug(`🗑️  Cache invalidated for thread: ${threadId}`);
+  }
+
+  private async persistThread(thread: ConversationThread): Promise<void> {
+    if (!this.loggingEnabled || !this.storage) {
+      return;
+    }
+
+    try {
+      const threadCopy: ConversationThread = {
+        ...thread,
+        messages: thread.messages.map(message => ({
+          ...message,
+          timestamp:
+            message.timestamp instanceof Date
+              ? message.timestamp
+              : new Date(message.timestamp),
+        })),
+      };
+      await this.storage.saveThread(threadCopy);
+    } catch (error: any) {
+      this.logger.warn(`Failed to persist Slack conversation log: ${error.message}`);
+    }
   }
 }

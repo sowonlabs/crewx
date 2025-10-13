@@ -47,16 +47,16 @@ Available tools:
 ${tools.map(t => `- ${t.name}: ${t.description}
   Input schema: ${JSON.stringify(t.input_schema, null, 2)}`).join('\n')}
 
-To use a tool, wrap your JSON response in <crewcode_tool_call> tags like this:
-<crewcode_tool_call>
+To use a tool, wrap your JSON response in <crewx_tool_call> tags like this:
+<crewx_tool_call>
 {
   "type": "tool_use",
   "name": "tool_name",
   "input": { ...tool parameters... }
 }
-</crewcode_tool_call>
+</crewx_tool_call>
 
-If you don't need to use a tool, respond normally.
+    If you don't need to use a tool, respond normally.
 `;
 
     return toolsSection + '\n' + prompt;
@@ -96,7 +96,7 @@ If you don't need to use a tool, respond normally.
   protected parseToolUseProviderSpecific(parsed: any): { isToolUse: boolean; toolName?: string; toolInput?: any } {
     // Gemini-specific: Check JSON response field
     if (parsed.response && typeof parsed.response === 'string') {
-      const responseXml = parsed.response.match(/<crewcode_tool_call>\s*([\s\S]*?)\s*<\/crewcode_tool_call>/);
+    const responseXml = parsed.response.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
       if (responseXml && responseXml[1]) {
         try {
           const jsonContent = responseXml[1].trim();

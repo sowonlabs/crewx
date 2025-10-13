@@ -1,3 +1,29 @@
+export interface RemoteAgentToolsConfig {
+  query?: string;
+  execute?: string;
+}
+
+export interface RemoteAgentConfigInput {
+  type: 'mcp-http';
+  url: string;
+  apiKey?: string;
+  api_key?: string;
+  agentId?: string;
+  agent_id?: string;
+  timeoutMs?: number;
+  timeout_ms?: number;
+  tools?: RemoteAgentToolsConfig;
+}
+
+export interface RemoteAgentInfo {
+  type: 'mcp-http';
+  url: string;
+  apiKey?: string;
+  agentId?: string;
+  timeoutMs?: number;
+  tools?: RemoteAgentToolsConfig;
+}
+
 export interface AgentConfig {
   id: string;
   working_directory: string;
@@ -24,6 +50,7 @@ export interface AgentConfig {
     file_operations?: boolean; // File manipulation permissions
     tool_access?: string[]; // List of accessible tools
   };
+  remote?: RemoteAgentConfigInput;
 }
 
 // Security Level Enum
@@ -80,7 +107,7 @@ export interface AgentInfo {
   name?: string;
   role?: string;
   team?: string;
-  provider: 'claude' | 'gemini' | 'copilot' | ('claude' | 'gemini' | 'copilot')[]; // Single provider or array for fallback
+  provider: 'claude' | 'gemini' | 'copilot' | 'remote' | `remote/${string}` | ('claude' | 'gemini' | 'copilot')[]; // Single provider or array for fallback
   workingDirectory: string;
   capabilities: string[];
   description: string;
@@ -96,4 +123,5 @@ export interface AgentInfo {
     system_prompt: string;
     model?: string; // Default model for this agent
   };
+  remote?: RemoteAgentInfo;
 }

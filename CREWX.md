@@ -52,8 +52,8 @@ crewx/
 
 1. **Entry Points** - Bootstrap & module setup
 2. **Interface Layer** - CLI, MCP, Slack
-3. **Core Services** - AI orchestration, providers, tools, conversation
-4. **Support Services** - Config, tasks, parallel processing, templates
+3. **Core Services** - AI orchestration, providers (including new Codex provider), tools, conversation
+4. **Support Services** - Config, tasks, parallel processing, templates, log formatting
 5. **Utilities** - Helpers, security, configuration
 
 ---
@@ -64,12 +64,14 @@ crewx/
 |-----------|------|-----|-------------|
 | **MCP Tool** | `crewx.tool.ts` | 1,399 | MCP tool implementation (⚠️ large) |
 | **Tool Executor** | `services/tool-call.service.ts` | 970 | Tool execution engine (⚠️ large) |
-| **Base Provider** | `providers/base-ai.provider.ts` | 716 | AI provider base class |
+| **Base Provider** | `providers/base-ai.provider.ts` | 716 | AI provider base class with env var support |
 | **AI Service** | `ai.service.ts` | 715 | Core AI orchestration |
 | **Chat Handler** | `cli/chat.handler.ts` | 575 | Interactive chat mode |
-| **Slack Bot** | `slack/slack-bot.ts` | 566 | Slack integration |
+| **Slack Bot** | `slack/slack-bot.ts` | 566 | Slack integration with CrewX branding |
 | **Config Validator** | `services/config-validator.service.ts` | 536 | YAML validation |
 | **Claude Provider** | `providers/claude.provider.ts` | 494 | Claude Code integration |
+| **Remote Agent Service** | `services/remote-agent.service.ts` | NEW | Remote MCP agent management |
+| **Codex Provider** | `providers/codex.provider.ts` | NEW | Codex CLI integration |
 
 ---
 
@@ -77,12 +79,13 @@ crewx/
 
 - **Framework**: NestJS (Dependency Injection, Modularity)
 - **AI Providers**:
-  - Built-in CLI providers (cli/*): Claude Code, Gemini CLI, GitHub Copilot CLI
-  - Plugin providers (plugin/*): User-defined external AI tools via YAML config
+  - Built-in CLI providers (cli/*): Claude Code, Gemini CLI, GitHub Copilot CLI, **Codex CLI**
+  - Plugin providers (plugin/*): User-defined external AI tools via YAML config with **environment variables support**
+  - Remote providers (remote/*): **Remote MCP agents** for distributed collaboration
   - Future API providers (api/*): Direct API integrations (planned)
 - **Provider Namespace System**: `{namespace}/{id}` format for organized provider management
-- **Protocols**: Model Context Protocol (MCP)
-- **Integrations**: Slack Bolt SDK
+- **Protocols**: Model Context Protocol (MCP) with remote server support
+- **Integrations**: Slack Bolt SDK with CrewX branding
 - **Template Engine**: Handlebars
 - **Configuration**: YAML (js-yaml, AJV validation)
 - **CLI**: Yargs
@@ -98,4 +101,4 @@ For detailed information about each module, see:
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-13

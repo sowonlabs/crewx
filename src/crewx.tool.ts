@@ -17,11 +17,14 @@ import { TemplateService } from './services/template.service';
 import { DocumentLoaderService } from './services/document-loader.service';
 import { ToolCallService } from './services/tool-call.service';
 import { AgentLoaderService } from './services/agent-loader.service';
+import { getTimeoutConfig } from './config/timeout.config';
 import type { TemplateContext } from './utils/template-processor';
+import { RemoteAgentService } from './services/remote-agent.service';
 
 @Injectable()
 export class CrewXTool implements OnModuleInit {
   private readonly logger = new Logger(CrewXTool.name);
+  private readonly timeoutConfig = getTimeoutConfig();
 
   /**
    * Generate a random security key for prompt injection protection
@@ -65,6 +68,7 @@ export class CrewXTool implements OnModuleInit {
     private readonly documentLoaderService: DocumentLoaderService,
     private readonly toolCallService: ToolCallService,
     private readonly agentLoaderService: AgentLoaderService,
+    private readonly remoteAgentService: RemoteAgentService,
   ) {}
 
   /**
@@ -335,6 +339,11 @@ agents:
       projectPath: z.string().describe('Absolute path of the project to analyze').optional(),
       context: z.string().describe('Additional context or background information').optional(),
       model: z.string().describe('Model to use for this query (e.g., sonnet, gemini-2.5-pro, gpt-5)').optional(),
+      messages: z.array(z.object({
+        text: z.string(),
+        isAssistant: z.boolean(),
+        metadata: z.record(z.any()).optional(),
+      })).describe('Conversation history to provide as context (oldest → newest)').optional(),
     },
     annotations: {
       title: 'Query Specialist Agent (Read-Only)',
@@ -357,7 +366,8 @@ agents:
       prompt: args.query,
       agentId: args.agentId
     });
-    this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${args.agentId}` });
+    const agentDescriptor = args.model ? `${args.agentId} (model: ${args.model})` : args.agentId;
+    this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${agentDescriptor}` });
 
     try {
       const { agentId, query, context, model, messages, platform } = args;
@@ -392,6 +402,54 @@ Please check the agent ID and try again.`
           availableAgents: agents.map(a => a.id),
           readOnlyMode: true
         };
+      }
+
+      if (agent.remote?.type === 'mcp-http') {
+        try {
+          const remoteResult = await this.remoteAgentService.queryRemoteAgent(agent, {
+            query,
+            context,
+            model,
+            platform,
+            messages,
+          });
+
+          const normalized = this.normalizeRemoteResult(agent, taskId, remoteResult, true);
+          const logLevel = normalized.success ? 'info' : 'error';
+          this.taskManagementService.addTaskLog(taskId, {
+            level: logLevel,
+            message: normalized.success
+              ? 'Remote agent query completed successfully'
+              : `Remote agent query failed: ${normalized.error || 'Unknown error'}`,
+          });
+
+          this.taskManagementService.completeTask(taskId, normalized, normalized.success !== false);
+          return normalized;
+        } catch (error) {
+          const errorMessage = getErrorMessage(error);
+          this.taskManagementService.addTaskLog(taskId, {
+            level: 'error',
+            message: `Remote agent query failed: ${errorMessage}`,
+          });
+          this.taskManagementService.completeTask(taskId, { success: false, error: errorMessage }, false);
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `❌ **Remote agent error**\n\n\
+${errorMessage}`,
+              },
+            ],
+            success: false,
+            agent: agentId,
+            provider: 'remote',
+            error: errorMessage,
+            taskId,
+            readOnlyMode: true,
+            readOnly: true,
+          };
+        }
       }
 
       // Configure agent's system prompt
@@ -484,10 +542,11 @@ ${query}
       
       response = await this.aiService.queryAI(fullPrompt, provider, {
         workingDirectory: workingDir,
-        timeout: 1200000, // 20min for all providers (bug-00000015)
+        timeout: this.timeoutConfig.parallel, // Use configured timeout from timeout.config.ts
         additionalArgs: agentOptions, // Pass mode-specific options
         taskId, // Pass taskId to AIService
         model: modelToUse, // Use determined model
+        agentId, // Preserve raw agent identifier for logging
         securityKey, // Pass security key for injection protection
       });
 
@@ -556,6 +615,11 @@ Read-Only Mode: No files were modified.`
       projectPath: z.string().describe('Absolute path of the project to work on').optional(),
       context: z.string().describe('Additional context or background information').optional(),
       model: z.string().describe('Model to use for this execution (e.g., sonnet, gemini-2.5-pro, gpt-5)').optional(),
+      messages: z.array(z.object({
+        text: z.string(),
+        isAssistant: z.boolean(),
+        metadata: z.record(z.any()).optional(),
+      })).describe('Conversation history to provide as context (oldest → newest)').optional(),
     },
     annotations: {
       title: 'Execute Agent Task (Can Modify Files)',
@@ -579,7 +643,8 @@ Read-Only Mode: No files were modified.`
       prompt: args.task,
       agentId: args.agentId
     });
-    this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${args.agentId}` });
+    const agentDescriptor = args.model ? `${args.agentId} (model: ${args.model})` : args.agentId;
+    this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${agentDescriptor}` });
 
     try {
       const { agentId, task, projectPath, context, model, messages, platform } = args;
@@ -614,6 +679,53 @@ Please check the agent ID and try again.`
           availableAgents: agents.map(a => a.id),
           executionMode: true
         };
+      }
+
+      if (agent.remote?.type === 'mcp-http') {
+        try {
+          const remoteResult = await this.remoteAgentService.executeRemoteAgent(agent, {
+            task,
+            context,
+            model,
+            platform,
+            messages,
+          });
+
+          const normalized = this.normalizeRemoteResult(agent, taskId, remoteResult, false);
+          const logLevel = normalized.success ? 'info' : 'error';
+          this.taskManagementService.addTaskLog(taskId, {
+            level: logLevel,
+            message: normalized.success
+              ? 'Remote agent execute completed successfully'
+              : `Remote agent execute failed: ${normalized.error || 'Unknown error'}`,
+          });
+
+          this.taskManagementService.completeTask(taskId, normalized, normalized.success !== false);
+          return normalized;
+        } catch (error) {
+          const errorMessage = getErrorMessage(error);
+          this.taskManagementService.addTaskLog(taskId, {
+            level: 'error',
+            message: `Remote agent execute failed: ${errorMessage}`,
+          });
+          this.taskManagementService.completeTask(taskId, { success: false, error: errorMessage }, false);
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `❌ **Remote agent error**\n\n${errorMessage}`,
+              },
+            ],
+            success: false,
+            agent: agentId,
+            provider: 'remote',
+            error: errorMessage,
+            taskId,
+            executionMode: true,
+            readOnly: false,
+          };
+        }
       }
 
       // Configure agent's system prompt
@@ -708,6 +820,7 @@ Task: ${task}
         taskId: taskId,
         additionalArgs: agentOptions, // Pass mode-specific options
         model: modelToUse, // Use determined model
+        agentId, // Preserve raw agent identifier for logging
       });
 
       // Handle task completion
@@ -763,6 +876,46 @@ Task: ${task}
   /**
    * Get mode-specific options for a given agent and execution mode
    */
+  private normalizeRemoteResult(agent: AgentInfo, taskId: string, remoteResult: any, readOnly: boolean) {
+    const normalizedAgentId = remoteResult?.agent ?? agent.remote?.agentId ?? agent.id;
+    const provider = remoteResult?.provider ?? 'remote';
+
+    let content = remoteResult?.content;
+    if (!Array.isArray(content) || content.length === 0) {
+      const fallback =
+        remoteResult?.response ??
+        remoteResult?.implementation ??
+        remoteResult?.message ??
+        remoteResult?.output;
+
+      const text =
+        typeof fallback === 'string'
+          ? fallback
+          : JSON.stringify(fallback ?? remoteResult, null, 2);
+
+      content = [
+        {
+          type: 'text',
+          text,
+        },
+      ];
+    }
+
+    return {
+      ...remoteResult,
+      content,
+      agent: normalizedAgentId,
+      provider,
+      taskId: remoteResult?.taskId ?? taskId,
+      success: remoteResult?.success !== false,
+      readOnlyMode: readOnly,
+      readOnly,
+    };
+  }
+
+  /**
+   * Get mode-specific options for a given agent and execution mode
+   */
   private getOptionsForAgent(agent: AgentInfo, mode: 'query' | 'execute', provider?: string): string[] {
     try {
       // Handle new structure: agent.options.query / agent.options.execute
@@ -772,8 +925,19 @@ Task: ${task}
         // If modeOptions is an object with provider-specific options
         if (modeOptions && typeof modeOptions === 'object' && !Array.isArray(modeOptions)) {
           // Try to get provider-specific options first
-          if (provider && modeOptions[provider]) {
-            return modeOptions[provider];
+          if (provider) {
+            // Extract simple provider name from namespace (e.g., "claude" from "cli/claude")
+            const simpleProviderName = provider.includes('/') ? provider.split('/').pop() : provider;
+            
+            // Try simple provider name first (e.g., "claude")
+            if (simpleProviderName && modeOptions[simpleProviderName]) {
+              return modeOptions[simpleProviderName];
+            }
+            
+            // Fallback to full namespace name (e.g., "cli/claude")
+            if (modeOptions[provider]) {
+              return modeOptions[provider];
+            }
           }
           // Fall back to 'default' key if exists
           if (modeOptions['default']) {
@@ -810,6 +974,12 @@ Task: ${task}
         query: z.string().describe('Question or request to ask the agent'),
         projectPath: z.string().describe('Absolute path of the project to analyze').optional(),
         context: z.string().describe('Additional context or background information').optional(),
+        model: z.string().describe('Model to use for this query').optional(),
+        messages: z.array(z.object({
+          text: z.string(),
+          isAssistant: z.boolean(),
+          metadata: z.record(z.any()).optional(),
+        })).describe('Conversation history to provide as context (oldest → newest)').optional(),
       })).describe('Array of queries to process in parallel'),
     },
     annotations: {
@@ -1001,6 +1171,12 @@ Read-Only Mode: No files were modified.`
         task: z.string().describe('Task or implementation request for the agent to perform'),
         projectPath: z.string().describe('Absolute path of the project to work on').optional(),
         context: z.string().describe('Additional context or background information').optional(),
+        model: z.string().describe('Model to use for this execution').optional(),
+        messages: z.array(z.object({
+          text: z.string(),
+          isAssistant: z.boolean(),
+          metadata: z.record(z.any()).optional(),
+        })).describe('Conversation history to provide as context (oldest → newest)').optional(),
       })).describe('Array of tasks to execute in parallel'),
     },
     annotations: {
@@ -1015,6 +1191,8 @@ Read-Only Mode: No files were modified.`
       task: string;
       projectPath?: string;
       context?: string;
+      model?: string;
+      messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
     }>;
   }) {
     try {
@@ -1140,7 +1318,7 @@ ${result.context ? `**Context:** ${result.context}\n` : ''}
 ${result.success ? result.implementation : `Error: ${result.error}`}
 
 ${result.recommendations.length > 0 ? `**Recommendations:**
-${result.recommendations.map(r => `• ${r}`).join('\n')}` : ''}
+${result.recommendations.map((recommendation: string) => `• ${recommendation}`).join('\n')}` : ''}
 `).join('\n')}
 
 **Performance Insights:**

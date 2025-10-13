@@ -9,7 +9,7 @@
  */
 
 import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
-import { AgentInfo } from '../agent.types';
+import { AgentInfo, RemoteAgentInfo, RemoteAgentConfigInput } from '../agent.types';
 import * as yaml from 'js-yaml';
 import { readFile } from 'fs/promises';
 import { getErrorMessage } from '../utils/error-utils';
@@ -254,6 +254,7 @@ export class AgentLoaderService {
             systemPrompt: systemPrompt,
             options: agent.options || [],
             inline: agent.inline,
+            remote: this.parseRemoteConfig(agent),
           };
         })
       );
@@ -333,6 +334,7 @@ export class AgentLoaderService {
               ...agent.inline,
               system_prompt: systemPrompt, // Use the original (unprocessed) system_prompt
             } : undefined,
+            remote: this.parseRemoteConfig(agent),
           };
         })
       );
@@ -349,7 +351,11 @@ export class AgentLoaderService {
    * Parse provider from agent configuration
    * Supports both single string and array formats
    */
-  private parseProviderConfig(agent: any): 'claude' | 'gemini' | 'copilot' | ('claude' | 'gemini' | 'copilot')[] {
+  private parseProviderConfig(agent: any): 'claude' | 'gemini' | 'copilot' | 'remote' | ('claude' | 'gemini' | 'copilot')[] {
+    if (this.parseRemoteConfig(agent)) {
+      return 'remote';
+    }
+
     // Priority: agent.provider > agent.inline.provider > default 'claude'
     const configProvider = agent.provider || agent.inline?.provider;
 
@@ -363,6 +369,56 @@ export class AgentLoaderService {
       // No provider specified: default to 'claude'
       return 'claude';
     }
+  }
+
+  private parseRemoteConfig(agent: any): RemoteAgentInfo | undefined {
+    const remoteConfig = agent.remote as RemoteAgentConfigInput | undefined;
+
+    if (!remoteConfig || typeof remoteConfig !== 'object') {
+      return undefined;
+    }
+
+    if (remoteConfig.type !== 'mcp-http') {
+      this.logger.warn(`Unsupported remote agent type for ${agent.id}: ${remoteConfig.type}`);
+      return undefined;
+    }
+
+    const url = remoteConfig.url;
+
+    if (!url || typeof url !== 'string') {
+      this.logger.error(`Remote agent ${agent.id} is missing a valid url property`);
+      return undefined;
+    }
+
+    const tools = remoteConfig.tools && typeof remoteConfig.tools === 'object'
+      ? {
+          query: remoteConfig.tools.query,
+          execute: remoteConfig.tools.execute,
+        }
+      : undefined;
+
+    return {
+      type: 'mcp-http',
+      url: this.normalizeRemoteUrl(url),
+      apiKey: remoteConfig.apiKey ?? remoteConfig.api_key,
+      agentId: remoteConfig.agentId ?? remoteConfig.agent_id,
+      timeoutMs: remoteConfig.timeoutMs ?? remoteConfig.timeout_ms,
+      tools,
+    };
+  }
+
+  private normalizeRemoteUrl(url: string): string {
+    const trimmed = url.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    // Remove duplicate /mcp suffix to avoid /mcp/mcp when constructing requests
+    const lower = trimmed.toLowerCase();
+    if (lower.endsWith('/mcp')) {
+      return trimmed.slice(0, -4);
+    }
+    return trimmed.replace(/\/+$/, '');
   }
 
   /**

@@ -38,12 +38,9 @@ describe('DynamicProviderFactory', () => {
         }
       });
 
-      it('should reject CLI commands with path separators', () => {
+      it('should reject CLI commands with path traversal', () => {
         const pathConfigs = [
           '../aider',
-          './aider',
-          '/usr/bin/aider',
-          'C:\\Program Files\\aider',
         ];
 
         for (const cmd of pathConfigs) {
@@ -56,8 +53,47 @@ describe('DynamicProviderFactory', () => {
             prompt_in_args: false,
           };
 
-          expect(() => factory.createProvider(config)).toThrow(/cannot contain path separators/);
+          expect(() => factory.createProvider(config)).toThrow(/Path traversal/);
         }
+      });
+
+      it('should reject absolute Unix paths', () => {
+        const config: PluginProviderConfig = {
+          id: 'test',
+          type: 'plugin',
+          cli_command: '/usr/bin/aider',
+          query_args: ['--help'],
+          execute_args: ['--help'],
+          prompt_in_args: false,
+        };
+
+        expect(() => factory.createProvider(config)).toThrow(/Absolute paths are not allowed/);
+      });
+
+      it('should reject absolute Windows paths starting with backslash', () => {
+        const config: PluginProviderConfig = {
+          id: 'test',
+          type: 'plugin',
+          cli_command: '\\\\network\\share\\aider',
+          query_args: ['--help'],
+          execute_args: ['--help'],
+          prompt_in_args: false,
+        };
+
+        expect(() => factory.createProvider(config)).toThrow(/Absolute paths are not allowed/);
+      });
+
+      it('should accept relative paths', () => {
+        const config: PluginProviderConfig = {
+          id: 'test',
+          type: 'plugin',
+          cli_command: './test-tools/mock-cli',
+          query_args: ['--help'],
+          execute_args: ['--help'],
+          prompt_in_args: false,
+        };
+
+        expect(() => factory.createProvider(config)).not.toThrow();
       });
 
       it('should reject CLI commands with shell metacharacters', () => {
@@ -196,6 +232,85 @@ describe('DynamicProviderFactory', () => {
       });
     });
 
+    describe('Environment Variables Validation', () => {
+      it('should reject dangerous environment variable names', () => {
+        const dangerousEnvVars = [
+          'PATH',
+          'LD_LIBRARY_PATH',
+          'DYLD_LIBRARY_PATH',
+          'LD_PRELOAD',
+          'DYLD_INSERT_LIBRARIES',
+          'IFS',
+          'BASH_ENV',
+          'ENV',
+        ];
+
+        for (const envVar of dangerousEnvVars) {
+          const config: PluginProviderConfig = {
+            id: 'test',
+            type: 'plugin',
+            cli_command: 'aider',
+            query_args: ['--help'],
+            execute_args: ['--help'],
+            prompt_in_args: false,
+            env: {
+              [envVar]: 'malicious-value',
+            },
+          };
+
+          expect(() => factory.createProvider(config)).toThrow(/Security: Environment variable/);
+        }
+      });
+
+      it('should reject environment variables with null bytes', () => {
+        const config: PluginProviderConfig = {
+          id: 'test',
+          type: 'plugin',
+          cli_command: 'aider',
+          query_args: ['--help'],
+          execute_args: ['--help'],
+          prompt_in_args: false,
+          env: {
+            'SAFE_VAR': 'value\0malicious',
+          },
+        };
+
+        expect(() => factory.createProvider(config)).toThrow(/null bytes/);
+      });
+
+      it('should accept valid environment variables', () => {
+        const config: PluginProviderConfig = {
+          id: 'test',
+          type: 'plugin',
+          cli_command: 'ollama',
+          query_args: ['run', '{model}'],
+          execute_args: ['run', '{model}'],
+          prompt_in_args: false,
+          env: {
+            OLLAMA_HOST: 'http://192.168.1.100:11434',
+            OLLAMA_API_BASE: 'http://localhost:11434',
+            API_KEY: 'my-secret-key',
+            DEBUG: 'true',
+          },
+        };
+
+        expect(() => factory.createProvider(config)).not.toThrow();
+      });
+
+      it('should accept provider without env field', () => {
+        const config: PluginProviderConfig = {
+          id: 'test',
+          type: 'plugin',
+          cli_command: 'aider',
+          query_args: ['--help'],
+          execute_args: ['--help'],
+          prompt_in_args: false,
+        };
+
+        expect(() => factory.createProvider(config)).not.toThrow();
+      });
+    });
+
     describe('Error Pattern Validation (ReDoS Prevention)', () => {
       it('should reject patterns with catastrophic backtracking', () => {
         const redosPatterns = [
@@ -306,12 +421,13 @@ describe('DynamicProviderFactory', () => {
       const provider = factory.createProvider(config);
 
       expect(provider).toBeDefined();
-      expect(provider.name).toBe('aider');
+      expect(provider.name).toBe('plugin/aider');
     });
 
     it('should validate config correctly', () => {
       const validConfig = {
         id: 'test',
+        type: 'plugin',
         cli_command: 'test-cli',
         query_args: ['--query'],
         execute_args: ['--execute'],

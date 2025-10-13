@@ -17,7 +17,7 @@ export async function handleChat(app: any, args: CliOptions) {
 
   try {
     const crewXTool = app.get(CrewXTool);
-    const providerFactory = new ConversationProviderFactory();
+    const providerFactory = app.get(ConversationProviderFactory);
     const chatHandler = new ChatHandler(crewXTool, providerFactory);
 
     // Parse options from args
@@ -189,7 +189,8 @@ export class ChatHandler {
       // Get conversation messages for template context
       const conversationMessages = thread.messages.map((msg: any) => ({
         text: msg.text,
-        isAssistant: msg.isAssistant
+        isAssistant: msg.isAssistant,
+        metadata: msg.metadata,
       }));
 
       // Format history for AI (fallback context)
@@ -234,9 +235,10 @@ export class ChatHandler {
           // Add assistant response to history
           await this.conversationProvider.addMessage(
             this.currentThreadId,
-            agentId,
+            'assistant',
             responseText,
             true,
+            agentId,
           );
         } else {
           console.error(`❌ Error: ${result.error || 'Query failed'}`);
@@ -272,9 +274,10 @@ export class ChatHandler {
               // Add to history
               await this.conversationProvider.addMessage(
                 this.currentThreadId,
-                agentResult.agentId,
+                'assistant',
                 agentResult.response || 'No response',
                 true,
+                agentResult.agentId,
               );
             } else {
               console.error(`Error: ${agentResult.error || 'Unknown error'}`);
@@ -384,7 +387,8 @@ export class ChatHandler {
           // Get conversation messages for template context
           const conversationMessages = thread.messages.map((msg: any) => ({
             text: msg.text,
-            isAssistant: msg.isAssistant
+            isAssistant: msg.isAssistant,
+            metadata: msg.metadata,
           }));
 
           // Format history for AI (fallback context)
@@ -431,9 +435,10 @@ export class ChatHandler {
               // Add assistant response to history
               await this.conversationProvider.addMessage(
                 this.currentThreadId,
-                agentId,
+                'assistant',
                 responseText,
                 true,
+                agentId,
               );
             } else {
               console.error(`❌ Error: ${result.error || 'Query failed'}\n`);
@@ -469,9 +474,10 @@ export class ChatHandler {
                   // Add to history
                   await this.conversationProvider.addMessage(
                     this.currentThreadId,
-                    agentResult.agentId,
+                    'assistant',
                     agentResult.response || 'No response',
                     true,
+                    agentResult.agentId,
                   );
                 } else {
                   console.error(`Error: ${agentResult.error || 'Unknown error'}`);

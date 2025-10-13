@@ -6,6 +6,7 @@ import { join } from 'path';
 import { AIProviderService } from './ai-provider.service';
 import { getErrorMessage, getErrorStack } from './utils/error-utils';
 import { getTimeoutConfig } from './config/timeout.config';
+import { CREWX_VERSION } from './version';
 
 const execAsync = promisify(exec);
 
@@ -24,6 +25,7 @@ export interface AIQueryOptions {
   additionalArgs?: string[];
   model?: string; // Model to use for this query (e.g., "sonnet", "gemini-2.5-pro", "gpt-5")
   securityKey?: string; // Security key for prompt injection protection
+  agentId?: string; // Agent requesting the provider (for logging)
 }
 
 @Injectable()
@@ -41,12 +43,21 @@ export class AIService {
     }
   }
 
-  private createTaskLogFile(taskId: string, provider: string, command: string): string {
+  private createTaskLogFile(
+    taskId: string,
+    provider: string,
+    command: string,
+    agentId?: string,
+    model?: string,
+  ): string {
     const logFile = join(this.logsDir, `${taskId}.log`);
     const timestamp = new Date().toLocaleString();
     const header = `=== TASK LOG: ${taskId} ===
+CrewX Version: ${CREWX_VERSION}
 Provider: ${provider}
-Command: ${command}
+Agent: ${agentId || 'N/A'}
+${model ? `Model: ${model}
+` : ''}Command: ${command}
 Started: ${timestamp}
 
 `;

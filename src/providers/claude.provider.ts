@@ -19,12 +19,12 @@ export class ClaudeProvider extends BaseAIProvider {
   }
 
   protected getDefaultArgs(): string[] {
-    return ['--output-format', 'stream-json', '--verbose', '-p'];
+    return ['--verbose', '-p'];
   }
 
   protected getExecuteArgs(): string[] {
     // Set basic execution mode only. All security options are controlled in agents.yaml
-    return ['--output-format', 'stream-json', '--verbose', '-p'];
+    return ['--verbose', '-p'];
   }
 
   protected getNotInstalledMessage(): string {
@@ -210,7 +210,7 @@ Based on the tool execution result above, please provide a clear, detailed, and 
    */
   protected parseToolUse(content: string): { isToolUse: boolean; toolName?: string; toolInput?: any } {
     // First, try to extract from CodeCrew XML tags in the content
-    const xmlMatch = content.match(/<crewcode_tool_call>\s*([\s\S]*?)\s*<\/crewcode_tool_call>/);
+    const xmlMatch = content.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
     if (xmlMatch && xmlMatch[1]) {
       try {
         const jsonContent = xmlMatch[1].trim();
@@ -236,7 +236,7 @@ Based on the tool execution result above, please provide a clear, detailed, and 
         
         // Check for result.result containing XML tags
         if (parsed.type === 'result' && parsed.result) {
-          const xmlMatch = parsed.result.match(/<crewcode_tool_call>\s*([\s\S]*?)\s*<\/crewcode_tool_call>/);
+          const xmlMatch = parsed.result.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
           if (xmlMatch && xmlMatch[1]) {
             const toolCallJson = JSON.parse(xmlMatch[1].trim());
             if (toolCallJson.type === 'tool_use' && toolCallJson.name && toolCallJson.input) {
@@ -257,7 +257,7 @@ Based on the tool execution result above, please provide a clear, detailed, and 
             for (const item of content) {
               if (item.type === 'text' && item.text) {
                 // Check for XML-wrapped tool call
-                const xmlMatch = item.text.match(/<crewcode_tool_call>\s*([\s\S]*?)\s*<\/crewcode_tool_call>/);
+                const xmlMatch = item.text.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
                 if (xmlMatch && xmlMatch[1]) {
                   const toolCallJson = JSON.parse(xmlMatch[1].trim());
                   if (toolCallJson.type === 'tool_use' && toolCallJson.name && toolCallJson.input) {

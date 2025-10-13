@@ -46,10 +46,10 @@ export class ParallelProcessingService {
   /**
    * Get the actual AI provider for a given agent ID
    */
-  private getProviderForAgent(agentId: string): 'claude' | 'gemini' | 'copilot' {
+  private getProviderForAgent(agentId: string): 'claude' | 'gemini' | 'copilot' | 'codex' {
     // Direct provider names
-    if (agentId === 'claude' || agentId === 'gemini' || agentId === 'copilot') {
-      return agentId as 'claude' | 'gemini' | 'copilot';
+    if (agentId === 'claude' || agentId === 'gemini' || agentId === 'copilot' || agentId === 'codex') {
+      return agentId as 'claude' | 'gemini' | 'copilot' | 'codex';
     }
 
     const agentConfig = this.configService.getAgentConfig(agentId);
@@ -291,6 +291,7 @@ export class ParallelProcessingService {
             workingDirectory: request.projectPath,
             taskId, // Pass taskId to AIService
             additionalArgs: agentOptions, // Pass mode-specific options
+            agentId: request.agentId,
           }
         );
       } else if (request.task) {
@@ -306,6 +307,7 @@ export class ParallelProcessingService {
             workingDirectory: request.projectPath,
             taskId, // Pass taskId to AIService
             additionalArgs: agentOptions, // Pass mode-specific options
+            agentId: request.agentId,
           }
         );
       } else {

@@ -22,6 +22,7 @@
 src/
 ├── cli/                          # CLI Interface Layer
 │   ├── chat.handler.ts           # Interactive chat mode
+│   ├── agent.handler.ts          # Agent management commands
 │   ├── query.handler.ts          # Read-only queries
 │   ├── execute.handler.ts        # File modification tasks
 │   ├── init.handler.ts           # Project initialization
@@ -32,11 +33,12 @@ src/
 │
 ├── providers/                    # AI Provider System (Namespace-based)
 │   ├── ai-provider.interface.ts  # Provider contract & namespace constants
-│   ├── base-ai.provider.ts       # Base implementation with model substitution
+│   ├── base-ai.provider.ts       # Base implementation with model substitution & env vars
 │   ├── claude.provider.ts        # cli/claude - Claude Code integration
 │   ├── gemini.provider.ts        # cli/gemini - Gemini CLI integration
 │   ├── copilot.provider.ts       # cli/copilot - GitHub Copilot integration
-│   └── dynamic-provider.factory.ts # plugin/* - YAML-based plugin system
+│   ├── codex.provider.ts         # cli/codex - Codex CLI integration
+│   └── dynamic-provider.factory.ts # plugin/* & remote/* - YAML-based system
 │
 ├── services/                     # Business Logic Services
 │   ├── tool-call.service.ts              # Tool execution engine
@@ -50,6 +52,8 @@ src/
 │   ├── context-enhancement.service.ts    # Context loading
 │   ├── intelligent-compression.service.ts # History compression
 │   ├── document-loader.service.ts        # Document loading
+│   ├── mcp-client.service.ts             # MCP client for remote agents
+│   ├── remote-agent.service.ts           # Remote agent management
 │   └── help.service.ts                   # Help content
 │
 ├── conversation/                 # Conversation System
@@ -122,8 +126,9 @@ Handles external interactions:
   - Tool definitions for AI assistants
 
 - **Slack** (`slack/`) - Slack bot integration
-  - Thread-based conversations
+  - Thread-based conversations with **CrewX branding alignment**
   - Multi-agent collaboration
+  - Cross-platform conversation continuity with remote agents
 
 ### 3. **Core Services**
 The heart of the application:
@@ -135,10 +140,12 @@ The heart of the application:
 
 - **Provider System** (`providers/`)
   - Namespace-based provider organization: `{namespace}/{id}`
-  - Built-in CLI providers: `cli/claude`, `cli/gemini`, `cli/copilot`
-  - Plugin providers: `plugin/{id}` for YAML-defined external tools
+  - Built-in CLI providers: `cli/claude`, `cli/gemini`, `cli/copilot`, `cli/codex`
+  - Plugin providers: `plugin/{id}` for YAML-defined external tools with **environment variables support**
+  - Remote providers: `remote/{id}` for **MCP-based remote agent connections**
   - Future API providers: `api/*` (planned for direct API integrations)
   - Model placeholder substitution: `{model}` → actual model name
+  - **Security**: Environment variable validation blocks dangerous variables
 
 - **Tool System** (`services/tool-call.service.ts`)
   - Tool discovery & loading
@@ -146,9 +153,9 @@ The heart of the application:
   - Security validation
 
 - **Conversation System** (`conversation/`)
-  - Thread-based history
+  - Thread-based history with agent metadata persistence
   - Multiple storage backends (CLI, Slack)
-  - Context management
+  - Context management with improved log formatting
 
 ### 4. **Support Services**
 Enable core functionality:
@@ -232,7 +239,8 @@ NestJS providers registered in `app.module.ts`:
 - `ClaudeProvider` - cli/claude (Claude Code integration)
 - `CopilotProvider` - cli/copilot (GitHub Copilot CLI)
 - `GeminiProvider` - cli/gemini (Gemini CLI)
-- `DynamicProviderFactory` - plugin/* (YAML-based plugin loader)
+- `CodexProvider` - cli/codex (Codex CLI integration)
+- `DynamicProviderFactory` - plugin/* & remote/* (YAML-based plugin and remote agent loader)
 
 ### Services
 - `ToolCallService` - Tool execution
@@ -247,10 +255,14 @@ NestJS providers registered in `app.module.ts`:
 - `IntelligentCompressionService` - History compression
 - `ResultFormatterService` - Output formatting
 - `HelpService` - Help content
+- `McpClientService` - MCP client for remote agent connections
+- `RemoteAgentService` - Remote agent management and discovery
+- `AuthService` - Authentication for remote MCP endpoints (Bearer tokens)
 
 ### CLI Handlers
 - `InitHandler` - Init command
 - `DoctorHandler` - Doctor command
+- `McpHandler` - MCP server and remote agent management
 
 ---
 
@@ -288,4 +300,4 @@ For more details on specific modules:
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-13

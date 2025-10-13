@@ -192,20 +192,20 @@ export class DoctorHandler {
   }
 
   private async checkAIProviders(): Promise<DiagnosticResult[]> {
-    const providers = ['claude', 'gemini', 'copilot'];
+    const providers = ['claude', 'gemini', 'copilot', 'codex'];
     const diagnostics: DiagnosticResult[] = [];
 
     for (const provider of providers) {
       try {
-        const providerInstance = this.aiProviderService.getProvider(provider as any);
+        const providerInstance = this.aiProviderService.getProvider(`cli/${provider}` as any);
         const isAvailable = providerInstance ? await providerInstance.isAvailable() : false;
-        
+
         diagnostics.push({
           name: `${provider.toUpperCase()} CLI`,
           status: isAvailable ? 'success' : 'warning',
           message: isAvailable ? 'Installed and available' : 'Not installed or not available',
-          details: isAvailable ? 
-            `${provider} CLI is ready for use` : 
+          details: isAvailable ?
+            `${provider} CLI is ready for use` :
             `Install ${provider} CLI to use ${provider} agents`
         });
       } catch (error) {

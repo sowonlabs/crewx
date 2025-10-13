@@ -93,10 +93,20 @@ their own specialization, and get results in parallel.
     );
 
     this.showCommandHelp(
+      'agent',
+      'Inspect available agents and their metadata.',
+      [
+        'crewx agent ls',
+        'crewx agent ls --raw',
+      ],
+    );
+
+    this.showCommandHelp(
       'slack',
-      'Starts the Slack bot integration for team collaboration.',
+      'Starts the Slack bot integration for team collaboration. Supports read-only query and execute modes.',
       [
         'crewx slack',
+        'crewx slack --mode execute',
         'crewx slack --agent gemini',
         'crewx slack --agent copilot'
       ],

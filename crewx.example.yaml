@@ -24,6 +24,27 @@ providers:
       query: 120000   # 2 minutes
       execute: 300000 # 5 minutes
 
+  # Ollama Remote - Connect to Ollama on another computer
+  # Use this to connect to a remote Ollama server
+  - id: ollama_remote
+    type: plugin
+    cli_command: ollama
+    display_name: "Ollama Remote LLM"
+    description: "Remote Ollama server on another computer"
+    default_model: "qwen3:8b"
+    query_args:
+      - "run"
+      - "{model}"
+    execute_args:
+      - "run"
+      - "{model}"
+    prompt_in_args: false
+    env:
+      OLLAMA_HOST: "http://192.168.1.100:11434"  # Replace with your remote server IP
+    timeout:
+      query: 180000   # 3 minutes (network latency)
+      execute: 600000 # 10 minutes
+
   # Aider - AI Pair Programming
   # AI-powered code editing with local models
   - id: aider
@@ -51,6 +72,35 @@ providers:
       query: 180000   # 3 minutes
       execute: 600000 # 10 minutes
 
+  # Aider with Remote Ollama
+  # Connect Aider to a remote Ollama server
+  - id: aider_remote
+    type: plugin
+    cli_command: aider
+    display_name: "Aider (Remote Ollama)"
+    description: "Aider using remote Ollama server"
+    default_model: "ollama/qwen3:8b"
+    query_args:
+      - "--yes-always"
+      - "--no-browser"
+      - "--no-auto-commits"
+      - "--model"
+      - "{model}"
+      - "--message"
+    execute_args:
+      - "--yes-always"
+      - "--no-browser"
+      - "--no-auto-commits"
+      - "--model"
+      - "{model}"
+      - "--message"
+    prompt_in_args: true
+    env:
+      OLLAMA_API_BASE: "http://192.168.1.100:11434"  # Aider uses OLLAMA_API_BASE
+    timeout:
+      query: 300000   # 5 minutes
+      execute: 900000 # 15 minutes
+
   # Crush - Z.AI Coding Assistant
   # Terminal-based AI assistant with GLM models
   - id: crush
@@ -61,9 +111,10 @@ providers:
     default_model: "glm-4.6"
     query_args:
       - "run"
+      - "--quiet"  # Hide spinner
     execute_args:
       - "run"
-      - "-y"  # Auto-accept permissions in execute mode
+      - "--quiet"  # Hide spinner (no --yolo: it's a global flag)
     prompt_in_args: true  # Crush takes message as argument
     timeout:
       query: 180000   # 3 minutes
@@ -71,7 +122,7 @@ providers:
 
 # Agents Configuration
 agents:
-  # Ollama Qwen Agent
+  # Ollama Qwen Agent (Local)
   - id: "ollama_qwen"
     name: "Qwen 3 (Local)"
     role: "assistant"
@@ -82,6 +133,18 @@ agents:
       provider: "plugin/ollama"
       model: "qwen3:8b"
       system_prompt: "You are a helpful AI assistant running locally via Ollama."
+
+  # Ollama Qwen Agent (Remote)
+  - id: "ollama_qwen_remote"
+    name: "Qwen 3 (Remote)"
+    role: "assistant"
+    team: "Remote AI"
+    description: "Remote Qwen 3 model via remote Ollama server"
+    inline:
+      type: "agent"
+      provider: "plugin/ollama_remote"
+      model: "qwen3:8b"
+      system_prompt: "You are a helpful AI assistant running on a remote Ollama server."
 
   # Ollama DeepSeek Agent
   - id: "ollama_deepseek"
@@ -95,7 +158,7 @@ agents:
       model: "deepseek-r1:8b"
       system_prompt: "You are DeepSeek R1, a helpful AI assistant with reasoning capabilities."
 
-  # Aider Coding Assistant
+  # Aider Coding Assistant (Local)
   - id: "aider_qwen"
     name: "Aider (Qwen 3)"
     role: "coding_assistant"
@@ -104,6 +167,17 @@ agents:
     inline:
       type: "agent"
       provider: "plugin/aider"
+      model: "ollama/qwen3:8b"
+
+  # Aider Coding Assistant (Remote)
+  - id: "aider_qwen_remote"
+    name: "Aider Remote (Qwen 3)"
+    role: "coding_assistant"
+    team: "AI Pair Programming"
+    description: "Aider using remote Ollama server"
+    inline:
+      type: "agent"
+      provider: "plugin/aider_remote"
       model: "ollama/qwen3:8b"
 
   # Crush AI Assistant (Z.AI GLM-4.6)
@@ -122,13 +196,19 @@ agents:
 # 1. Chat with local Ollama model:
 #    crewx query "@ollama_qwen explain quantum computing"
 #
-# 2. Generate code with Aider:
+# 2. Chat with remote Ollama model:
+#    crewx query "@ollama_qwen_remote explain quantum computing"
+#
+# 3. Generate code with local Aider:
 #    crewx query "@aider_qwen create a fibonacci function in fib.js"
 #
-# 3. Use reasoning model:
+# 4. Generate code with remote Aider:
+#    crewx query "@aider_qwen_remote refactor this code for better performance"
+#
+# 5. Use reasoning model:
 #    crewx query "@ollama_deepseek solve this logic puzzle: ..."
 #
-# 4. Use Crush with Z.AI GLM-4.6:
+# 6. Use Crush with Z.AI GLM-4.6:
 #    crewx query "@crush_glm review this code for security issues"
 #
 # Prerequisites:
@@ -137,8 +217,18 @@ agents:
 # - Aider: pip install aider-chat
 # - Crush: npm install -g @charmland/crush (requires Z.AI API key)
 #
+# Remote Ollama Setup:
+# On the remote server (192.168.1.100):
+#   1. Install Ollama: curl -fsSL https://ollama.ai/install.sh | sh
+#   2. Configure for remote access:
+#      export OLLAMA_HOST=0.0.0.0:11434
+#      ollama serve
+#   3. Pull models on the server:
+#      ollama pull qwen3:8b
+#
 # Benefits:
-# - Local + Cloud options available
+# - Local + Remote + Cloud options available
 # - Ollama: 100% local, no API costs, privacy, works offline
+# - Remote Ollama: Share GPU resources across multiple computers
 # - Crush: Cloud-based Z.AI GLM-4.6, powerful coding assistant
 # - Mix and match different AI services in one workflow

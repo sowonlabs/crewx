@@ -22,8 +22,9 @@ Provider names follow the format: **`{namespace}/{id}`**
 
 | Namespace | Format | Purpose | Examples |
 |-----------|--------|---------|----------|
-| **cli/** | `cli/{id}` | Built-in CLI-based providers | `cli/claude`, `cli/gemini`, `cli/copilot` |
-| **plugin/** | `plugin/{id}` | User-defined external tools via YAML | `plugin/mock`, `plugin/custom-ai` |
+| **cli/** | `cli/{id}` | Built-in CLI-based providers | `cli/claude`, `cli/gemini`, `cli/copilot`, `cli/codex` |
+| **plugin/** | `plugin/{id}` | User-defined external tools via YAML with env vars | `plugin/mock`, `plugin/custom-ai` |
+| **remote/** | `remote/{id}` | Remote MCP agents for distributed collaboration | `remote/backend`, `remote/ai-team` |
 | **api/** | `api/{id}` | Direct API integrations (future) | `api/openai`, `api/anthropic`, `api/ollama` |
 
 ### Benefits
@@ -45,6 +46,9 @@ providers:
     default_model: "sonnet"
     query_args: ["--model", "{model}", "--message"]
     prompt_in_args: true
+    env:                          # Optional: Environment variables
+      API_KEY: "your-api-key"
+      CUSTOM_HOST: "http://localhost:8080"
 
 agents:
   - id: claude
@@ -73,6 +77,51 @@ Providers support `{model}` placeholder in command arguments:
 # Command becomes: test-tools/mock-cli --model sonnet --message "Hello"
 #                  (uses default_model from config)
 ```
+
+### Environment Variables
+
+Plugin providers support custom environment variables via the `env` field:
+
+- **Purpose**: Pass configuration to CLI tools (API endpoints, tokens, hostnames)
+- **Scope**: Variables are only set for the provider's CLI process
+- **Security**: Built-in validation prevents dangerous variables (PATH, LD_PRELOAD, etc.)
+
+**Example - Remote Ollama**:
+```yaml
+providers:
+  # Connect to remote Ollama server
+  - id: ollama_remote
+    type: plugin
+    cli_command: ollama
+    default_model: "qwen3:8b"
+    query_args: ["run", "{model}"]
+    execute_args: ["run", "{model}"]
+    prompt_in_args: false
+    env:
+      OLLAMA_HOST: "http://192.168.1.100:11434"  # Remote server IP
+
+  # Aider with remote Ollama
+  - id: aider_remote
+    type: plugin
+    cli_command: aider
+    default_model: "ollama/qwen3:8b"
+    query_args: ["--yes-always", "--model", "{model}", "--message"]
+    execute_args: ["--yes-always", "--model", "{model}", "--message"]
+    prompt_in_args: true
+    env:
+      OLLAMA_API_BASE: "http://192.168.1.100:11434"  # Aider uses OLLAMA_API_BASE
+```
+
+**Security Restrictions**:
+- Blocked variables: `PATH`, `LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, `LD_PRELOAD`, `IFS`, `BASH_ENV`
+- Null byte injection protection
+- Shell metacharacter warning (but not blocked)
+
+**Common Use Cases**:
+- Remote AI services (Ollama, LM Studio)
+- Custom API endpoints
+- Authentication tokens
+- Debug/logging configuration
 
 ---
 
@@ -103,11 +152,17 @@ Built-in CLI provider: `cli/copilot` (GitHub Copilot CLI integration).
 Implements Copilot-specific command routing and response parsing.
 Specialized for code-focused tasks and explanations.
 
+### **codex.provider.ts**
+Built-in CLI provider: `cli/codex` (Codex CLI integration).
+Implements Codex-specific arguments with experimental JSON output format.
+Handles authentication errors and rate limiting for Codex API.
+
 ### **dynamic-provider.factory.ts**
 Plugin provider factory: `plugin/*` (YAML-based plugin system).
 Creates plugin provider instances from YAML configuration at runtime with namespace format.
 Validates CLI commands, sanitizes arguments, prevents injection attacks, and supports model substitution.
+Manages environment variable injection with security validation (blocks dangerous vars, null bytes).
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-13
