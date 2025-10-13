@@ -14,6 +14,26 @@ Bring AI agents directly into your team's workspace:
 - **Natural integration** - Works like chatting with team members
 - **Shared knowledge** - Team learns from AI interactions, not isolated sessions
 
+### 🌐 **Remote Agents** - Distributed AI Teams
+Connect and orchestrate CrewX instances across projects and servers:
+- **Cross-project experts** - Frontend dev asks backend team's API specialist agent
+- **Team collaboration** - Each team builds their own agents, entire org can use them
+- **Expert knowledge sharing** - Ask senior's code review agent, security team's audit agent anytime
+- **Separate but connected** - Each project keeps its own context, collaborate when needed
+
+```yaml
+# Access another project's specialized agents
+providers:
+  - id: backend_project
+    type: remote
+    location: "file:///workspace/backend-api/crewx.yaml"
+    external_agent_id: "api_expert"
+
+# Use their expertise in your project
+crewx query "@api_expert design user authentication API"
+crewx execute "@api_expert implement OAuth flow"
+```
+
 ### 🔌 **Plugin Provider System** - Universal AI Integration
 Transform any CLI tool or AI service into an agent:
 - **Bring Your Own AI** - OpenAI, Anthropic, Ollama, LiteLLM, or any AI service
@@ -64,8 +84,11 @@ crewx execute "@claude create a login component"
 
 ### 💬 Slack Mode - Team Collaboration (Recommended)
 ```bash
-# Start CrewX in your Slack workspace
+# Start CrewX in your Slack workspace (read-only query mode)
 crewx slack
+
+# Allow agents to run execute tasks (file changes, migrations, etc.)
+crewx slack --mode execute
 
 # Your team can now:
 # - @mention AI agents in channels

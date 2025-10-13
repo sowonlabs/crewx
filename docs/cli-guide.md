@@ -167,7 +167,8 @@ crewx query "@tester review implementation" --thread "api-project"
 Run CrewX as a Slack bot:
 
 ```bash
-crewx slack                        # Start with Claude (default)
+crewx slack                        # Query-only mode with Claude (default)
+crewx slack --mode execute         # Allow execute tasks from Slack
 crewx slack --agent gemini         # Use Gemini
 crewx slack --agent copilot        # Use GitHub Copilot
 crewx slack --agent custom_agent   # Use custom agent
@@ -179,6 +180,10 @@ crewx slack --agent custom_agent   # Use custom agent
 - @mentions and DMs
 - Clean responses
 - Reaction indicators (👀 processing, ✅ completed, ❌ error)
+
+**Mode selection:**
+- `--mode query` *(default)*: Read-only responses, safe for general Q&A
+- `--mode execute`: Agents can modify files, run commands, and apply changes
 
 **Setup:**
 1. Create Slack App and configure bot tokens

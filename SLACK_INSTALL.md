@@ -172,8 +172,11 @@ SLACK_SIGNING_SECRET=your-actual-signing-secret-here
 # 빌드 (처음 한 번만)
 npm run build
 
-# Bot 실행 (기본: Claude)
+# Bot 실행 (기본: query 모드, Claude 에이전트)
 source .env.slack && crewx slack
+
+# 파일 수정까지 허용하려면 execute 모드 사용
+source .env.slack && crewx slack --mode execute
 
 # 다른 에이전트 사용
 source .env.slack && crewx slack --agent gemini
@@ -190,6 +193,7 @@ source .env.slack && crewx slack --agent gemini --log
 ⚡️ CrewX Slack Bot is running!
 📱 Socket Mode: Enabled
 🤖 Using default agent for Slack: claude
+⚙️  Slack bot mode: query
 ```
 
 ---

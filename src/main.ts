@@ -244,10 +244,12 @@ async function runSlackBot() {
 
     // Get default agent from CLI options (defaults to 'claude')
     const defaultAgent = args.slackAgent || 'claude';
+    const mode = args.slackMode || 'query';
     logger.log(`Using default agent for Slack: ${defaultAgent}`);
+    logger.log(`Slack bot mode: ${mode}`);
 
     // Create and start Slack Bot (validates agent exists)
-    const slackBot = new SlackBot(crewXTool, configService, aiProviderService, defaultAgent);
+    const slackBot = new SlackBot(crewXTool, configService, aiProviderService, defaultAgent, mode);
     await slackBot.start();
 
     // Handle shutdown

@@ -13,13 +13,19 @@ export class SlackBot {
   private conversationHistory: SlackConversationHistoryProvider;
   private defaultAgent: string;
   private botUserId: string | null = null;
+  private readonly mode: 'query' | 'execute';
 
   constructor(
     private readonly crewXTool: CrewXTool,
     private readonly configService: ConfigService,
     private readonly aiProviderService: AIProviderService,
-    defaultAgent: string = 'claude'
+    defaultAgent: string = 'claude',
+    mode: 'query' | 'execute' = 'query'
   ) {
+    if (mode !== 'query' && mode !== 'execute') {
+      throw new Error(`Invalid Slack mode '${mode}'. Supported modes: query, execute.`);
+    }
+
     // Validate agent exists (check both built-in providers and custom agents)
     const builtinProviders = this.aiProviderService.getAvailableProviders();
     const customAgents = this.configService.getAllAgentIds();
@@ -32,6 +38,7 @@ export class SlackBot {
     }
 
     this.defaultAgent = defaultAgent;
+    this.mode = mode;
     this.formatter = new SlackMessageFormatter();
     this.conversationHistory = new SlackConversationHistoryProvider();
 
@@ -43,6 +50,7 @@ export class SlackBot {
     }
 
     this.logger.log(`🤖 Slack bot initialized with default agent: ${this.defaultAgent}`);
+    this.logger.log(`⚙️  Slack bot mode: ${this.mode}`);
     this.logger.log(`📋 Built-in providers: ${builtinProviders.join(', ')}`);
     this.logger.log(`📋 Custom agents: ${customAgents.join(', ')}`);
 
@@ -327,7 +335,7 @@ export class SlackBot {
         }
 
         // Fetch conversation thread messages for template processing
-        let conversationMessages: Array<{ text: string; isAssistant: boolean }> = [];
+        let conversationMessages: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }> = [];
 
         // If this is a reply in a thread, fetch conversation history
         if (message.thread_ts) {
@@ -363,13 +371,22 @@ export class SlackBot {
 
         // Use configured default agent with executeAgent for full capabilities
         // (executeAgent supports file modifications, queryAgent is read-only)
-        const result = await this.crewXTool.executeAgent({
+        const basePayload = {
           agentId: this.defaultAgent,
-          task: userRequest,
-          context: contextText || undefined, // Only pass context if we have thread history
-          messages: conversationMessages.length > 0 ? conversationMessages : undefined, // Pass messages array for template
-          platform: 'slack', // Indicate this is from Slack
-        });
+          context: contextText || undefined,
+          messages: conversationMessages.length > 0 ? conversationMessages : undefined,
+          platform: 'slack' as const,
+        };
+
+        const result = this.mode === 'execute'
+          ? await this.crewXTool.executeAgent({
+              ...basePayload,
+              task: userRequest,
+            })
+          : await this.crewXTool.queryAgent({
+              ...basePayload,
+              query: userRequest,
+            });
 
         this.logger.log(`📦 Received result from CodeCrew MCP`);
 
@@ -390,8 +407,9 @@ export class SlackBot {
 
         // Check success status for message text
         const isSuccess = (result as any).success === true;
+        const successLabel = this.mode === 'execute' ? 'Completed!' : 'Responded!';
         const messageText = isSuccess
-          ? `✅ Completed! (@${(result as any).agent || this.defaultAgent})`
+          ? `✅ ${successLabel} (@${(result as any).agent || this.defaultAgent})`
           : `❌ Error (@${(result as any).agent || this.defaultAgent})`;
 
         // Ensure agent_id is always set (crucial for conversation ownership)

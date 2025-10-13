@@ -30,6 +30,7 @@ export interface CliOptions {
   force?: boolean;
   // Slack options
   slackAgent?: string; // Default agent for Slack bot
+  slackMode?: 'query' | 'execute'; // Slack bot execution mode
   // MCP-specific options
   http?: boolean;
   key?: string;
@@ -108,6 +109,11 @@ export function parseCliOptions(): CliOptions {
         type: 'string',
         default: 'claude',
         description: 'Default agent to use for Slack conversations (claude, copilot, gemini, or custom agent ID)'
+      });
+      yargs.option('mode', {
+        choices: ['query', 'execute'] as const,
+        default: 'query' as const,
+        description: 'Slack bot mode: query (read-only) or execute (allow file changes)',
       });
     })
     .command('help', 'Show help', () => {})
@@ -234,6 +240,7 @@ export function parseCliOptions(): CliOptions {
     force: parsed.force as boolean,
     // Slack options
     slackAgent: parsed.agent as string,
+    slackMode: (parsed.mode as 'query' | 'execute' | undefined) || 'query',
     // MCP options
     http: parsed.http as boolean,
     key: resolvedKey,
