@@ -69,6 +69,23 @@ echo "user auth code" | crewx query "@claude explain this"
 - **Claude**: `opus`, `sonnet`, `haiku`, `claude-sonnet-4-5`, `claude-sonnet-4-5-20250929`
 - **Gemini**: `gemini-2.5-pro` (default), `gemini-2.5-flash`
 - **Copilot**: `gpt-5`, `claude-sonnet-4`, `claude-sonnet-4.5`
+- **Codex**: `gpt-5-codex`, `gpt-5`
+
+> **Codex reasoning effort:**  
+> When invoking `cli/codex`, you can override reasoning depth on the fly with `-c model_reasoning_effort="..."`.
+> - `gpt-5-codex`: supports `low`, `medium`, `high`
+> - `gpt-5`: supports `minimal`, `low`, `medium`, `high`
+
+Example:
+
+```bash
+codex exec --experimental-json \
+  -c model="gpt-5-codex" \
+  -c model_reasoning_effort="medium" \
+  "Respond with OK."
+```
+
+Unsupported combinations return a 400 error (e.g., `gpt-5-codex` + `minimal`).
 
 ### `crewx execute`
 Execute tasks with file creation/modification.
@@ -185,6 +202,45 @@ crewx slack --agent custom_agent   # Use custom agent
 
 See [SLACK_INSTALL.md](../SLACK_INSTALL.md) for full setup guide.
 
+## MCP Server Mode
+
+Run CrewX as an MCP (Model Context Protocol) server for remote access:
+
+```bash
+# Basic MCP server (stdio only)
+crewx mcp
+
+# MCP server with HTTP support
+crewx mcp server --http
+
+# Full configuration
+crewx mcp server \
+  --http \
+  --host 0.0.0.0 \
+  --port 3000 \
+  --key "sk-secret-key" \
+  --log
+```
+
+**Options:**
+- `--http` - Enable HTTP transport (in addition to stdio)
+- `--host` - Server hostname (default: localhost)
+- `--port` - Server port (default: 3000)
+- `--key` - API key for bearer authentication
+- `--log` - Enable request logging
+
+**Use cases:**
+- IDE integration (VS Code, Cursor, Claude Desktop)
+- Remote agent access (see [Remote Agents Guide](./remote-agents.md))
+- Team collaboration via HTTP
+
+**Exposed MCP tools:**
+- `crewx_queryAgent` - Read-only agent queries
+- `crewx_executeAgent` - Agent execution with file operations
+- `crewx_chat` - Interactive chat with agents
+
+See [MCP Integration Guide](./mcp-integration.md) for IDE setup and [Remote Agents Guide](./remote-agents.md) for remote access configuration.
+
 ## Advanced Features
 
 ### Task Tracking
@@ -217,7 +273,9 @@ Validates agent configurations before execution:
 
 ## Environment Variables
 
-Customize timeout values via `.env` or environment variables:
+Customize behavior via `.env` or environment variables:
+
+### Timeout Configuration
 
 ```bash
 # Claude Provider
@@ -247,6 +305,55 @@ crewx query "@claude complex analysis"
 
 # Inline
 CODECREW_TIMEOUT_CLAUDE_QUERY=1800000 crewx query "@claude deep analysis"
+```
+
+### Plugin Provider Environment Variables
+
+Plugin providers can use environment variables for configuration:
+
+```yaml
+providers:
+  - id: remote_ollama
+    type: plugin
+    cli_command: ollama
+    env:
+      OLLAMA_HOST: "${OLLAMA_REMOTE_HOST}"  # Reference env var
+      OLLAMA_API_KEY: "${OLLAMA_API_KEY}"
+
+  - id: custom_tool
+    type: plugin
+    cli_command: mytool
+    env:
+      API_ENDPOINT: "https://api.example.com"
+      API_TOKEN: "${MY_API_TOKEN}"  # From environment
+```
+
+**Example .env:**
+```bash
+OLLAMA_REMOTE_HOST=http://192.168.1.100:11434
+OLLAMA_API_KEY=sk-ollama-key-123
+MY_API_TOKEN=custom-api-token-456
+```
+
+### Remote Agent Configuration
+
+```bash
+# Remote server connection
+CREWX_REMOTE_URL=http://production.example.com:3000
+CREWX_REMOTE_AGENT=backend_prod
+CREWX_REMOTE_TOKEN=sk-prod-secret-key
+```
+
+Use in `crewx.yaml`:
+```yaml
+providers:
+  - id: prod_server
+    type: remote
+    location: "${CREWX_REMOTE_URL}"
+    external_agent_id: "${CREWX_REMOTE_AGENT}"
+    auth:
+      type: bearer
+      token: "${CREWX_REMOTE_TOKEN}"
 ```
 
 ## Examples
@@ -292,6 +399,23 @@ crewx query "@claude:opus comprehensive review"      # Detailed, thorough
 crewx execute "@gemini:gemini-2.5-flash rapid prototyping"  # Fast execution
 crewx execute "@gemini:gemini-2.5-pro production code"      # High quality
 ```
+
+### Remote Agents
+```bash
+# Connect to remote CrewX instance
+crewx query "@remote_backend check API status"
+
+# Distribute work across projects
+crewx execute "@frontend_team create UI" "@backend_team create API"
+
+# Coordinate multi-project feature
+crewx query "@coordinator design cross-service authentication"
+
+# Access specialized resources
+crewx execute "@ml_server train recommendation model"
+```
+
+See [Remote Agents Guide](./remote-agents.md) for setup and configuration.
 
 ## Tips
 

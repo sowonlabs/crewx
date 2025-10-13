@@ -117,6 +117,13 @@ crewx execute "@claude implement it" --thread "auth-feature"
 crewx query "@codex draft a release checklist"
 ```
 
+Built-in CLI providers:
+
+- `cli/claude`
+- `cli/gemini`
+- `cli/copilot`
+- `cli/codex`
+
 ## Create Custom Agents
 
 ```bash
@@ -148,48 +155,41 @@ agents:
 
 > **Note:** `crewx.yaml` is the preferred configuration file name. The legacy `agents.yaml` is still supported for backward compatibility. If both files exist, `crewx.yaml` takes priority.
 
-## Remote MCP Agents (Experimental)
+## Remote Agents
 
-CrewX can delegate tasks to another CrewX MCP server. Treat this capability as experimental while the protocol and tooling evolve.
+Connect to other CrewX instances and delegate tasks across projects or servers.
 
+**Quick Example:**
 ```bash
-# 1. Start the remote MCP server
-npx -y crewx@dev mcp server --http --host localhost --port 9001 --key "sk-0001" --log
-
-# 2. Add remote provider + agent in crewx.yaml
+# Add a remote CrewX instance
 providers:
-  - id: mcp_cso
+  - id: backend_server
     type: remote
-    location: "http://localhost:9001"
-    external_agent_id: "cso"
-    auth:
-      type: bearer
-      token: "sk-0001"
+    location: "http://api.example.com:3000"
+    external_agent_id: "backend_team"
 
 agents:
-  - id: "remote_cso"
-    provider: "remote/mcp_cso"
-    remote:
-      type: "mcp-http"
-      url: "http://localhost:9001"
-      apiKey: "sk-0001"
-      agentId: "cso"
-      timeoutMs: 120000
+  - id: "remote_backend"
+    provider: "remote/backend_server"
 
-# 3. Use the remote agent locally
-CREWX_CONFIG=./crewx.yaml crewx query "@remote_cso check status"
+# Use it like any other agent
+crewx query "@remote_backend check API status"
 ```
 
-- **Current limitations**
-- Remote calls are stateless: `--thread` conversation history is not forwarded to the remote server.
-- The remote server must expose CrewX MCP tools (`crewx_queryAgent`, `crewx_executeAgent`).
-- Depending on network latency and remote execution time, configure a sufficiently large `timeoutMs`.
+**Use Cases:**
+- **Project isolation** - Separate configurations for different codebases
+- **Distributed teams** - Each team runs their own CrewX with specialized agents
+- **Resource sharing** - Access powerful compute resources remotely
+- **Multi-project coordination** - Orchestrate work across multiple projects
+
+👉 **[Remote Agents Guide →](./docs/remote-agents.md)** for detailed setup and configuration
 
 ## Documentation
 
 - [📖 CLI Guide](docs/cli-guide.md) - Complete CLI reference
 - [🔌 MCP Integration](docs/mcp-integration.md) - IDE setup and MCP servers
 - [⚙️ Agent Configuration](docs/agent-configuration.md) - Custom agents and advanced config
+- [🌐 Remote Agents](docs/remote-agents.md) - Connect to remote CrewX instances
 - [📚 Template System](docs/templates.md) - Knowledge management and dynamic prompts for agents
 - [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations
 - [🔧 Tool System](docs/tools.md) - Tool integration and creation guide
