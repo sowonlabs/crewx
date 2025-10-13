@@ -20,3 +20,4 @@ worktree/
 # Claude Code settings
 .claude/settings.local.json
 .aider*
+.obsidian/

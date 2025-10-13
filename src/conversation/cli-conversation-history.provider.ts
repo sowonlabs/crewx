@@ -64,6 +64,7 @@ export class CliConversationHistoryProvider extends BaseConversationHistoryProvi
     userId: string,
     text: string,
     isAssistant: boolean = false,
+    agentId?: string,
   ): Promise<ConversationMessage> {
     const message: ConversationMessage = {
       id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
@@ -73,9 +74,17 @@ export class CliConversationHistoryProvider extends BaseConversationHistoryProvi
       isAssistant,
     };
 
+    const normalizedAgentId = agentId?.trim();
+    if (normalizedAgentId) {
+      message.metadata = {
+        ...(message.metadata ?? {}),
+        agent_id: normalizedAgentId,
+      };
+    }
+
     try {
       await this.storage.addMessage(threadId, message, 'cli');
-      this.logger.debug(`Message added to thread ${threadId}`);
+      this.logger.debug(`Message added to thread ${threadId}${agentId ? ` (agent: ${agentId})` : ''}`);
       return message;
     } catch (error: any) {
       this.logger.error(`Failed to add message: ${error.message}`);

@@ -22,6 +22,7 @@
 src/
 ├── cli/                          # CLI Interface Layer
 │   ├── chat.handler.ts           # Interactive chat mode
+│   ├── agent.handler.ts          # Agent management commands
 │   ├── query.handler.ts          # Read-only queries
 │   ├── execute.handler.ts        # File modification tasks
 │   ├── init.handler.ts           # Project initialization
@@ -36,6 +37,7 @@ src/
 │   ├── claude.provider.ts        # cli/claude - Claude Code integration
 │   ├── gemini.provider.ts        # cli/gemini - Gemini CLI integration
 │   ├── copilot.provider.ts       # cli/copilot - GitHub Copilot integration
+│   ├── codex.provider.ts         # cli/codex - Codex CLI integration
 │   └── dynamic-provider.factory.ts # plugin/* - YAML-based plugin system
 │
 ├── services/                     # Business Logic Services
@@ -135,7 +137,7 @@ The heart of the application:
 
 - **Provider System** (`providers/`)
   - Namespace-based provider organization: `{namespace}/{id}`
-  - Built-in CLI providers: `cli/claude`, `cli/gemini`, `cli/copilot`
+  - Built-in CLI providers: `cli/claude`, `cli/gemini`, `cli/copilot`, `cli/codex`
   - Plugin providers: `plugin/{id}` for YAML-defined external tools
   - Future API providers: `api/*` (planned for direct API integrations)
   - Model placeholder substitution: `{model}` → actual model name
@@ -146,9 +148,9 @@ The heart of the application:
   - Security validation
 
 - **Conversation System** (`conversation/`)
-  - Thread-based history
+  - Thread-based history with agent metadata persistence
   - Multiple storage backends (CLI, Slack)
-  - Context management
+  - Context management with improved log formatting
 
 ### 4. **Support Services**
 Enable core functionality:
@@ -232,6 +234,7 @@ NestJS providers registered in `app.module.ts`:
 - `ClaudeProvider` - cli/claude (Claude Code integration)
 - `CopilotProvider` - cli/copilot (GitHub Copilot CLI)
 - `GeminiProvider` - cli/gemini (Gemini CLI)
+- `CodexProvider` - cli/codex (Codex CLI integration)
 - `DynamicProviderFactory` - plugin/* (YAML-based plugin loader)
 
 ### Services
@@ -288,4 +291,4 @@ For more details on specific modules:
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-02-17

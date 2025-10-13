@@ -52,8 +52,8 @@ crewx/
 
 1. **Entry Points** - Bootstrap & module setup
 2. **Interface Layer** - CLI, MCP, Slack
-3. **Core Services** - AI orchestration, providers, tools, conversation
-4. **Support Services** - Config, tasks, parallel processing, templates
+3. **Core Services** - AI orchestration, providers (including new Codex provider), tools, conversation
+4. **Support Services** - Config, tasks, parallel processing, templates, log formatting
 5. **Utilities** - Helpers, security, configuration
 
 ---
@@ -77,7 +77,7 @@ crewx/
 
 - **Framework**: NestJS (Dependency Injection, Modularity)
 - **AI Providers**:
-  - Built-in CLI providers (cli/*): Claude Code, Gemini CLI, GitHub Copilot CLI
+  - Built-in CLI providers (cli/*): Claude Code, Gemini CLI, GitHub Copilot CLI, Codex CLI
   - Plugin providers (plugin/*): User-defined external AI tools via YAML config
   - Future API providers (api/*): Direct API integrations (planned)
 - **Provider Namespace System**: `{namespace}/{id}` format for organized provider management
@@ -98,4 +98,4 @@ For detailed information about each module, see:
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-12

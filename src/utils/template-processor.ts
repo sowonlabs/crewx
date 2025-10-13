@@ -229,6 +229,16 @@ function registerHandlebarsHelpers() {
     helperLogger.log(`🔧 formatConversation helper called! Mode: ${isBlockHelper ? 'CUSTOM' : 'DEFAULT'}`);
     helperLogger.log(`Messages type: ${typeof messages}, Is array: ${Array.isArray(messages)}, Length: ${messages?.length || 0}`);
     helperLogger.log(`Platform: ${platform}`);
+
+    const assistantAgentIds: string[] = Array.isArray(messages)
+      ? Array.from(new Set(
+          messages
+            .filter((msg: any) => msg?.isAssistant && msg?.metadata?.agent_id)
+            .map((msg: any) => msg.metadata.agent_id),
+        ))
+      : [];
+
+    const primaryAgentId = assistantAgentIds.length > 0 ? assistantAgentIds[0] : '';
     
     if (!messages || messages.length === 0) {
       helperLogger.warn(`⚠️ formatConversation: messages empty or undefined, returning empty string`);
@@ -243,7 +253,9 @@ function registerHandlebarsHelpers() {
       content = options.fn({
         messages,
         platform,
-        messagesCount: messages.length
+        messagesCount: messages.length,
+        agentIds: assistantAgentIds,
+        primaryAgentId,
       });
       helperLogger.debug(`📤 Custom template rendered output length: ${content.length} characters`);
     } else {
@@ -268,7 +280,11 @@ function registerHandlebarsHelpers() {
         helperLogger.warn(`⚠️ Failed to load template from ${templatePath}, using inline fallback`);
         helperLogger.warn(`Error: ${error instanceof Error ? error.message : String(error)}`);
         // Fallback to inline template if file not found
-        templateContent = `{{#if messages}}Previous conversation ({{messagesCount}} messages):
+        templateContent = `{{#if messages}}
+{{#if primaryAgentId}}Primary agent: @{{primaryAgentId}}
+{{else}}Primary agent: (unknown)
+{{/if}}
+Previous conversation ({{messagesCount}} messages):
 {{#each messages}}
 {{#if isAssistant}}
 **Assistant{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
@@ -281,10 +297,12 @@ function registerHandlebarsHelpers() {
       // Compile and render template
       // Note: helpers (length, truncate, eq, etc.) are already registered above
       const template = Handlebars.compile(templateContent, { noEscape: true });
-      content = template({ 
-        messages, 
+      content = template({
+        messages,
         platform,
-        messagesCount: messages.length 
+        messagesCount: messages.length,
+        agentIds: assistantAgentIds,
+        primaryAgentId,
       });
       
       helperLogger.debug(`📤 Default template rendered output length: ${content.length} characters`);

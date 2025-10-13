@@ -198,9 +198,10 @@ export async function handleExecute(app: any, args: CliOptions) {
         if (result.success && result.content) {
           await conversationProvider.addMessage(
             args.thread,
-            `${agentId}${model ? `:${model}` : ''}`,
+            'assistant',
             result.content,
-            true
+            true,
+            agentId
           );
         }
       }
@@ -263,16 +264,18 @@ export async function handleExecute(app: any, args: CliOptions) {
       if (conversationProvider && args.thread && result.results) {
         for (const agentResult of result.results) {
           if (agentResult.success && agentResult.content) {
-            const responseText = agentResult.implementation || 
-                              (agentResult.content && agentResult.content[0]?.text) || 
-                              agentResult.response || 
+            const responseText = agentResult.implementation ||
+                              (agentResult.content && agentResult.content[0]?.text) ||
+                              agentResult.response ||
                               'No response content';
-            
+            const agentName = agentResult.agentId || agentResult.agent;
+
             await conversationProvider.addMessage(
               args.thread,
-              `${agentResult.agent}${agentResult.model ? `:${agentResult.model}` : ''}`,
+              'assistant',
               responseText,
-              true
+              true,
+              agentName
             );
           }
         }

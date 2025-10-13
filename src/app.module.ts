@@ -11,6 +11,7 @@ import { AIProviderService } from './ai-provider.service';
 import { ClaudeProvider } from './providers/claude.provider';
 import { CopilotProvider } from './providers/copilot.provider';
 import { GeminiProvider } from './providers/gemini.provider';
+import { CodexProvider } from './providers/codex.provider';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ParallelProcessingService } from './services/parallel-processing.service';
 import { TaskManagementService } from './services/task-management.service';
@@ -27,6 +28,11 @@ import { ContextEnhancementService } from './services/context-enhancement.servic
 import { IntelligentCompressionService } from './services/intelligent-compression.service';
 import { ConfigValidatorService } from './services/config-validator.service';
 import { ConversationProviderFactory } from './conversation';
+import { AuthService } from './services/auth.service';
+import { BearerAuthGuard } from './guards/bearer-auth.guard';
+import { HealthController } from './health.controller';
+import { McpClientService } from './services/mcp-client.service';
+import { RemoteAgentService } from './services/remote-agent.service';
 
 @Module({})
 export class AppModule {
@@ -56,6 +62,7 @@ export class AppModule {
         ClaudeProvider,
         CopilotProvider,
         GeminiProvider,
+        CodexProvider,
         DynamicProviderFactory,
         ParallelProcessingService,
         TaskManagementService,
@@ -71,13 +78,17 @@ export class AppModule {
         // Tool System
         ToolCallService,
         AgentLoaderService,
+        McpClientService,
+        RemoteAgentService,
+        AuthService,
+        BearerAuthGuard,
         // CLI Handlers
         InitHandler,
         DoctorHandler,
         HelpService,
         ConfigService,
       ],
-      controllers: [McpController],
+      controllers: [McpController, HealthController],
       exports: [AIService, ProjectService, CrewXTool, AIProviderService],
     };
   }

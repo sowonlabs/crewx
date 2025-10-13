@@ -1,6 +1,6 @@
 {
   "name": "crewx",
-  "version": "0.2.3",
+  "version": "0.2.4-dev.6",
   "license": "Apache-2.0",
   "description": "Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
   "main": "dist/main.js",
@@ -35,7 +35,8 @@
   },
   "scripts": {
     "build": "nest build",
-    "postbuild": "node -e \"const fs = require('fs'); let content = fs.readFileSync('dist/main.js', 'utf8'); const lines = content.split('\\n'); if (lines[0] === '#!/usr/bin/env node' && lines[1] === '#!/usr/bin/env node') { lines.shift(); content = lines.join('\\n'); fs.writeFileSync('dist/main.js', content); console.log('✅ Removed duplicate shebang'); } else if (!content.startsWith('#!/usr/bin/env node')) { fs.writeFileSync('dist/main.js', '#!/usr/bin/env node\\n' + content); console.log('✅ Added shebang to dist/main.js'); } else { console.log('✅ Shebang already present'); }\"",
+    "postbuild": "node -e \"const fs = require('fs'); let content = fs.readFileSync('dist/main.js', 'utf8'); const lines = content.split('\\n'); if (lines[0] === '#!/usr/bin/env node' && lines[1] === '#!/usr/bin/env node') { lines.shift(); content = lines.join('\\n'); fs.writeFileSync('dist/main.js', content); console.log('✅ Removed duplicate shebang'); } else if (!content.startsWith('#!/usr/bin/env node')) { fs.writeFileSync('dist/main.js', '#!/usr/bin/env node\\n' + content); console.log('✅ Added shebang to dist/main.js'); } else { console.log('✅ Shebang already present'); } fs.chmodSync('dist/main.js', 0o755); console.log('✅ Execute permission set');\"",
+    "postinstall": "node -e \"const fs = require('fs'); const path = require('path'); const binPath = path.join(__dirname, 'dist', 'main.js'); try { if (fs.existsSync(binPath)) { fs.chmodSync(binPath, 0o755); console.log('✅ Execute permission set for crewx binary'); } } catch (err) { /* Silently ignore permission errors */ }\"",
     "build:install": "npm run build && npm install -g .",
     "start": "node dist/main.js",
     "start:mcp": "node dist/main.js mcp",

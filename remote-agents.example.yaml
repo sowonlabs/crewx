@@ -1,0 +1,66 @@
+# Remote Agent Configuration Example
+# Shows how to connect to external CrewX instances
+
+providers:
+  # File-based remote CrewX (local filesystem)
+  - id: "crewx_opencode"
+    type: remote
+    location: "file:///Users/doha/git/opencode/crewx.yaml"
+    external_agent_id: "opencode_dev"
+    display_name: "OpenCode CrewX Instance"
+    description: "CrewX instance running in OpenCode project directory"
+    timeout:
+      query: 300000
+      execute: 600000
+
+  # HTTP-based remote CrewX (network)
+  - id: "crewx_howling"
+    type: remote
+    location: "http://192.168.0.9:3000"
+    external_agent_id: "howling_dev"
+    display_name: "Howling Project CrewX"
+    description: "Remote CrewX server for Howling project"
+    auth:
+      type: bearer
+      token: "your-jwt-token-here"
+    headers:
+      "User-Agent": "CrewX/1.0"
+      "X-Client-ID": "crewx-main"
+    timeout:
+      query: 300000
+      execute: 600000
+
+agents:
+  # Remote file-based agent
+  - id: "opencode_team"
+    name: "OpenCode Development Team"
+    provider: "remote/crewx_opencode"
+    working_directory: "/Users/doha/git/opencode"
+    description: "Access to OpenCode project's configured agents and context"
+
+  # Remote HTTP-based agent  
+  - id: "howling_team"
+    name: "Howling Development Team"
+    provider: "remote/crewx_howling"
+    working_directory: "/remote/working/dir"
+    description: "Access to Howling project's configured agents via HTTP"
+
+  # Mixed local + remote coordinator
+  - id: "project_coordinator"
+    name: "Multi-Project Coordinator"
+    provider: "cli/claude"
+    inline:
+      system_prompt: |
+        You coordinate between multiple projects and teams.
+        
+        Available remote agents:
+        - @opencode_team: OpenCode project experts (file:// protocol)
+        - @howling_team: Howling project experts (http:// protocol)
+        
+        You can delegate tasks to these teams using crewx execute commands.
+        Each remote team has access to their project's specific context, 
+        configurations, and specialized agents.
+        
+        Example delegation:
+        crewx execute "@opencode_team review the authentication module"
+        crewx execute "@howling_team analyze the API performance"

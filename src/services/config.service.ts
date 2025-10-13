@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { readFileSync, existsSync } from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
-import { PluginProviderConfig } from '../providers/dynamic-provider.factory';
+import { PluginProviderConfig, RemoteProviderConfig } from '../providers/dynamic-provider.factory';
 
 export interface AgentConfig {
   id: string;
@@ -16,7 +16,7 @@ export interface AgentConfig {
   };
   inline?: {
     type: 'agent';
-    provider: 'claude' | 'gemini' | 'copilot';
+    provider: 'claude' | 'gemini' | 'copilot' | 'codex';
     system_prompt: string;
   };
 }
@@ -24,14 +24,22 @@ export interface AgentConfig {
 export interface CrewXConfig {
   agents: AgentConfig[];
   providers?: PluginProviderConfig[];
+  settings?: {
+    slack?: {
+      log_conversations?: boolean;
+    };
+  };
 }
 
 @Injectable()
 export class ConfigService implements OnModuleInit {
   private readonly logger = new Logger(ConfigService.name);
   private agents: Map<string, AgentConfig> = new Map();
-  private pluginProviders: PluginProviderConfig[] = [];
+  private providerConfigs: Array<PluginProviderConfig | RemoteProviderConfig> = [];
   private customConfigPath: string | null = null;
+  private slackSettings: { logConversations: boolean } = {
+    logConversations: false,
+  };
 
   constructor() {
     // Load config in constructor to ensure it's available before other services
@@ -54,7 +62,8 @@ export class ConfigService implements OnModuleInit {
   loadAgentConfigs() {
     // Clear existing configurations when reloading
     this.agents.clear();
-    this.pluginProviders = [];
+    this.providerConfigs = [];
+    this.slackSettings = { logConversations: false };
 
     let configPath: string | null = null;
     let configName: string | null = null;
@@ -115,10 +124,41 @@ export class ConfigService implements OnModuleInit {
 
       // Load plugin providers
       if (config.providers && Array.isArray(config.providers)) {
-        this.pluginProviders = config.providers.filter(
-          (p: any) => p.type === 'plugin'
+        this.providerConfigs = config.providers.filter(
+          (p: any) => p && (p.type === 'plugin' || p.type === 'remote')
         );
-        this.logger.log(`Loaded ${this.pluginProviders.length} plugin provider configurations.`);
+
+        const pluginCount = this.providerConfigs.filter(
+          (p): p is PluginProviderConfig => p.type === 'plugin'
+        ).length;
+        const remoteCount = this.providerConfigs.filter(
+          (p): p is RemoteProviderConfig => p.type === 'remote'
+        ).length;
+
+        this.logger.log(`Loaded ${pluginCount} plugin provider configurations.`);
+        if (remoteCount > 0) {
+          this.logger.log(`Loaded ${remoteCount} remote provider configurations.`);
+        }
+      }
+
+      // Load Slack settings
+      if (config.settings?.slack?.log_conversations !== undefined) {
+        this.slackSettings.logConversations = Boolean(
+          config.settings.slack.log_conversations,
+        );
+        if (this.slackSettings.logConversations) {
+          this.logger.log('Slack conversation logging enabled via configuration.');
+        }
+      }
+
+      const envSlackLogging = process.env.CREWX_SLACK_LOG_CONVERSATIONS;
+      if (envSlackLogging !== undefined) {
+        this.slackSettings.logConversations = ['1', 'true', 'yes', 'on'].includes(
+          envSlackLogging.toLowerCase(),
+        );
+        this.logger.log(
+          `Slack conversation logging ${this.slackSettings.logConversations ? 'enabled' : 'disabled'} via CREWX_SLACK_LOG_CONVERSATIONS.`,
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to load or parse ${configName}`, error);
@@ -134,7 +174,23 @@ export class ConfigService implements OnModuleInit {
   }
 
   getPluginProviders(): PluginProviderConfig[] {
-    return this.pluginProviders;
+    return this.providerConfigs.filter(
+      (provider): provider is PluginProviderConfig => provider.type === 'plugin'
+    );
+  }
+
+  getRemoteProviders(): RemoteProviderConfig[] {
+    return this.providerConfigs.filter(
+      (provider): provider is RemoteProviderConfig => provider.type === 'remote'
+    );
+  }
+
+  getDynamicProviders(): Array<PluginProviderConfig | RemoteProviderConfig> {
+    return [...this.providerConfigs];
+  }
+
+  shouldLogSlackConversations(): boolean {
+    return this.slackSettings.logConversations;
   }
 
   /**

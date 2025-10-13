@@ -40,6 +40,11 @@ export class CLIHandler {
           await handleTemplates(app, args);
           break;
 
+        case 'agent':
+          const { handleAgent } = await import('./agent.handler');
+          await handleAgent(app, args);
+          break;
+
         case 'chat':
           const { handleChat } = await import('./chat.handler');
           await handleChat(app, args);

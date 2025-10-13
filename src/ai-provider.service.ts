@@ -3,7 +3,9 @@ import { AIProvider, AIQueryOptions, AIResponse, ProviderNotAvailableError } fro
 import { ClaudeProvider } from './providers/claude.provider';
 import { CopilotProvider } from './providers/copilot.provider';
 import { GeminiProvider } from './providers/gemini.provider';
+import { CodexProvider } from './providers/codex.provider';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
+import { RemoteProviderConfig } from './providers/dynamic-provider.factory';
 import { ConfigService } from './services/config.service';
 
 @Injectable()
@@ -16,6 +18,7 @@ export class AIProviderService implements OnModuleInit {
     private readonly claudeProvider: ClaudeProvider,
     private readonly copilotProvider: CopilotProvider,
     private readonly geminiProvider: GeminiProvider,
+    private readonly codexProvider: CodexProvider,
     private readonly dynamicProviderFactory: DynamicProviderFactory,
     private readonly configService: ConfigService,
   ) {}
@@ -25,6 +28,7 @@ export class AIProviderService implements OnModuleInit {
     this.registerProvider(this.claudeProvider);
     this.registerProvider(this.copilotProvider);
     this.registerProvider(this.geminiProvider);
+    this.registerProvider(this.codexProvider);
 
     // Load and register plugin providers from YAML config
     await this.loadPluginProviders();
@@ -35,18 +39,18 @@ export class AIProviderService implements OnModuleInit {
    */
   private async loadPluginProviders(): Promise<void> {
     try {
-      const pluginConfigs = this.configService.getPluginProviders();
+      const dynamicConfigs = this.configService.getDynamicProviders();
 
-      if (!pluginConfigs || pluginConfigs.length === 0) {
-        this.logger.log('No plugin providers defined in config');
+      if (!dynamicConfigs || dynamicConfigs.length === 0) {
+        this.logger.log('No dynamic providers defined in config');
         return;
       }
 
-      for (const providerConfig of pluginConfigs) {
+      for (const providerConfig of dynamicConfigs) {
         try {
           // Validate configuration
           if (!this.dynamicProviderFactory.validateConfig(providerConfig)) {
-            this.logger.warn(`Invalid plugin provider config: ${(providerConfig as any).id}`);
+            this.logger.warn(`Invalid dynamic provider config: ${(providerConfig as any).id}`);
             this.logger.debug(`Config dump: ${JSON.stringify(providerConfig, null, 2)}`);
             continue;
           }
@@ -54,16 +58,16 @@ export class AIProviderService implements OnModuleInit {
           // Create dynamic provider instance with security validation
           const provider = this.dynamicProviderFactory.createProvider(providerConfig);
           this.registerProvider(provider);
-          this.logger.log(`✅ Registered plugin provider: ${providerConfig.id}`);
+          this.logger.log(`✅ Registered ${providerConfig.type} provider: ${providerConfig.id}`);
         } catch (error: any) {
           this.logger.error(
-            `Failed to load plugin provider '${(providerConfig as any).id || 'unknown'}': ${error.message}`,
+            `Failed to load dynamic provider '${(providerConfig as any).id || 'unknown'}': ${error.message}`,
             error.stack
           );
         }
       }
     } catch (error: any) {
-      this.logger.error('Failed to load plugin providers:', error);
+      this.logger.error('Failed to load dynamic providers:', error);
     }
   }
 
@@ -73,7 +77,7 @@ export class AIProviderService implements OnModuleInit {
    */
   async reloadPluginProviders(): Promise<void> {
     // Clear existing plugin providers (keep built-in CLI providers)
-    const builtInProviders = ['cli/claude', 'cli/gemini', 'cli/copilot'];
+    const builtInProviders = ['cli/claude', 'cli/gemini', 'cli/copilot', 'cli/codex'];
     for (const [name] of this.providers) {
       if (!builtInProviders.includes(name)) {
         this.providers.delete(name);
@@ -213,5 +217,9 @@ export class AIProviderService implements OnModuleInit {
    */
   getPluginProviders(): any[] {
     return this.configService.getPluginProviders();
+  }
+
+  getRemoteProviders(): RemoteProviderConfig[] {
+    return this.configService.getRemoteProviders();
   }
 }

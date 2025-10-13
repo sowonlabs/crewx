@@ -173,6 +173,15 @@ crewx slack --agent custom_agent   # Use custom agent
    SLACK_MAX_RESPONSE_LENGTH=400000  # Optional
    ```
 3. Start: `npm run start:slack`
+4. *(Optional)* Persist Slack conversations locally for evaluation by enabling logging:
+   ```yaml
+   # crewx.yaml
+   settings:
+     slack:
+       log_conversations: true
+   ```
+   Or set an environment variable: `CREWX_SLACK_LOG_CONVERSATIONS=true`.  
+   When enabled, Slack threads are mirrored to `.crewx/conversations/` just like CLI sessions, which is useful for agent performance reviews.
 
 See [SLACK_INSTALL.md](../SLACK_INSTALL.md) for full setup guide.
 

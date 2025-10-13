@@ -161,7 +161,7 @@ Please continue with your response based on this tool result.`;
    */
   protected parseToolUse(content: string): { isToolUse: boolean; toolName?: string; toolInput?: any } {
     // First, try to extract from CodeCrew XML tags
-    const xmlMatch = content.match(/<crewcode_tool_call>\s*([\s\S]*?)\s*<\/crewcode_tool_call>/);
+    const xmlMatch = content.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
     if (xmlMatch && xmlMatch[1]) {
       try {
         const jsonContent = xmlMatch[1].trim();

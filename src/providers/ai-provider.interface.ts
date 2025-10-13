@@ -10,6 +10,7 @@ export const ProviderNamespace = {
   CLI: 'cli',
   PLUGIN: 'plugin',
   API: 'api',
+  REMOTE: 'remote',
 } as const;
 
 export type ProviderNamespaceType = typeof ProviderNamespace[keyof typeof ProviderNamespace];
@@ -21,6 +22,7 @@ export const BuiltInProviders = {
   CLAUDE: 'cli/claude',
   GEMINI: 'cli/gemini',
   COPILOT: 'cli/copilot',
+  CODEX: 'cli/codex',
 } as const;
 
 export interface AIQueryOptions {
@@ -30,6 +32,7 @@ export interface AIQueryOptions {
   taskId?: string;
   model?: string; // Model to use for this query (e.g., "sonnet", "gemini-2.5-pro", "gpt-5")
   securityKey?: string; // Security key for prompt injection protection
+  agentId?: string; // Agent requesting the provider (for logging)
 }
 
 export interface AIResponse {

@@ -35,6 +35,13 @@ export class SlackBot {
     this.formatter = new SlackMessageFormatter();
     this.conversationHistory = new SlackConversationHistoryProvider();
 
+    if (this.configService.shouldLogSlackConversations()) {
+      this.logger.log('📝 Slack conversation logging enabled (local storage).');
+      this.conversationHistory.enableLocalLogging().catch(error => {
+        this.logger.warn(`Failed to enable Slack conversation logging: ${error.message}`);
+      });
+    }
+
     this.logger.log(`🤖 Slack bot initialized with default agent: ${this.defaultAgent}`);
     this.logger.log(`📋 Built-in providers: ${builtinProviders.join(', ')}`);
     this.logger.log(`📋 Custom agents: ${customAgents.join(', ')}`);
@@ -191,9 +198,10 @@ export class SlackBot {
       }
     }
 
-    // 5. No mention present - respond with default agent
-    this.logger.log(`✅ DECISION: No mention, no thread → Default agent RESPOND`);
-    return true;
+    // // 5. No mention present - respond with default agent
+    // this.logger.log(`✅ DECISION: No mention, no thread → Default agent RESPOND`);
+    // return true;
+    return false;
   }
 
   private registerHandlers() {
@@ -299,16 +307,15 @@ export class SlackBot {
         this.logger.warn(`Could not add reaction: ${reactionError}`);
       }
 
+      const threadTs = message.thread_ts || message.ts;
+      const threadId = `${message.channel}:${threadTs}`;
+
       try {
         // Initialize conversation history provider with Slack client
         this.conversationHistory.initialize(client);
 
         // Build context with thread history (clean, no internal metadata)
         let contextText = '';
-
-        // Get thread timestamp (parent message or current message)
-        const threadTs = message.thread_ts || message.ts;
-        const threadId = `${message.channel}:${threadTs}`;
 
         // Invalidate cache to ensure fresh data on next fetch from Slack API
         try {
@@ -461,6 +468,17 @@ export class SlackBot {
           });
         } catch (reactionError) {
           this.logger.warn(`Could not update reaction: ${reactionError}`);
+        }
+      } finally {
+        if (this.conversationHistory.isLocalLoggingEnabled()) {
+          try {
+            await this.conversationHistory.fetchHistory(threadId, {
+              limit: 100,
+              maxContextLength: 4000,
+            });
+          } catch (logError: any) {
+            this.logger.warn(`Failed to refresh Slack conversation log: ${logError.message}`);
+          }
         }
       }
     } catch (error: any) {

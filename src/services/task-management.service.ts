@@ -1,13 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { CREWX_VERSION } from '../version';
 
 // Task log interface
 export interface TaskLog {
   id: string;
   type: 'query' | 'execute' | 'init' | 'doctor';
   agentId?: string;
-  provider?: 'claude' | 'gemini' | 'copilot';
+  provider?: 'claude' | 'gemini' | 'copilot' | 'codex';
   startTime: Date;
   endTime?: Date;
   status: 'running' | 'completed' | 'failed';
@@ -30,7 +31,7 @@ export interface TaskLog {
 // Task creation options
 export interface TaskCreationOptions {
   type: 'query' | 'execute' | 'init' | 'doctor';
-  provider?: 'claude' | 'gemini' | 'copilot';
+  provider?: 'claude' | 'gemini' | 'copilot' | 'codex';
   prompt?: string;
   command?: string;
   options?: any;
@@ -301,7 +302,8 @@ export class TaskManagementService {
       const logFile = path.join(this.logsDir, `${taskId}.log`);
       const timestamp = new Date().toLocaleString();
       
-      const header = `=== TASK LOG: ${taskId} ===
+    const header = `=== TASK LOG: ${taskId} ===
+CrewX Version: ${CREWX_VERSION}
 Provider: ${task.provider}
 Type: ${task.type}
 Agent: ${task.agentId || 'N/A'}

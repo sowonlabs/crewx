@@ -11,6 +11,7 @@ import { SlackBot } from './slack/slack-bot';
 import { CrewXTool } from './crewx.tool';
 import { ConfigService } from './services/config.service';
 import { AIProviderService } from './ai-provider.service';
+import { handleMcpCallTool, handleMcpListTools } from './cli/mcp.handler';
 
 const logger = new Logger('Bootstrap');
 const args = parseCliOptions();
@@ -108,7 +109,14 @@ async function bootstrap() {
     }
 
     await app.init();
-    await app.listen(args.port);
+    const listenHost = args.host || '127.0.0.1';
+
+    if (args.protocol === 'HTTP') {
+      await app.listen(args.port, listenHost);
+      logger.log(`MCP HTTP server listening on http://${listenHost}:${args.port}`);
+    } else {
+      await app.listen(args.port);
+    }
 
     process.on('uncaughtException', (err) => {
       logger.error('Unexpected error occurred:', err);
@@ -265,9 +273,21 @@ async function main() {
     // Installation mode
     await cli();
   } else if (args.command === 'mcp') {
-    // Explicit MCP Server mode
-    if (args.log) logger.log('Starting MCP server mode...');
-    await bootstrap();
+    if (args.subcommand === 'call_tool') {
+      const exitCode = await handleMcpCallTool(args);
+      process.exit(exitCode);
+    } else if (args.subcommand === 'list_tools') {
+      const exitCode = await handleMcpListTools(args);
+      process.exit(exitCode);
+    } else {
+      // Server mode (default/stdio or explicit HTTP via --http)
+      if (args.protocol === 'HTTP' && !args.key) {
+        logger.error('MCP HTTP server requires --key or CREWX_MCP_KEY for authentication.');
+        process.exit(1);
+      }
+      if (args.log) logger.log('Starting MCP server mode...');
+      await bootstrap();
+    }
   } else if (args.command === 'slack') {
     // Slack Bot mode
     if (args.log) logger.log('Starting Slack Bot mode...');

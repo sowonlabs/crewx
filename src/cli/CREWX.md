@@ -18,7 +18,7 @@
 
 ### **cli.handler.ts**
 Main CLI command router that dispatches to appropriate handlers.
-Routes commands (query, execute, chat, init, doctor, templates, help) to their handlers.
+Routes commands (query, execute, chat, agent, init, doctor, templates, help) to their handlers.
 Handles application lifecycle (startup, shutdown) and error handling.
 
 ### **query.handler.ts**
@@ -35,6 +35,10 @@ Supports thread continuity, stdin context, and parallel task execution.
 Interactive chat mode handler (`crewx chat`).
 Provides REPL-like interface with conversation history and multi-turn interactions.
 Supports thread persistence, context loading, and session management.
+
+### **agent.handler.ts**
+Agent management handler (`crewx agent`).
+Implements the `crewx agent ls` / `crewx agent list` subcommand for discovering configured agents, including JSON output via `--raw`.
 
 ### **init.handler.ts**
 Project initialization handler (`crewx init`).
@@ -58,4 +62,4 @@ Delegates to HelpService for content rendering.
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-02-17

@@ -5,6 +5,7 @@ import { join } from 'path';
 import { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.interface';
 import { ToolCallService, Tool } from '../services/tool-call.service';
 import { getTimeoutConfig } from '../config/timeout.config';
+import { CREWX_VERSION } from '../version';
 
 @Injectable()
 export abstract class BaseAIProvider implements AIProvider {
@@ -71,7 +72,7 @@ export abstract class BaseAIProvider implements AIProvider {
     if (this.name === 'claude') return this.timeoutConfig.claudeExecute;
     if (this.name === 'gemini') return this.timeoutConfig.geminiExecute;
     if (this.name === 'copilot') return this.timeoutConfig.copilotExecute;
-    return 1200000; // Fallback
+    return this.timeoutConfig.parallel; // Use configured timeout from timeout.config.ts
   }
 
   /**
@@ -102,7 +103,7 @@ export abstract class BaseAIProvider implements AIProvider {
    */
   protected parseToolUse(content: string): { isToolUse: boolean; toolName?: string; toolInput?: any } {
     // Pattern 1: CodeCrew XML tags (most reliable)
-    const xmlMatch = content.match(/<crewcode_tool_call>\s*([\s\S]*?)\s*<\/crewcode_tool_call>/);
+    const xmlMatch = content.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
     if (xmlMatch && xmlMatch[1]) {
       try {
         const jsonContent = xmlMatch[1].trim();
@@ -328,12 +329,20 @@ ${userQuery}
     return path !== null && path !== '';
   }
 
-  private createTaskLogFile(taskId: string, provider: string, command: string): string {
+  private createTaskLogFile(
+    taskId: string,
+    provider: string,
+    command: string,
+    agentId?: string,
+    model?: string | null,
+  ): string {
     const logFile = join(this.logsDir, `${taskId}.log`);
     const timestamp = new Date().toLocaleString();
     const header = `=== TASK LOG: ${taskId} ===
+CrewX Version: ${CREWX_VERSION}
 Provider: ${provider}
-Command: ${command}
+Agent: ${agentId || 'N/A'}
+${model ? `Model: ${model}\n` : ''}Command: ${command}
 Started: ${timestamp}
 
 `;
@@ -392,7 +401,7 @@ Started: ${timestamp}
         : `${this.getCliCommand()} ${args.join(' ')}`;
       
       // Create task log file
-      this.createTaskLogFile(taskId, this.name, command);
+      this.createTaskLogFile(taskId, this.name, command, options.agentId, modelToUse);
       this.appendTaskLog(taskId, 'INFO', `Starting ${this.name} query mode`);
       this.appendTaskLog(taskId, 'INFO', `Prompt length: ${prompt.length} characters`);
       
@@ -592,7 +601,7 @@ Started: ${timestamp}
       const command = `${this.getCliCommand()} ${args.join(' ')}`;
       
       // Create task log file
-      this.createTaskLogFile(taskId, this.name, command);
+      this.createTaskLogFile(taskId, this.name, command, options.agentId, modelToUse);
       
       // Debugging: add option logging
       this.appendTaskLog(taskId, 'INFO', `Additional Args: ${JSON.stringify(options.additionalArgs || [])}`);

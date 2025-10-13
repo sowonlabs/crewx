@@ -45,13 +45,14 @@ export class ConfigValidatorService {
     BuiltInProviders.CLAUDE,
     BuiltInProviders.GEMINI,
     BuiltInProviders.COPILOT,
+    BuiltInProviders.CODEX,
   ];
 
   // Known field names for typo detection
   private readonly KNOWN_AGENT_FIELDS = [
     'id', 'name', 'role', 'team', 'provider', 'working_directory',
     'workingDirectory', 'capabilities', 'description', 'specialties',
-    'systemPrompt', 'system_prompt', 'options', 'inline'
+    'systemPrompt', 'system_prompt', 'options', 'inline', 'remote'
   ];
 
   private readonly KNOWN_INLINE_FIELDS = [
@@ -111,6 +112,11 @@ export class ConfigValidatorService {
           const pluginProviderName = `${ProviderNamespace.PLUGIN}/${provider.id}`;
           if (!validProviders.includes(pluginProviderName)) {
             validProviders.push(pluginProviderName);
+          }
+        } else if (provider.type === 'remote' && provider.id) {
+          const remoteProviderName = `${ProviderNamespace.REMOTE}/${provider.id}`;
+          if (!validProviders.includes(remoteProviderName)) {
+            validProviders.push(remoteProviderName);
           }
         }
       });
@@ -396,6 +402,11 @@ export class ConfigValidatorService {
           const pluginProviderName = `${ProviderNamespace.PLUGIN}/${provider.id}`;
           if (!validProviders.includes(pluginProviderName)) {
             validProviders.push(pluginProviderName);
+          }
+        } else if (provider.type === 'remote' && provider.id) {
+          const remoteProviderName = `${ProviderNamespace.REMOTE}/${provider.id}`;
+          if (!validProviders.includes(remoteProviderName)) {
+            validProviders.push(remoteProviderName);
           }
         }
       });

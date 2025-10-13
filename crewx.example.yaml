@@ -61,9 +61,10 @@ providers:
     default_model: "glm-4.6"
     query_args:
       - "run"
+      - "--quiet"  # Hide spinner
     execute_args:
       - "run"
-      - "--yolo"  # Auto-accept permissions in execute mode
+      - "--quiet"  # Hide spinner (no --yolo: it's a global flag)
     prompt_in_args: true  # Crush takes message as argument
     timeout:
       query: 180000   # 3 minutes

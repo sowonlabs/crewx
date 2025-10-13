@@ -95,6 +95,33 @@ export class InitHandler {
         }
       }
 
+      // Create .claude/commands directory and Claude Code command
+      const claudeCommandsDir = join(workingDir, '.claude', 'commands');
+      if (!existsSync(claudeCommandsDir)) {
+        mkdirSync(claudeCommandsDir, { recursive: true });
+        this.taskManagementService.addTaskLog(taskId, { 
+          level: 'info', 
+          message: `Created Claude commands directory: ${claudeCommandsDir}` 
+        });
+        
+        // Create crewx-user.md command file
+        try {
+          const commandContent = this.generateClaudeCommand(workingDir);
+          const commandFile = join(claudeCommandsDir, 'crewx-user.md');
+          writeFileSync(commandFile, commandContent, 'utf8');
+          
+          this.taskManagementService.addTaskLog(taskId, { 
+            level: 'info', 
+            message: `Created Claude Code command: ${commandFile}` 
+          });
+        } catch (error) {
+          this.taskManagementService.addTaskLog(taskId, { 
+            level: 'warn', 
+            message: `Could not create Claude command file: ${error instanceof Error ? error.message : String(error)}` 
+          });
+        }
+      }
+
       // Try to download template from GitHub
       let configContent: string;
       try {
@@ -306,6 +333,71 @@ agents:
 `;
   }
 
+  private generateClaudeCommand(workingDir: string): string {
+    return `# CrewX 사용자 커맨드
+
+당신은 CrewX 사용자 가이드 전문가입니다. CrewX를 처음 사용하는 분들이 쉽게 따라할 수 있도록 안내합니다.
+
+## 🎯 주요 역할
+
+### ✅ 도와줄 수 있는 일
+- **CrewX 기본 사용법**: query, execute, init, doctor 명령어 가이드
+- **에이전트 활용**: @claude, @gemini, @copilot 활용법
+- **프로젝트 설정**: crewx.yaml 커스터마이징
+- **문제 해결**: 일반적인 에러와 해결책
+
+## 🚀 빠른 시작 가이드
+
+### 1. 기본 명령어
+\`\`\`bash
+# 설치 확인
+crewx doctor
+
+# 간단한 질문
+crewx query "@claude 이 코드를 설명해줘"
+
+# 작업 실행
+crewx execute "@claude 이 함수를 테스트 코드로 만들어줘"
+\`\`\`
+
+### 2. 에이전트 활용
+\`\`\`bash
+# 멀티 에이전트 활용
+crewx query "@claude @gemini 이 아키텍처를 검토해줘"
+
+# 특정 작업에 적합한 에이전트
+crewx execute "@copilot React 컴포넌트를 만들어줘"
+crewx query "@gemini 성능 최적화 방법을 분석해줘"
+\`\`\`
+
+### 3. 커스텀 에이전트
+\`\`\`bash
+# crewx.yaml에 추가한 커스텀 에이전트 활용
+crewx query "@my_developer 이 기능을 구현해줘"
+\`\`\`
+
+## 🔧 일반적인 문제 해결
+
+### 인증 문제
+- **Claude**: ANTHROPIC_API_KEY 환경변수 설정
+- **Gemini**: GOOGLE_API_KEY 환경변수 설정  
+- **Copilot**: GitHub 토큰 설정
+
+### 명령어 오류
+- \`crewx doctor\`로 상태 확인
+- \`crewx --help\`로 전체 명령어 확인
+
+## 📚 더 알아보기
+
+### 심화 활용
+- 병렬 처리: 여러 에이전트에게 동시에 작업 요청
+- 커스텀 프롬프트: crewx.yaml에서 system_prompt 수정
+- 템플릿 활용: 개발, 운영 등 특정 목적의 에이전트 설정
+
+항상 친절하게 설명하고, 구체적인 예시를 들어주세요.
+`;
+  }
+
   private formatSuccessMessage(configPath: string, workingDir: string, templateName?: string): string {
     const templateInfo = templateName && templateName !== 'default' 
       ? `\n**Template Used:** \`${templateName}\`` 
@@ -315,30 +407,38 @@ agents:
 
 **Configuration File Created:** \`${configPath}\`
 **Working Directory:** \`${workingDir}\`
-**Logs Directory:** \`.crewx/logs\`${templateInfo}
+**Logs Directory:** \`.crewx/logs\`
+**Claude Commands:** \`.claude/commands/crewx-user.md\`${templateInfo}
 
 **Available Agents:**
 • \`@claude\` - Claude AI Assistant (General purpose)
 • \`@gemini\` - Gemini AI Assistant (Analysis & Architecture)  
 • \`@copilot\` - GitHub Copilot (Code Development)
 
+**Claude Code Integration:**
+• Use \`@crewx-user\` for quick help and guidance
+• Built-in command for CrewX usage assistance
+
 **Next Steps:**
 1. **Test your setup:**
    \`crewx doctor\`
 
-2. **Try a simple query:**
+2. **Try Claude Code:**
+   In Claude Code: \`@crewx-user how do I start?\`
+
+3. **Try a simple query:**
    \`crewx query "@claude hello world"\`
 
-3. **Customize your agents:**
+4. **Customize your agents:**
    Edit \`${configPath}\` to add project-specific agents
 
-4. **Learn more:**
+5. **Learn more:**
    \`crewx --help\`
 
 **Pro Tips:**
-• Use multiple agents for different perspectives: \`crewx query "@claude @gemini analyze this code"\`
+• Use multiple agents: \`crewx query "@claude @gemini analyze this code"\`
+• Claude Code users: \`@crewx-user\` for instant guidance
 • Add custom agents in \`${configPath}\` for specialized tasks
-• Check agent status anytime with \`crewx doctor\`
 
 Happy coding with CrewX! 🚀`;
   }

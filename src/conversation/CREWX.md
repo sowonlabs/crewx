@@ -19,6 +19,7 @@
 ### **conversation-history.interface.ts**
 Interface definition for conversation history providers.
 Defines standard methods for loading, saving, and managing conversation threads.
+Includes metadata support for platform-specific data and agent information.
 Ensures consistent behavior across different storage backends (CLI, Slack).
 
 ### **conversation-config.ts**
@@ -44,7 +45,7 @@ Child providers implement platform-specific storage mechanisms.
 ### **cli-conversation-history.provider.ts**
 CLI-specific conversation history implementation.
 Stores threads in local filesystem (~/.crewx/conversations/).
-Supports thread creation, message append, and history retrieval for CLI mode.
+Supports thread creation, message append, history retrieval for CLI mode, and agent metadata persistence.
 
 ### **slack-conversation-history.provider.ts**
 Slack-specific conversation history implementation.
@@ -58,4 +59,4 @@ Provides clean entry point for conversation functionality.
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-12

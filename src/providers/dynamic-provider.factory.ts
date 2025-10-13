@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseAIProvider } from './base-ai.provider';
 import { AIQueryOptions, AIResponse, ProviderNamespace } from './ai-provider.interface';
+import { getTimeoutConfig } from '../config/timeout.config';
 
 export interface PluginProviderConfig {
   id: string;
@@ -24,6 +25,25 @@ export interface PluginProviderConfig {
   not_installed_message?: string;
 }
 
+export interface RemoteProviderConfig {
+  id: string;
+  type: 'remote';
+  location: string; // file:// path or http:// URL
+  external_agent_id: string;
+  display_name?: string;
+  description?: string;
+  default_model?: string;
+  auth?: {
+    type: 'bearer' | 'api_key' | 'none';
+    token?: string;
+  };
+  timeout?: {
+    query: number;
+    execute: number;
+  };
+  headers?: Record<string, string>;
+}
+
 /**
  * Dynamic Provider Factory
  * Creates AI provider instances from YAML configuration at runtime
@@ -37,6 +57,7 @@ export interface PluginProviderConfig {
 @Injectable()
 export class DynamicProviderFactory {
   private logger = new Logger(DynamicProviderFactory.name);
+  private readonly timeoutConfig = getTimeoutConfig();
 
   // Blacklist of dangerous CLI commands
   private readonly BLOCKED_CLI_COMMANDS = [
@@ -52,10 +73,23 @@ export class DynamicProviderFactory {
   /**
    * Create a dynamic provider instance from YAML configuration
    */
-  createProvider(config: PluginProviderConfig): BaseAIProvider {
+  createProvider(config: PluginProviderConfig | RemoteProviderConfig): BaseAIProvider {
     this.logger.log(`Creating dynamic provider: ${config.id}`);
 
-    // Security validation
+    if (config.type === 'plugin') {
+      return this.createPluginProvider(config as PluginProviderConfig);
+    } else if (config.type === 'remote') {
+      return this.createRemoteProvider(config as RemoteProviderConfig);
+    } else {
+      throw new Error(`Unknown provider type: ${(config as any).type}`);
+    }
+  }
+
+  /**
+   * Create a plugin provider instance
+   */
+  private createPluginProvider(config: PluginProviderConfig): BaseAIProvider {
+
     this.validateCliCommand(config.cli_command);
     this.validateCliArgs(config.query_args);
     this.validateCliArgs(config.execute_args);
@@ -101,7 +135,7 @@ export class DynamicProviderFactory {
       }
 
       protected getDefaultExecuteTimeout(): number {
-        return config.timeout?.execute ?? 1200000;
+        return config.timeout?.execute ?? this.timeoutConfig.parallel;
       }
 
       // Override isAvailable for relative path support
@@ -153,6 +187,247 @@ export class DynamicProviderFactory {
     }
 
     return new DynamicAIProvider();
+  }
+
+  /**
+   * Create a remote provider instance
+   */
+  private createRemoteProvider(config: RemoteProviderConfig): BaseAIProvider {
+    this.logger.log(`Creating remote provider: ${config.id}`);
+
+    // Validate remote configuration
+    this.validateRemoteConfig(config);
+
+    // Create remote provider class
+    class RemoteAIProvider extends BaseAIProvider {
+      readonly name = `${ProviderNamespace.REMOTE}/${config.id}`;
+
+      constructor() {
+        super(`RemoteProvider:${ProviderNamespace.REMOTE}/${config.id}`);
+      }
+
+      protected getCliCommand(): string {
+        // For file:// protocol, use local crewx instance
+        if (config.location.startsWith('file://')) {
+          const configPath = config.location.replace('file://', '');
+          const configDir = configPath.split('/').slice(0, -1).join('/');
+          return `node ${configDir}/node_modules/.bin/crewx`;
+        }
+        // For http:// protocol, use curl or http client
+        return 'curl';
+      }
+
+      protected getDefaultArgs(): string[] {
+        if (config.location.startsWith('file://')) {
+          const configPath = config.location.replace('file://', '');
+          return [
+            'query',
+            `--config=${configPath}`,
+            '--agent=' + config.external_agent_id
+          ];
+        }
+        // HTTP implementation
+        const args = [
+          '-X', 'POST',
+          config.location + '/mcp/query',
+          '-H', 'Content-Type: application/json'
+        ];
+
+        const authHeader = this.getAuthHeader();
+        if (authHeader) {
+          args.push('-H', `Authorization: ${authHeader}`);
+        }
+
+        return args;
+      }
+
+      protected getExecuteArgs(): string[] {
+        if (config.location.startsWith('file://')) {
+          const configPath = config.location.replace('file://', '');
+          return [
+            'execute',
+            `--config=${configPath}`,
+            '--agent=' + config.external_agent_id
+          ];
+        }
+        // HTTP implementation
+        const args = [
+          '-X', 'POST',
+          config.location + '/mcp/execute',
+          '-H', 'Content-Type: application/json'
+        ];
+
+        const authHeader = this.getAuthHeader();
+        if (authHeader) {
+          args.push('-H', `Authorization: ${authHeader}`);
+        }
+
+        return args;
+      }
+
+      protected getDefaultModel(): string {
+        return config.default_model || 'default';
+      }
+
+      protected getPromptInArgs(): boolean {
+        // For remote providers, always send prompt via POST body
+        return config.location.startsWith('http');
+      }
+
+      protected getNotInstalledMessage(): string {
+        if (config.location.startsWith('file://')) {
+          const configPath = config.location.replace('file://', '');
+          return `Remote CrewX configuration not found: ${configPath}`;
+        }
+        return `Remote CrewX server not accessible: ${config.location}`;
+      }
+
+      protected getDefaultQueryTimeout(): number {
+        return config.timeout?.query ?? 300000;
+      }
+
+      protected getDefaultExecuteTimeout(): number {
+        return config.timeout?.execute ?? 600000;
+      }
+
+      private getAuthHeader(): string {
+        if (!config.auth || config.auth.type === 'none') {
+          return '';
+        }
+        
+        if (config.auth.type === 'bearer' && config.auth.token) {
+          return `Bearer ${config.auth.token}`;
+        }
+        
+        if (config.auth.type === 'api_key' && config.auth.token) {
+          return `Api-Key ${config.auth.token}`;
+        }
+        
+        return '';
+      }
+
+      async isAvailable(): Promise<boolean> {
+        if (config.location.startsWith('file://')) {
+          try {
+            const { access } = await import('fs/promises');
+            const { constants } = await import('fs');
+            const configPath = config.location.replace('file://', '');
+            await access(configPath, constants.R_OK);
+            return true;
+          } catch {
+            return false;
+          }
+        }
+        
+        // HTTP health check
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          const healthHeaders = {
+            ...(config.headers || {}),
+            ...this.getAuthHeaders(),
+          };
+
+          const response = await fetch(config.location + '/health', {
+            method: 'GET',
+            signal: controller.signal,
+            headers: healthHeaders
+          });
+          
+          clearTimeout(timeoutId);
+          return response.ok;
+        } catch {
+          return false;
+        }
+      }
+
+      // Override query method for HTTP POST requests
+      async query(prompt: string, options?: AIQueryOptions): Promise<AIResponse> {
+        if (config.location.startsWith('http')) {
+          return this.httpQuery(prompt, options);
+        }
+        return super.query(prompt, options);
+      }
+
+      private async httpQuery(prompt: string, options?: AIQueryOptions): Promise<AIResponse> {
+        const url = options?.taskId 
+          ? `${config.location}/mcp/query`
+          : `${config.location}/mcp/query`;
+
+        const requestBody = {
+          prompt,
+          agent_id: config.external_agent_id,
+          task_id: options?.taskId,
+          model: options?.model || this.getDefaultModel(),
+          working_directory: options?.workingDirectory
+        };
+
+        try {
+          const controller = new AbortController();
+          const timeoutMs = options?.timeout || this.getDefaultQueryTimeout();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...this.getAuthHeaders(),
+              ...(config.headers || {})
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          
+          return {
+            content: result.content,
+            provider: this.name,
+            command: `remote query to ${config.location}`,
+            success: result.success !== false,
+            error: result.error,
+            taskId: result.task_id,
+            toolCall: result.tool_call
+          };
+        } catch (error: any) {
+          return {
+            content: '',
+            provider: this.name,
+            command: `remote query to ${config.location}`,
+            success: false,
+            error: error.message,
+            taskId: options?.taskId
+          };
+        }
+      }
+
+      private getAuthHeaders(): Record<string, string> {
+        const headers: Record<string, string> = {};
+        
+        if (!config.auth || config.auth.type === 'none') {
+          return headers;
+        }
+        
+        if (config.auth.token) {
+          if (config.auth.type === 'bearer') {
+            headers['Authorization'] = `Bearer ${config.auth.token}`;
+          } else if (config.auth.type === 'api_key') {
+            headers['Api-Key'] = config.auth.token;
+          }
+        }
+        
+        return headers;
+      }
+    }
+
+    return new RemoteAIProvider();
   }
 
   /**
@@ -271,17 +546,70 @@ export class DynamicProviderFactory {
   }
 
   /**
+   * Validate remote provider configuration
+   */
+  private validateRemoteConfig(config: RemoteProviderConfig): void {
+    if (!config.location) {
+      throw new Error('Remote provider requires a location (file:// or http:// URL)');
+    }
+
+    if (!config.external_agent_id) {
+      throw new Error('Remote provider requires an external_agent_id');
+    }
+
+    // Validate location format
+    if (!config.location.startsWith('file://') && !config.location.startsWith('http://') && !config.location.startsWith('https://')) {
+      throw new Error('Remote location must start with file://, http://, or https://');
+    }
+
+    // Validate file:// path
+    if (config.location.startsWith('file://')) {
+      const filePath = config.location.replace('file://', '');
+      if (filePath.includes('..')) {
+        throw new Error('Path traversal (..) is not allowed in remote file locations');
+      }
+    }
+
+    // Validate auth configuration
+    if (config.auth) {
+      const validAuthTypes = ['bearer', 'api_key', 'none'];
+      if (!validAuthTypes.includes(config.auth.type)) {
+        throw new Error(`Invalid auth type: ${config.auth.type}. Must be one of: ${validAuthTypes.join(', ')}`);
+      }
+
+      if (config.auth.type !== 'none' && !config.auth.token) {
+        throw new Error(`Auth type '${config.auth.type}' requires a token`);
+      }
+    }
+  }
+
+  /**
    * Validate plugin provider configuration
    */
-  validateConfig(config: any): config is PluginProviderConfig {
-    return (
-      config.id &&
-      typeof config.id === 'string' &&
-      config.cli_command &&
-      typeof config.cli_command === 'string' &&
-      Array.isArray(config.query_args) &&
-      Array.isArray(config.execute_args) &&
-      typeof config.prompt_in_args === 'boolean'
-    );
+  validateConfig(config: any): config is PluginProviderConfig | RemoteProviderConfig {
+    if (!config.id || typeof config.id !== 'string') {
+      return false;
+    }
+
+    if (config.type === 'plugin') {
+      return (
+        config.cli_command &&
+        typeof config.cli_command === 'string' &&
+        Array.isArray(config.query_args) &&
+        Array.isArray(config.execute_args) &&
+        typeof config.prompt_in_args === 'boolean'
+      );
+    }
+
+    if (config.type === 'remote') {
+      return (
+        config.location &&
+        typeof config.location === 'string' &&
+        config.external_agent_id &&
+        typeof config.external_agent_id === 'string'
+      );
+    }
+
+    return false;
   }
 }

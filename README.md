@@ -91,6 +91,7 @@ crewx mcp  # VS Code, Claude Desktop, Cursor
 - **Claude Code** - Advanced reasoning and analysis
 - **Gemini CLI** - Real-time web access
 - **GitHub Copilot CLI** - Specialized coding assistant
+- **Codex CLI** - Open inference with workspace-aware execution
 
 ## Basic Usage
 
@@ -111,6 +112,9 @@ crewx execute "@backend implement it"
 # Thread-based conversations
 crewx query "@claude design login" --thread "auth-feature"
 crewx execute "@claude implement it" --thread "auth-feature"
+
+# Codex CLI agent
+crewx query "@codex draft a release checklist"
 ```
 
 ## Create Custom Agents
@@ -144,12 +148,50 @@ agents:
 
 > **Note:** `crewx.yaml` is the preferred configuration file name. The legacy `agents.yaml` is still supported for backward compatibility. If both files exist, `crewx.yaml` takes priority.
 
+## Remote MCP Agents (Experimental)
+
+CrewX can delegate tasks to another CrewX MCP server. Treat this capability as experimental while the protocol and tooling evolve.
+
+```bash
+# 1. Start the remote MCP server
+npx -y crewx@dev mcp server --http --host localhost --port 9001 --key "sk-0001" --log
+
+# 2. Add remote provider + agent in crewx.yaml
+providers:
+  - id: mcp_cso
+    type: remote
+    location: "http://localhost:9001"
+    external_agent_id: "cso"
+    auth:
+      type: bearer
+      token: "sk-0001"
+
+agents:
+  - id: "remote_cso"
+    provider: "remote/mcp_cso"
+    remote:
+      type: "mcp-http"
+      url: "http://localhost:9001"
+      apiKey: "sk-0001"
+      agentId: "cso"
+      timeoutMs: 120000
+
+# 3. Use the remote agent locally
+CREWX_CONFIG=./crewx.yaml crewx query "@remote_cso check status"
+```
+
+- **Current limitations**
+- Remote calls are stateless: `--thread` conversation history is not forwarded to the remote server.
+- The remote server must expose CrewX MCP tools (`crewx_queryAgent`, `crewx_executeAgent`).
+- Depending on network latency and remote execution time, configure a sufficiently large `timeoutMs`.
+
 ## Documentation
 
 - [📖 CLI Guide](docs/cli-guide.md) - Complete CLI reference
 - [🔌 MCP Integration](docs/mcp-integration.md) - IDE setup and MCP servers
 - [⚙️ Agent Configuration](docs/agent-configuration.md) - Custom agents and advanced config
 - [📚 Template System](docs/templates.md) - Knowledge management and dynamic prompts for agents
+- [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations
 - [🔧 Tool System](docs/tools.md) - Tool integration and creation guide
 - [🔧 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 - [💬 Slack Integration](SLACK_INSTALL.md) - Slack bot setup

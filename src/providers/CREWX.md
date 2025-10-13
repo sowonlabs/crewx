@@ -22,7 +22,7 @@ Provider names follow the format: **`{namespace}/{id}`**
 
 | Namespace | Format | Purpose | Examples |
 |-----------|--------|---------|----------|
-| **cli/** | `cli/{id}` | Built-in CLI-based providers | `cli/claude`, `cli/gemini`, `cli/copilot` |
+| **cli/** | `cli/{id}` | Built-in CLI-based providers | `cli/claude`, `cli/gemini`, `cli/copilot`, `cli/codex` |
 | **plugin/** | `plugin/{id}` | User-defined external tools via YAML | `plugin/mock`, `plugin/custom-ai` |
 | **api/** | `api/{id}` | Direct API integrations (future) | `api/openai`, `api/anthropic`, `api/ollama` |
 
@@ -103,6 +103,11 @@ Built-in CLI provider: `cli/copilot` (GitHub Copilot CLI integration).
 Implements Copilot-specific command routing and response parsing.
 Specialized for code-focused tasks and explanations.
 
+### **codex.provider.ts**
+Built-in CLI provider: `cli/codex` (Codex CLI integration).
+Implements Codex-specific arguments with experimental JSON output format.
+Handles authentication errors and rate limiting for Codex API.
+
 ### **dynamic-provider.factory.ts**
 Plugin provider factory: `plugin/*` (YAML-based plugin system).
 Creates plugin provider instances from YAML configuration at runtime with namespace format.
@@ -110,4 +115,4 @@ Validates CLI commands, sanitizes arguments, prevents injection attacks, and sup
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-12

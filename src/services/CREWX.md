@@ -78,4 +78,4 @@ Renders formatted help text for CLI commands.
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-12

@@ -87,7 +87,8 @@ export async function handleQuery(app: any, args: CliOptions) {
     const conversationMessages = conversationThread?.messages
       ? conversationThread.messages.map((msg: any) => ({
           text: msg.text,
-          isAssistant: msg.isAssistant
+          isAssistant: msg.isAssistant,
+          metadata: msg.metadata
         }))
       : [];
 
@@ -223,7 +224,7 @@ export async function handleQuery(app: any, args: CliOptions) {
       // Only save to conversation history after successful response
       if (conversationProvider && threadId && result.response) {
         await conversationProvider.addMessage(threadId, os.userInfo().username, query, false);
-        await conversationProvider.addMessage(threadId, 'crewx', result.response, true);
+        await conversationProvider.addMessage(threadId, 'crewx', result.response, true, agentId);
       }
 
       // 5. Format and output results for single agent
@@ -285,12 +286,13 @@ export async function handleQuery(app: any, args: CliOptions) {
         if (result.results && Array.isArray(result.results)) {
           for (const agentResult of result.results) {
             if (agentResult.success && agentResult.response) {
-              const agentName = `${agentResult.agentId}${agentResult.model ? `:${agentResult.model}` : ''}`;
+              const agentName = agentResult.agentId || agentResult.agent;
               await conversationProvider.addMessage(
                 threadId,
-                agentName,
+                'assistant',
                 agentResult.response,
-                true
+                true,
+                agentName
               );
             }
           }
