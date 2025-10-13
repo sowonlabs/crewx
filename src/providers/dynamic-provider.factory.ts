@@ -23,6 +23,7 @@ export interface PluginProviderConfig {
     message: string;
   }>;
   not_installed_message?: string;
+  env?: Record<string, string>;
 }
 
 export interface RemoteProviderConfig {
@@ -94,6 +95,7 @@ export class DynamicProviderFactory {
     this.validateCliArgs(config.query_args);
     this.validateCliArgs(config.execute_args);
     this.validateErrorPatterns(config.error_patterns);
+    this.validateEnv(config.env);
 
     // Create dynamic provider class
     class DynamicAIProvider extends BaseAIProvider {
@@ -136,6 +138,10 @@ export class DynamicProviderFactory {
 
       protected getDefaultExecuteTimeout(): number {
         return config.timeout?.execute ?? this.timeoutConfig.parallel;
+      }
+
+      protected getEnv(): Record<string, string> {
+        return config.env || {};
       }
 
       // Override isAvailable for relative path support
@@ -540,6 +546,45 @@ export class DynamicProviderFactory {
       } catch (error: any) {
         throw new Error(
           `Invalid regex pattern '${pattern}': ${error.message}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Validate environment variables for security
+   */
+  private validateEnv(env?: Record<string, string>): void {
+    if (!env) return;
+
+    for (const [key, value] of Object.entries(env)) {
+      // Check for dangerous environment variable names
+      const dangerousEnvVars = [
+        'PATH', 'LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH',
+        'LD_PRELOAD', 'DYLD_INSERT_LIBRARIES',
+        'IFS', 'BASH_ENV', 'ENV',
+      ];
+
+      if (dangerousEnvVars.includes(key.toUpperCase())) {
+        throw new Error(
+          `Security: Environment variable '${key}' is blocked for security reasons. ` +
+          `Modifying system paths or library loading variables is not allowed.`
+        );
+      }
+
+      // Check for null bytes in key or value
+      if (key.includes('\0') || value.includes('\0')) {
+        throw new Error(
+          `Security: Environment variable contains null bytes (potential injection).`
+        );
+      }
+
+      // Check for shell metacharacters in values (warn but don't block)
+      const dangerousChars = /[;&|<>`$()]/;
+      if (dangerousChars.test(value)) {
+        this.logger.warn(
+          `Warning: Environment variable '${key}' contains shell metacharacters. ` +
+          `Value: ${value}`
         );
       }
     }

@@ -84,6 +84,14 @@ export abstract class BaseAIProvider implements AIProvider {
   }
 
   /**
+   * Get environment variables for this provider
+   * Can be overridden by plugin providers to add custom env vars
+   */
+  protected getEnv(): Record<string, string> {
+    return {}; // Built-in providers don't have custom env vars by default
+  }
+
+  /**
    * Substitute {model} placeholders in arguments
    */
   protected substituteModelPlaceholders(args: string[], model: string): string[] {
@@ -412,7 +420,7 @@ Started: ${timestamp}
 
       return new Promise((resolve) => {
         // Set UTF-8 encoding for Windows PowerShell to handle Korean/Unicode correctly
-        const env = { ...process.env };
+        const env = { ...process.env, ...this.getEnv() };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
           env.LANG = 'en_US.UTF-8';
@@ -620,7 +628,7 @@ Started: ${timestamp}
 
       return new Promise((resolve) => {
         // Set UTF-8 encoding for Windows PowerShell to handle Korean/Unicode correctly
-        const env = { ...process.env };
+        const env = { ...process.env, ...this.getEnv() };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
           env.LANG = 'en_US.UTF-8';

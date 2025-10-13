@@ -17,12 +17,34 @@ providers:
     execute_args: ["--model", "{model}", "--message"]
     prompt_in_args: true
 
+  # Mock CLI with environment variables (for testing env support)
+  - id: mock_env
+    type: plugin
+    cli_command: test-tools/mock-cli
+    default_model: "sonnet"
+    query_args: ["--model", "{model}", "--message"]
+    execute_args: ["--model", "{model}", "--message"]
+    prompt_in_args: true
+    env:
+      TEST_ENV: "development"
+      MOCK_API_URL: "http://localhost:8080"
+      MOCK_TOKEN: "test-token-123"
+      CUSTOM_VAR: "custom-value"
+
 # Agents Configuration
 agents:
-  # Example: Plugin provider agent
+  # Example: Plugin provider agent (without env vars)
   - id: mock_test
     provider: plugin/mock  # Namespace format
     name: "Mock Test Agent"
+    capabilities:
+      - query
+      - implementation
+
+  # Example: Plugin provider agent with environment variables
+  - id: mock_env_test
+    provider: plugin/mock_env  # Provider with env vars
+    name: "Mock Env Test Agent"
     capabilities:
       - query
       - implementation
