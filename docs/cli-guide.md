@@ -242,7 +242,6 @@ crewx mcp server \
 **Exposed MCP tools:**
 - `crewx_queryAgent` - Read-only agent queries
 - `crewx_executeAgent` - Agent execution with file operations
-- `crewx_chat` - Interactive chat with agents
 
 See [MCP Integration Guide](./mcp-integration.md) for IDE setup and [Remote Agents Guide](./remote-agents.md) for remote access configuration.
 
@@ -282,34 +281,41 @@ Customize behavior via `.env` or environment variables:
 
 ### Timeout Configuration
 
+**All timeouts are unified to 30 minutes (1800000ms) by default** for consistent behavior across all operations.
+
 ```bash
-# Claude Provider
-CODECREW_TIMEOUT_CLAUDE_QUERY=600000        # 10 min
-CODECREW_TIMEOUT_CLAUDE_EXECUTE=45000       # 45 sec
-
-# Gemini Provider
-CODECREW_TIMEOUT_GEMINI_QUERY=600000        # 10 min
-CODECREW_TIMEOUT_GEMINI_EXECUTE=1200000     # 20 min
-
-# Copilot Provider
-CODECREW_TIMEOUT_COPILOT_QUERY=600000       # 10 min
-CODECREW_TIMEOUT_COPILOT_EXECUTE=1200000    # 20 min
+# All Providers (unified to 30 minutes)
+CODECREW_TIMEOUT_CLAUDE_QUERY=1800000       # 30 min (default)
+CODECREW_TIMEOUT_CLAUDE_EXECUTE=1800000     # 30 min (default)
+CODECREW_TIMEOUT_GEMINI_QUERY=1800000       # 30 min (default)
+CODECREW_TIMEOUT_GEMINI_EXECUTE=1800000     # 30 min (default)
+CODECREW_TIMEOUT_COPILOT_QUERY=1800000      # 30 min (default)
+CODECREW_TIMEOUT_COPILOT_EXECUTE=1800000    # 30 min (default)
 
 # System
-CODECREW_TIMEOUT_PARALLEL=300000            # 5 min
+CODECREW_TIMEOUT_PARALLEL=1800000           # 30 min (default)
 CODECREW_TIMEOUT_STDIN_INITIAL=30000        # 30 sec
-CODECREW_TIMEOUT_STDIN_CHUNK=600000         # 10 min
+CODECREW_TIMEOUT_STDIN_CHUNK=1800000        # 30 min (default)
 CODECREW_TIMEOUT_STDIN_COMPLETE=100         # 100ms
 ```
 
+**Why 30 minutes?**
+- Handles complex AI operations (code generation, analysis, refactoring)
+- Supports long-running tasks without interruption
+- Consistent across all providers and modes
+- Can be overridden per-command with `--timeout` flag
+
 **Usage:**
 ```bash
-# Using .env file
-echo "CODECREW_TIMEOUT_CLAUDE_QUERY=900000" >> .env
+# Using .env file (customize if needed)
+echo "CODECREW_TIMEOUT_CLAUDE_QUERY=3600000" >> .env  # 60 min
 crewx query "@claude complex analysis"
 
-# Inline
-CODECREW_TIMEOUT_CLAUDE_QUERY=1800000 crewx query "@claude deep analysis"
+# Inline override
+CODECREW_TIMEOUT_CLAUDE_QUERY=900000 crewx query "@claude quick check"  # 15 min
+
+# Per-command timeout flag (recommended)
+crewx query "@claude analyze" --timeout 3600000  # 60 min
 ```
 
 ### Plugin Provider Environment Variables

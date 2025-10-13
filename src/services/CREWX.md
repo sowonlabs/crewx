@@ -16,6 +16,21 @@
 
 ## 📋 Files Overview
 
+### **mcp-client.service.ts**
+MCP (Model Context Protocol) client implementation for remote agent connections.
+Manages MCP server communications, tool discovery, and remote agent execution.
+Handles connection lifecycle, protocol message routing, and bearer authentication.
+
+### **remote-agent.service.ts**
+Remote agent management and execution service.
+Connects to remote MCP agents, manages agent registry, and handles remote task execution.
+Provides discovery and capabilities introspection for remote agents with distributed collaboration.
+
+### **auth.service.ts**
+Authentication and authorization service for secure agent access.
+Manages API keys, tokens, and credential validation for remote services.
+Provides bearer token authentication for MCP endpoints and secure remote agent connections.
+
 ### **tool-call.service.ts**
 Tool execution engine for MCP tools and external commands.
 Discovers, loads, validates, and executes tools with security sandboxing.
@@ -78,4 +93,4 @@ Renders formatted help text for CLI commands.
 
 ---
 
-**Last Updated**: 2025-10-12
+**Last Updated**: 2025-10-13

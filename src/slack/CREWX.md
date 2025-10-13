@@ -19,13 +19,13 @@
 ### **slack-bot.ts**
 Main Slack Bot implementation using Bolt SDK.
 Handles @mentions, thread-based conversations, and multi-agent coordination.
-Routes messages to appropriate AI providers and formats responses for Slack.
+Routes messages to appropriate AI providers, formats responses for Slack with CrewX branding consistency, integrates with remote MCP agents for distributed collaboration, and maintains cross-platform conversation continuity.
 
 ### **formatters/message.formatter.ts**
-Message formatting utilities for Slack-specific rendering.
+Message formatting utilities for Slack-specific rendering with CrewX branding alignment.
 Converts markdown to Slack blocks, handles code formatting, and emoji rendering.
-Ensures proper display of AI responses in Slack channels.
+Ensures proper display of AI responses in Slack channels with consistent CrewX visual identity.
 
 ---
 
-**Last Updated**: 2025-10-12
+**Last Updated**: 2025-10-13

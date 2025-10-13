@@ -23,7 +23,8 @@ Provider names follow the format: **`{namespace}/{id}`**
 | Namespace | Format | Purpose | Examples |
 |-----------|--------|---------|----------|
 | **cli/** | `cli/{id}` | Built-in CLI-based providers | `cli/claude`, `cli/gemini`, `cli/copilot`, `cli/codex` |
-| **plugin/** | `plugin/{id}` | User-defined external tools via YAML | `plugin/mock`, `plugin/custom-ai` |
+| **plugin/** | `plugin/{id}` | User-defined external tools via YAML with env vars | `plugin/mock`, `plugin/custom-ai` |
+| **remote/** | `remote/{id}` | Remote MCP agents for distributed collaboration | `remote/backend`, `remote/ai-team` |
 | **api/** | `api/{id}` | Direct API integrations (future) | `api/openai`, `api/anthropic`, `api/ollama` |
 
 ### Benefits
@@ -164,4 +165,4 @@ Manages environment variable injection with security validation (blocks dangerou
 
 ---
 
-**Last Updated**: 2025-10-12
+**Last Updated**: 2025-10-13

@@ -36,9 +36,15 @@ Interactive chat mode handler (`crewx chat`).
 Provides REPL-like interface with conversation history and multi-turn interactions.
 Supports thread persistence, context loading, and session management.
 
+### **mcp.handler.ts**
+MCP (Model Context Protocol) command handler (`crewx mcp`).
+Manages MCP server installation, configuration, IDE integration, and remote agent connections.
+Handles remote agent discovery, MCP tool registrations, and distributed collaboration setup.
+
 ### **agent.handler.ts**
 Agent management handler (`crewx agent`).
 Implements the `crewx agent ls` / `crewx agent list` subcommand for discovering configured agents, including JSON output via `--raw`.
+Supports both local and remote MCP agent discovery.
 
 ### **init.handler.ts**
 Project initialization handler (`crewx init`).
@@ -62,4 +68,4 @@ Delegates to HelpService for content rendering.
 
 ---
 
-**Last Updated**: 2025-02-17
+**Last Updated**: 2025-10-13

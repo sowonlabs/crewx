@@ -40,7 +40,7 @@ export class ConversationStorageService {
   async saveThread(thread: ConversationThread): Promise<void> {
     await this.initialize();
 
-    const filePath = this.getThreadPath(thread.threadId);
+    const filePath = this.getThreadPath(thread.threadId, thread.platform);
     const data = JSON.stringify(thread, null, 2);
 
     try {
@@ -56,26 +56,30 @@ export class ConversationStorageService {
    * Load a conversation thread from storage
    */
   async loadThread(threadId: string): Promise<ConversationThread | null> {
-    const filePath = this.getThreadPath(threadId);
+    const candidatePaths = this.getCandidatePaths(threadId);
 
-    try {
-      const data = await fs.readFile(filePath, 'utf-8');
-      const thread = JSON.parse(data) as ConversationThread;
+    for (const filePath of candidatePaths) {
+      try {
+        const data = await fs.readFile(filePath, 'utf-8');
+        const thread = JSON.parse(data) as ConversationThread;
 
-      // Convert timestamp strings back to Date objects
-      thread.messages = thread.messages.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp),
-      }));
+        // Convert timestamp strings back to Date objects
+        thread.messages = thread.messages.map(msg => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp),
+        }));
 
-      return thread;
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        return null; // Thread doesn't exist
+        return thread;
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          this.logger.error(`Failed to load thread: ${error.message}`);
+          throw error;
+        }
+        // Try next candidate if file not found
       }
-      this.logger.error(`Failed to load thread: ${error.message}`);
-      throw error;
     }
+
+    return null;
   }
 
   /**
@@ -121,9 +125,28 @@ export class ConversationStorageService {
     try {
       await this.initialize();
       const files = await fs.readdir(this.storageDir);
-      return files
-        .filter(file => file.endsWith('.json'))
-        .map(file => file.replace('.json', ''));
+      const threadIds: string[] = [];
+
+      for (const file of files) {
+        if (!file.endsWith('.json')) {
+          continue;
+        }
+
+        const filePath = path.join(this.storageDir, file);
+        try {
+          const data = await fs.readFile(filePath, 'utf-8');
+          const thread = JSON.parse(data) as ConversationThread;
+          if (thread.threadId) {
+            threadIds.push(thread.threadId);
+          } else {
+            threadIds.push(file.replace('.json', ''));
+          }
+        } catch (error: any) {
+          this.logger.warn(`Failed to read thread file ${file}: ${error.message}`);
+        }
+      }
+
+      return threadIds;
     } catch (error: any) {
       this.logger.error(`Failed to list threads: ${error.message}`);
       return [];
@@ -134,13 +157,17 @@ export class ConversationStorageService {
    * Delete a thread
    */
   async deleteThread(threadId: string): Promise<void> {
-    const filePath = this.getThreadPath(threadId);
+    const candidatePaths = this.getCandidatePaths(threadId);
 
-    try {
-      await fs.unlink(filePath);
-      this.logger.debug(`Thread deleted: ${threadId}`);
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
+    for (const filePath of candidatePaths) {
+      try {
+        await fs.unlink(filePath);
+        this.logger.debug(`Thread deleted: ${threadId}`);
+        return;
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          continue;
+        }
         this.logger.error(`Failed to delete thread: ${error.message}`);
         throw error;
       }
@@ -151,22 +178,41 @@ export class ConversationStorageService {
    * Check if a thread exists
    */
   async hasThread(threadId: string): Promise<boolean> {
-    const filePath = this.getThreadPath(threadId);
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
+    const candidatePaths = this.getCandidatePaths(threadId);
+    for (const filePath of candidatePaths) {
+      try {
+        await fs.access(filePath);
+        return true;
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          this.logger.error(`Failed to check thread: ${error.message}`);
+        }
+      }
     }
+    return false;
   }
 
   /**
    * Get file path for a thread
    */
-  private getThreadPath(threadId: string): string {
+  private getThreadPath(threadId: string, platform?: 'slack' | 'cli'): string {
     // Sanitize thread ID for filename
     const safeId = threadId.replace(/[^a-zA-Z0-9-_]/g, '_');
-    return path.join(this.storageDir, `${safeId}.json`);
+    const resolvedPlatform =
+      platform ?? (threadId.includes(':') ? 'slack' : undefined);
+    const prefix = resolvedPlatform === 'slack' ? 'slack-' : '';
+    return path.join(this.storageDir, `${prefix}${safeId}.json`);
+  }
+
+  /**
+   * Build list of potential file paths (for backward compatibility)
+   */
+  private getCandidatePaths(threadId: string): string[] {
+    const candidates = new Set<string>();
+    candidates.add(this.getThreadPath(threadId));
+    candidates.add(this.getThreadPath(threadId, 'slack'));
+    candidates.add(this.getThreadPath(threadId, 'cli'));
+    return Array.from(candidates);
   }
 
   /**
