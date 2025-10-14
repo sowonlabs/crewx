@@ -1,11 +1,51 @@
 import { Logger } from '@nestjs/common';
 import { CliOptions } from '../cli-options';
 import { CrewXTool } from '../crewx.tool';
-import { readStdin, formatPipedContext } from '../utils/stdin-utils';
+import {
+  readStdin,
+  formatPipedContext,
+  parseStructuredPayload,
+  buildContextFromStructuredPayload,
+} from '../utils/stdin-utils';
 import { ConversationProviderFactory, CliConversationHistoryProvider } from '../conversation';
 import * as os from 'os';
 
 const logger = new Logger('QueryHandler');
+
+type ConversationMessage = {
+  text: string;
+  isAssistant: boolean;
+  metadata?: Record<string, any>;
+};
+
+function mergeMessages(
+  pipedMessages: ConversationMessage[],
+  existingMessages: ConversationMessage[],
+): ConversationMessage[] {
+  if (pipedMessages.length === 0) {
+    return existingMessages;
+  }
+
+  const seen = new Set<string>();
+  const result: ConversationMessage[] = [];
+
+  const push = (msg: ConversationMessage) => {
+    const key = JSON.stringify({
+      text: msg.text,
+      isAssistant: msg.isAssistant,
+      metadata: msg.metadata || {},
+    });
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(msg);
+    }
+  };
+
+  pipedMessages.forEach(push);
+  existingMessages.forEach(push);
+
+  return result;
+}
 
 /**
  * Handle query command: crewx query "@agent message"
@@ -30,7 +70,13 @@ export async function handleQuery(app: any, args: CliOptions) {
 
     // Check for piped input (stdin) and convert to context
     const pipedInput = await readStdin();
-    const contextFromPipe = pipedInput ? formatPipedContext(pipedInput) : undefined;
+    const structuredPayload = parseStructuredPayload(pipedInput);
+    const contextFromPipe = structuredPayload
+      ? buildContextFromStructuredPayload(structuredPayload) ?? (pipedInput ? formatPipedContext(pipedInput) : undefined)
+      : pipedInput
+        ? formatPipedContext(pipedInput)
+        : undefined;
+    const pipedMessages: ConversationMessage[] = structuredPayload?.messages ?? [];
 
     if (pipedInput && !args.raw) {
       console.log('📥 Received piped input - using as context');
@@ -84,13 +130,15 @@ export async function handleQuery(app: any, args: CliOptions) {
     }
 
     // Convert thread messages for template processing (reuse fetched thread)
-    const conversationMessages = conversationThread?.messages
+    const conversationMessagesFromThread: ConversationMessage[] = conversationThread?.messages
       ? conversationThread.messages.map((msg: any) => ({
           text: msg.text,
           isAssistant: msg.isAssistant,
-          metadata: msg.metadata
+          metadata: msg.metadata,
         }))
       : [];
+
+    const combinedMessages = mergeMessages(pipedMessages, conversationMessagesFromThread);
 
     // Get CrewXTool from app context
     const crewXTool = app.get(CrewXTool);
@@ -209,7 +257,7 @@ export async function handleQuery(app: any, args: CliOptions) {
         query: query,
         context: combinedContext || undefined,
         model: model,
-        messages: conversationMessages,
+        messages: combinedMessages,
         platform: 'cli'
       });
 
@@ -260,7 +308,7 @@ export async function handleQuery(app: any, args: CliOptions) {
         query: pq.query,
         context: combinedContext || undefined,
         model: pq.model,
-        messages: conversationMessages,
+        messages: combinedMessages,
         platform: 'cli' as const
       }));
 

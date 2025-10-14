@@ -57,6 +57,61 @@ export class CrewXTool implements OnModuleInit {
     };
   }
 
+  private async buildStructuredPayload(params: {
+    agentId: string;
+    provider: string;
+    mode: 'query' | 'execute';
+    prompt: string;
+    context?: string;
+    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
+    platform?: 'cli' | 'slack';
+    model?: string;
+  }): Promise<string> {
+    const { agentId, provider, mode, prompt, context, messages, platform, model } = params;
+    const safeMessages = Array.isArray(messages) ? messages : [];
+
+    let formattedHistory = '';
+    try {
+      if (safeMessages.length > 0) {
+        const template = '{{{formatConversation messages platform}}}';
+        const { processDocumentTemplate } = await import('./utils/template-processor');
+        formattedHistory = await processDocumentTemplate(template, this.documentLoaderService, {
+          messages: safeMessages,
+          platform: platform ?? 'cli',
+        });
+        formattedHistory = formattedHistory?.trim() ?? '';
+      }
+    } catch (error: any) {
+      this.logger.warn(
+        `Failed to format conversation history for structured payload: ${error?.message || error}`,
+      );
+    }
+
+    const normalizedContext = context?.trim() ?? '';
+
+    const payload = {
+      version: '1.0',
+      agent: {
+        id: agentId,
+        provider,
+        mode,
+        model: model || null,
+      },
+      prompt,
+      context: normalizedContext,
+      messages: safeMessages,
+      metadata: {
+        platform: platform ?? 'cli',
+        formattedHistory,
+        messageCount: safeMessages.length,
+        generatedAt: new Date().toISOString(),
+        originalContext: normalizedContext,
+      },
+    };
+
+    return JSON.stringify(payload);
+  }
+
   constructor(
     private readonly aiService: AIService,
     private readonly aiProviderService: AIProviderService,
@@ -539,7 +594,17 @@ ${query}
       
       // Determine model to use (priority: runtime override > inline.model)
       const modelToUse = model || agent.inline?.model;
-      
+      const structuredPayload = await this.buildStructuredPayload({
+        agentId,
+        provider,
+        mode: 'query',
+        prompt: fullPrompt,
+        context,
+        messages,
+        platform: platform || 'cli',
+        model: modelToUse,
+      });
+
       response = await this.aiService.queryAI(fullPrompt, provider, {
         workingDirectory: workingDir,
         timeout: this.timeoutConfig.parallel, // Use configured timeout from timeout.config.ts
@@ -548,6 +613,8 @@ ${query}
         model: modelToUse, // Use determined model
         agentId, // Preserve raw agent identifier for logging
         securityKey, // Pass security key for injection protection
+        messages,
+        pipedContext: structuredPayload,
       });
 
       // Handle task completion
@@ -810,6 +877,16 @@ Task: ${task}
       
       // Determine model to use (priority: runtime override > inline.model)
       const modelToUse = model || agent.inline?.model;
+      const structuredPayload = await this.buildStructuredPayload({
+        agentId,
+        provider,
+        mode: 'execute',
+        prompt: fullPrompt,
+        context,
+        messages,
+        platform: platform || 'cli',
+        model: modelToUse,
+      });
       
       // Use new unified executeAI for all providers
       // Use 20 minutes timeout for all providers to handle complex multi-turn tool calls
@@ -821,6 +898,8 @@ Task: ${task}
         additionalArgs: agentOptions, // Pass mode-specific options
         model: modelToUse, // Use determined model
         agentId, // Preserve raw agent identifier for logging
+        messages,
+        pipedContext: structuredPayload,
       });
 
       // Handle task completion
