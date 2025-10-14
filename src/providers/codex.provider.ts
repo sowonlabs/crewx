@@ -36,6 +36,10 @@ export class CodexProvider extends BaseAIProvider {
     return true;
   }
 
+  protected shouldPipeContext(): boolean {
+    return false;
+  }
+
   /**
    * Parse Codex-specific errors
    */

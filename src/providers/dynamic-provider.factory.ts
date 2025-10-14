@@ -215,9 +215,7 @@ export class DynamicProviderFactory {
       protected getCliCommand(): string {
         // For file:// protocol, use local crewx instance
         if (config.location.startsWith('file://')) {
-          const configPath = config.location.replace('file://', '');
-          const configDir = configPath.split('/').slice(0, -1).join('/');
-          return `node ${configDir}/node_modules/.bin/crewx`;
+          return 'crewx';
         }
         // For http:// protocol, use curl or http client
         return 'curl';
@@ -228,8 +226,8 @@ export class DynamicProviderFactory {
           const configPath = config.location.replace('file://', '');
           return [
             'query',
-            `--config=${configPath}`,
-            '--agent=' + config.external_agent_id
+            '--raw',
+            `--config=${configPath}`
           ];
         }
         // HTTP implementation
@@ -252,8 +250,8 @@ export class DynamicProviderFactory {
           const configPath = config.location.replace('file://', '');
           return [
             'execute',
-            `--config=${configPath}`,
-            '--agent=' + config.external_agent_id
+            '--raw',
+            `--config=${configPath}`
           ];
         }
         // HTTP implementation
@@ -276,8 +274,8 @@ export class DynamicProviderFactory {
       }
 
       protected getPromptInArgs(): boolean {
-        // For remote providers, always send prompt via POST body
-        return config.location.startsWith('http');
+        // For file-based remotes we pass the query as CLI argument.
+        return true;
       }
 
       protected getNotInstalledMessage(): string {
@@ -319,7 +317,8 @@ export class DynamicProviderFactory {
             const { constants } = await import('fs');
             const configPath = config.location.replace('file://', '');
             await access(configPath, constants.R_OK);
-            return true;
+            const cliAvailable = await super.isAvailable();
+            return cliAvailable;
           } catch {
             return false;
           }
@@ -353,7 +352,46 @@ export class DynamicProviderFactory {
         if (config.location.startsWith('http')) {
           return this.httpQuery(prompt, options);
         }
-        return super.query(prompt, options);
+
+        const userQuery = this.parseUserQueryForRemote(prompt);
+        const formattedPrompt = userQuery
+          ? `@${config.external_agent_id} ${userQuery}`
+          : `@${config.external_agent_id}`;
+
+        const structuredPayload = this.normalizeStructuredPayload(prompt, options);
+        const extendedOptions: AIQueryOptions = {
+          ...options,
+        };
+        if (structuredPayload) {
+          extendedOptions.pipedContext = structuredPayload;
+        } else {
+          delete extendedOptions.pipedContext;
+        }
+
+        return super.query(formattedPrompt, extendedOptions);
+      }
+
+      async execute(prompt: string, options?: AIQueryOptions): Promise<AIResponse> {
+        if (config.location.startsWith('http')) {
+          return super.execute(prompt, options);
+        }
+
+        const userQuery = this.parseUserQueryForRemote(prompt);
+        const formattedPrompt = userQuery
+          ? `@${config.external_agent_id} ${userQuery}`
+          : `@${config.external_agent_id}`;
+
+        const structuredPayload = this.normalizeStructuredPayload(prompt, options);
+        const extendedOptions: AIQueryOptions = {
+          ...options,
+        };
+        if (structuredPayload) {
+          extendedOptions.pipedContext = structuredPayload;
+        } else {
+          delete extendedOptions.pipedContext;
+        }
+
+        return super.execute(formattedPrompt, extendedOptions);
       }
 
       private async httpQuery(prompt: string, options?: AIQueryOptions): Promise<AIResponse> {
@@ -361,13 +399,28 @@ export class DynamicProviderFactory {
           ? `${config.location}/mcp/query`
           : `${config.location}/mcp/query`;
 
-        const requestBody = {
+        const structuredPayload = this.normalizeStructuredPayload(prompt, options);
+        const requestBody: Record<string, any> = {
           prompt,
           agent_id: config.external_agent_id,
           task_id: options?.taskId,
           model: options?.model || this.getDefaultModel(),
-          working_directory: options?.workingDirectory
+          working_directory: options?.workingDirectory,
         };
+        if (structuredPayload) {
+          requestBody.structured_payload = structuredPayload;
+        }
+        
+        if (options?.messages && options.messages.length > 0) {
+          requestBody.messages = options.messages;
+        }
+
+        if (options?.pipedContext) {
+          const trimmed = options.pipedContext.trim();
+          if (!this.isStructuredPayload(trimmed)) {
+            requestBody.context = trimmed;
+          }
+        }
 
         try {
           const controller = new AbortController();
@@ -412,6 +465,35 @@ export class DynamicProviderFactory {
             taskId: options?.taskId
           };
         }
+      }
+
+      private parseUserQueryForRemote(prompt: string): string {
+        if (!prompt) {
+          return '';
+        }
+
+        const match = prompt.match(/<user_query key="[^"]+">\s*([\s\S]*?)\s*<\/user_query>/i);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+
+        return prompt.trim();
+      }
+
+      private normalizeStructuredPayload(prompt: string, options?: AIQueryOptions): string | null {
+        const existing = options?.pipedContext?.trim();
+        if (existing) {
+          if (this.isStructuredPayload(existing)) {
+            return existing;
+          }
+          return this.createStructuredPayload(prompt, existing, options);
+        }
+
+        if (options?.messages && options.messages.length > 0) {
+          return this.createStructuredPayload(prompt, null, options);
+        }
+
+        return null;
       }
 
       private getAuthHeaders(): Record<string, string> {
