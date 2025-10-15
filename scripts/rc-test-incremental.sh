@@ -17,7 +17,7 @@
 set -e
 
 # CodeCrew 명령어 경로 설정
-CODECREW_CMD="node /Users/doha/git/codecrew/dist/main.js"
+CREWX_CMD="node /Users/doha/git/crewx/dist/main.js"
 
 # 배치 크기 설정 (한 번에 몇 개씩 병렬 실행할지)
 BATCH_SIZE=${BATCH_SIZE:-2}
@@ -46,7 +46,7 @@ fi
 BUGS=(
   "bug-00000027:TypeScript build verification"
   "bug-00000026:md-to-slack newline fix"
-  "bug-00000024:codecrew.yaml file loading"
+  "bug-00000024:crewx.yaml file loading"
 )
 
 echo "╔═══════════════════════════════════════════════════════════╗"
@@ -56,7 +56,7 @@ echo "╚═══════════════════════�
 echo ""
 echo "📋 Total: ${#BUGS[@]} bugs"
 echo "🔄 Batch: $BATCH_SIZE bugs per batch"
-echo "⚡ Using codecrew execute with multiple agents"
+echo "⚡ Using crewx execute with multiple agents"
 echo ""
 
 SUCCESS_COUNT=0
@@ -83,7 +83,7 @@ while [ $i -lt ${#BUGS[@]} ]; do
 
     echo "  • $BUG_ID: $BUG_DESC"
 
-    execute_args+=("@codecrew_tester Test $BUG_ID individually: $BUG_DESC")
+    execute_args+=("@crewx_tester Test $BUG_ID individually: $BUG_DESC")
     batch_bugs+=("$BUG_ID")
   done
 
@@ -101,7 +101,7 @@ while [ $i -lt ${#BUGS[@]} ]; do
   echo "🤖 Verifying results..."
 
   for BUG_ID in "${batch_bugs[@]}"; do
-    RESULT=$($CODECREW_CMD query "@codecrew_dev:haiku reports/bugs/$BUG_ID 최신 리포트 PASS/FAIL만 답해" 2>&1 | grep -oE "PASS|FAIL" | head -1 || echo "UNKNOWN")
+    RESULT=$($CREWX_CMD query "@crewx_dev:haiku reports/bugs/$BUG_ID 최신 리포트 PASS/FAIL만 답해" 2>&1 | grep -oE "PASS|FAIL" | head -1 || echo "UNKNOWN")
 
     if [ "$RESULT" = "PASS" ]; then
       SUCCESS_COUNT=$((SUCCESS_COUNT + 1))

@@ -126,7 +126,7 @@ export class ToolCallService {
               };
             }
 
-            const message = `Hello, ${name}! 👋 Welcome to CodeCrew tool system!`;
+            const message = `Hello, ${name}! 👋 Welcome to CrewX tool system!`;
             return {
               success: true,
               data: { message },
@@ -482,7 +482,7 @@ export class ToolCallService {
     this.register(
       {
         name: 'list_agents',
-        description: 'List all available AI agents in the CodeCrew system. Returns detailed information about each agent including their ID, provider, capabilities, and specialties. Use this tool to discover which agents are available for delegation or collaboration.',
+        description: 'List all available AI agents in the CrewX system. Returns detailed information about each agent including their ID, provider, capabilities, and specialties. Use this tool to discover which agents are available for delegation or collaboration.',
         input_schema: {
           type: 'object',
           properties: {},

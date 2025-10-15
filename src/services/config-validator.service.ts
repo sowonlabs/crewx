@@ -20,7 +20,7 @@ export interface ValidationResult {
 /**
  * ConfigValidatorService
  *
- * Validates YAML configuration files for CodeCrew agents.
+ * Validates YAML configuration files for CrewX agents.
  *
  * Features:
  * - JSON Schema validation for configuration structure

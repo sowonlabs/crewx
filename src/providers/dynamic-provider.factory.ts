@@ -125,6 +125,13 @@ export class DynamicProviderFactory {
         return config.prompt_in_args ?? false;
       }
 
+      protected shouldPipeContext(): boolean {
+        if (this.getPromptInArgs()) {
+          return false;
+        }
+        return super.shouldPipeContext();
+      }
+
       protected getNotInstalledMessage(): string {
         return (
           config.not_installed_message ||
@@ -353,6 +360,11 @@ export class DynamicProviderFactory {
           return this.httpQuery(prompt, options);
         }
 
+        const validated = await this.ensureFileConfigExists(options);
+        if (!validated.ok) {
+          return validated.response;
+        }
+
         const userQuery = this.parseUserQueryForRemote(prompt);
         const formattedPrompt = userQuery
           ? `@${config.external_agent_id} ${userQuery}`
@@ -374,6 +386,11 @@ export class DynamicProviderFactory {
       async execute(prompt: string, options?: AIQueryOptions): Promise<AIResponse> {
         if (config.location.startsWith('http')) {
           return super.execute(prompt, options);
+        }
+
+        const validated = await this.ensureFileConfigExists(options);
+        if (!validated.ok) {
+          return validated.response;
         }
 
         const userQuery = this.parseUserQueryForRemote(prompt);
@@ -494,6 +511,40 @@ export class DynamicProviderFactory {
         }
 
         return null;
+      }
+
+      private async ensureFileConfigExists(
+        options?: AIQueryOptions,
+      ): Promise<
+        | { ok: true }
+        | {
+            ok: false;
+            response: AIResponse;
+          }
+      > {
+        if (!config.location.startsWith('file://')) {
+          return { ok: true };
+        }
+
+        const configPath = config.location.replace('file://', '');
+        try {
+          const { access } = await import('fs/promises');
+          const { constants } = await import('fs');
+          await access(configPath, constants.R_OK);
+          return { ok: true };
+        } catch {
+          return {
+            ok: false,
+            response: {
+              content: `Remote CrewX configuration not found: ${configPath}`,
+              provider: this.name,
+              command: `crewx --config=${configPath}`,
+              success: false,
+              error: `Remote CrewX configuration not found: ${configPath}`,
+              taskId: options?.taskId,
+            },
+          };
+        }
       }
 
       private getAuthHeaders(): Record<string, string> {

@@ -42,7 +42,7 @@ export async function readStdin(): Promise<string | null> {
         clearTimeout(dataTimeout);
       }
 
-      // Check if this looks like the end of crewcode output
+      // Check if this looks like the end of crewx output
       // (ends with "✅ Query completed successfully" or similar)
       const looksComplete = /✅.*completed successfully\s*$/.test(data);
 
@@ -83,7 +83,7 @@ export async function readStdin(): Promise<string | null> {
     process.stdin.on('error', errorHandler);
 
     // Initial timeout: if no data arrives in configured time, assume no input
-    // This is longer to accommodate slow AI response times in piped crewcode processes
+    // This is longer to accommodate slow AI response times in piped crewx processes
     const initialTimeout = setTimeout(() => {
       if (chunks === 0) {
         if (debug) {

@@ -203,7 +203,7 @@ export class ChatHandler {
         ? `CLI chat session\nThread: ${this.currentThreadId}\nUser: ${os.userInfo().username}\n\n${historyContext}\n\nCurrent question: ${query}`
         : `CLI chat session\nThread: ${this.currentThreadId}\nUser: ${os.userInfo().username}\n\nCurrent question: ${query}`;
 
-      console.log('🤖 CodeCrew: ');
+      console.log('🤖 CrewX: ');
 
       // Execute query (single or parallel)
       if (parsedQueries.length === 1) {
@@ -401,7 +401,7 @@ export class ChatHandler {
             ? `CLI chat session\nThread: ${this.currentThreadId}\nUser: ${os.userInfo().username}\n\n${historyContext}\n\nCurrent question: ${query}`
             : `CLI chat session\nThread: ${this.currentThreadId}\nUser: ${os.userInfo().username}\n\nCurrent question: ${query}`;
 
-          console.log('🤖 CodeCrew: ');
+          console.log('🤖 CrewX: ');
 
           // Execute query (single or parallel)
           if (parsedQueries.length === 1) {
@@ -549,7 +549,7 @@ export class ChatHandler {
     console.log(`\n📖 Conversation History: ${threadId}\n`);
 
     for (const msg of thread.messages) {
-      const role = msg.isAssistant ? '🤖 CodeCrew' : '🧑 User';
+      const role = msg.isAssistant ? '🤖 CrewX' : '🧑 User';
       console.log(`${role}: ${msg.text}`);
       console.log(`   (${msg.timestamp.toLocaleString()})\n`);
     }
