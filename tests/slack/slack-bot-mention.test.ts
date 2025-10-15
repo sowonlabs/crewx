@@ -82,8 +82,8 @@ class MentionLogicSimulator {
       return true; // ✅ Default agent joins thread
     }
 
-    // 5. No mention present - default agent responds (for non-threaded messages)
-    return true; // ✅ Default behavior
+    // 5. No mention present - skip in channel (require explicit mention)
+    return false; // ⏭️ Channel messages need mention
   }
 }
 
@@ -257,6 +257,15 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
   });
 
   describe('Edge Cases', () => {
+    it('should skip channel message without mention outside thread', () => {
+      const userMessage = createMessage('just talking to the room', 'U_USER_1');
+      const threadHistory = [userMessage];
+
+      const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
+
+      expect(shouldRespond).toBe(false); // ⏭️ Requires explicit mention in channel
+    });
+
     it('should handle thread with no bot messages (default agent responds)', () => {
       const userMessage = createMessage('hello', 'U_USER_1', '1000.001', '1000.002');
 
