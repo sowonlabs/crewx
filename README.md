@@ -225,6 +225,10 @@ crewx query "@remote_backend check API status"
 
 Apache-2.0 License - Copyright (c) 2025 SowonLabs
 
+## Contributing
+
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) and sign our [Contributor License Agreement (CLA)](docs/CLA.md) before submitting pull requests.
+
 ---
 
 Built by [SowonLabs](https://github.com/sowonlabs)
