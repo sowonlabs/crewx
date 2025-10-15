@@ -139,23 +139,8 @@ export class ClaudeProvider extends BaseAIProvider {
       return prompt;
     }
 
-    const toolsSection = `
-
-Available tools:
-${tools.map(t => `- ${t.name}: ${t.description}
-  Input schema: ${JSON.stringify(t.input_schema, null, 2)}`).join('\n')}
-
-To use a tool, respond with a JSON object in this format:
-{
-  "type": "tool_use",
-  "name": "tool_name",
-  "input": { ...tool parameters... }
-}
-
-If you don't need to use a tool, respond normally.
-`;
-
-    return toolsSection + '\n' + prompt;
+    // Temporarily disable explicit tool instructions (call_tool formatting to be revisited)
+    return prompt;
   }
 
   /**
@@ -209,7 +194,7 @@ Based on the tool execution result above, please provide a clear, detailed, and 
    * Overrides base implementation to handle Claude-specific JSONL format
    */
   protected parseToolUse(content: string): { isToolUse: boolean; toolName?: string; toolInput?: any } {
-    // First, try to extract from CodeCrew XML tags in the content
+    // First, try to extract from CrewX XML tags in the content
     const xmlMatch = content.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
     if (xmlMatch && xmlMatch[1]) {
       try {

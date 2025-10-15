@@ -159,7 +159,7 @@ export async function handleQuery(app: any, args: CliOptions) {
       const leadingMatch = queryStr.match(leadingMentionsRegex);
 
       if (!leadingMatch) {
-        // No leading mentions found - use default crewcode agent
+        // No leading mentions found - use default crewx agent
         const query = queryStr.trim();
         if (query) {
           parsedQueries.push({ agentId: 'crewx', query, model: undefined });

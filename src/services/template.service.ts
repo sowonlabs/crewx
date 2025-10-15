@@ -2,16 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
-// CodeCrew version - should match package.json
-const CODECREW_VERSION = '0.1.8';
+// CrewX version - should match package.json
+const CREWX_VERSION = '0.1.8';
 
 export interface TemplateMetadata {
   name: string;
   version: string;
   description: string;
   lastUpdated: string;
-  minCodeCrewVersion?: string; // Minimum required CodeCrew version
-  maxCodeCrewVersion?: string; // Maximum supported CodeCrew version
+  minCrewxVersion?: string; // Minimum required CrewX version
+  maxCrewxVersion?: string; // Maximum supported CrewX version
 }
 
 export interface TemplateVersions {
@@ -21,8 +21,8 @@ export interface TemplateVersions {
       released: string;
       templates: string[];
       description?: string;
-      minCodeCrewVersion?: string;
-      maxCodeCrewVersion?: string;
+      minCrewxVersion?: string;
+      maxCrewxVersion?: string;
     };
   };
 }
@@ -31,9 +31,9 @@ export interface TemplateVersions {
 export class TemplateService {
   private readonly logger = new Logger(TemplateService.name);
   
-  // Use current repository (sowonlabs/crewcode) for templates
-  private readonly cdnBaseUrl = 'https://cdn.jsdelivr.net/gh/sowonlabs/crewcode@';
-  private readonly githubRawUrl = 'https://raw.githubusercontent.com/sowonlabs/crewcode/';
+  // Use current repository (sowonlabs/crewx) for templates
+  private readonly cdnBaseUrl = 'https://cdn.jsdelivr.net/gh/sowonlabs/crewx@';
+  private readonly githubRawUrl = 'https://raw.githubusercontent.com/sowonlabs/crewx/';
   private readonly cacheDir = join(process.cwd(), '.crewx', 'cache', 'templates');
 
   constructor() {
@@ -45,8 +45,8 @@ export class TemplateService {
 
   /**
    * Check version compatibility
-   * @param minVersion Minimum required CodeCrew version
-   * @param maxVersion Maximum supported CodeCrew version
+   * @param minVersion Minimum required CrewX version
+   * @param maxVersion Maximum supported CrewX version
    * @returns true if compatible
    */
   private isVersionCompatible(minVersion?: string, maxVersion?: string): boolean {
@@ -54,12 +54,12 @@ export class TemplateService {
       return true; // No version constraints
     }
 
-    const currentVersion = CODECREW_VERSION.split('.').map(Number);
+    const currentVersion = CREWX_VERSION.split('.').map(Number);
     
     if (minVersion) {
       const min = minVersion.split('.').map(Number);
       if (this.compareVersions(currentVersion, min) < 0) {
-        this.logger.warn(`Template requires CodeCrew >= ${minVersion}, current version is ${CODECREW_VERSION}`);
+        this.logger.warn(`Template requires CrewX >= ${minVersion}, current version is ${CREWX_VERSION}`);
         return false;
       }
     }
@@ -67,7 +67,7 @@ export class TemplateService {
     if (maxVersion) {
       const max = maxVersion.split('.').map(Number);
       if (this.compareVersions(currentVersion, max) > 0) {
-        this.logger.warn(`Template supports CodeCrew <= ${maxVersion}, current version is ${CODECREW_VERSION}`);
+        this.logger.warn(`Template supports CrewX <= ${maxVersion}, current version is ${CREWX_VERSION}`);
         return false;
       }
     }
@@ -106,14 +106,14 @@ export class TemplateService {
         
         if (versionInfo) {
           const compatible = this.isVersionCompatible(
-            versionInfo.minCodeCrewVersion,
-            versionInfo.maxCodeCrewVersion
+            versionInfo.minCrewxVersion,
+            versionInfo.maxCrewxVersion
           );
           
           if (!compatible) {
             throw new Error(
-              `❌ Template version ${version} is not compatible with CodeCrew ${CODECREW_VERSION}.\n` +
-              `   Required: ${versionInfo.minCodeCrewVersion || 'any'} - ${versionInfo.maxCodeCrewVersion || 'any'}`
+              `❌ Template version ${version} is not compatible with CrewX ${CREWX_VERSION}.\n` +
+              `   Required: ${versionInfo.minCrewxVersion || 'any'} - ${versionInfo.maxCrewxVersion || 'any'}`
             );
           }
         }

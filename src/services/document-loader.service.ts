@@ -33,8 +33,8 @@ import type { Heading } from 'mdast';
  * @example
  * // agents.yaml - File path format
  * documents:
- *   crewcode-docs:
- *     path: "docs/crewcode.md"
+ *   crewx-docs:
+ *     path: "docs/crewx.md"
  *
  * agents:
  *   - id: "my_agent"

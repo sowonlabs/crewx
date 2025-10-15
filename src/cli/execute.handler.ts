@@ -147,7 +147,7 @@ export async function handleExecute(app: any, args: CliOptions) {
       const leadingMatch = taskStr.match(leadingMentionsRegex);
 
       if (!leadingMatch) {
-        // No leading mentions found - use default crewcode agent
+        // No leading mentions found - use default crewx agent
         const task = taskStr.trim();
         if (task) {
           parsedTasks.push({ agentId: 'crewx', task, model: undefined });

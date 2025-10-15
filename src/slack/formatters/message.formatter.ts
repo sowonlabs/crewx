@@ -109,7 +109,7 @@ export class SlackMessageFormatter {
   }
 
   /**
-   * Create CodeCrew promotional footer
+   * Create CrewX promotional footer
    * This footer is displayed in Slack but removed from AI conversation history
    */
   private createFooter(): (Block | KnownBlock)[] {

@@ -146,12 +146,11 @@ export class SlackBot {
           }
         });
 
-        // Find the last bot message (crewcode_response or crewx_response) in the thread
+        // Find the last bot message (crewx_response) in the thread
         // Support both event types for compatibility with different bot implementations
         const lastBotMessage = [...threadHistory.messages]
           .reverse()
           .find((msg: any) =>
-            msg.metadata?.event_type === 'crewcode_response' ||
             msg.metadata?.event_type === 'crewx_response'
           );
 
@@ -206,10 +205,9 @@ export class SlackBot {
       }
     }
 
-    // // 5. No mention present - respond with default agent
-    // this.logger.log(`✅ DECISION: No mention, no thread → Default agent RESPOND`);
-    // return true;
-    return false;
+    // 5. No mention present - respond with default agent
+    this.logger.log(`✅ DECISION: No mention, no thread → Default agent RESPOND`);
+    return true;
   }
 
   private registerHandlers() {
@@ -288,10 +286,10 @@ export class SlackBot {
 
       if (!userRequest) {
         await say({
-          text: '❌ Please provide a request. Example: `@crewcode analyze this code`',
+          text: '❌ Please provide a request. Example: `@crewx analyze this code`',
           thread_ts: message.thread_ts || message.ts,
           metadata: {
-            event_type: 'crewcode_response',
+            event_type: 'crewx_response',
             event_payload: {
               agent_id: this.defaultAgent,
               provider: this.defaultAgent,
@@ -388,7 +386,7 @@ export class SlackBot {
               query: userRequest,
             });
 
-        this.logger.log(`📦 Received result from CodeCrew MCP`);
+        this.logger.log(`📦 Received result from CrewX MCP`);
 
         // Extract actual AI response from MCP result
         // Use 'implementation' field which contains only the AI's actual response (no metadata)
@@ -422,7 +420,7 @@ export class SlackBot {
           blocks: blocks,
           thread_ts: message.thread_ts || message.ts,
           metadata: {
-            event_type: 'crewcode_response',
+            event_type: 'crewx_response',
             event_payload: {
               agent_id: agentId,
               provider: (result as any).provider || this.defaultAgent,
@@ -463,7 +461,7 @@ export class SlackBot {
           text: `❌ Error: ${error.message}`,
           thread_ts: message.thread_ts || message.ts,
           metadata: {
-            event_type: 'crewcode_response',
+            event_type: 'crewx_response',
             event_payload: {
               agent_id: this.defaultAgent,
               provider: this.defaultAgent,
@@ -505,7 +503,7 @@ export class SlackBot {
         text: `❌ Internal error: ${error.message}`,
         thread_ts: (message as any).thread_ts || (message as any).ts,
         metadata: {
-          event_type: 'crewcode_response',
+          event_type: 'crewx_response',
           event_payload: {
             agent_id: this.defaultAgent,
             provider: this.defaultAgent,
@@ -564,7 +562,7 @@ export class SlackBot {
     await client.chat.postMessage({
       channel: body.channel.id,
       thread_ts: body.message.thread_ts || body.message.ts,
-      text: '🔄 To rerun, please send a new @crewcode message with your request.',
+      text: '🔄 To rerun, please send a new @crewx message with your request.',
     });
   }
 
@@ -575,11 +573,11 @@ export class SlackBot {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         await this.app.start();
-        this.logger.log('⚡️ CodeCrew Slack Bot is running!');
+        this.logger.log('⚡️ CrewX Slack Bot is running!');
         this.logger.log(`📱 Socket Mode: Enabled`);
         this.logger.log(`🤖 Coordinator Agent: slack-coordinator`);
         this.logger.log(`👂 Listening for: app mentions, DMs, and "crewx" keywords`);
-        this.logger.log(`💡 Test with: @CodeCrew analyze this code`);
+        this.logger.log(`💡 Test with: @crewx analyze this code`);
         return; // 성공 시 종료
       } catch (error: any) {
         this.logger.error(`Failed to start Slack Bot (attempt ${attempt}/${MAX_RETRIES}): ${error.message}`);

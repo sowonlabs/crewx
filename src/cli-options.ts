@@ -76,7 +76,7 @@ export function parseCliOptions(): CliOptions {
       });
     })
     .command('doctor', 'Check AI provider status', () => {})
-    .command('init', 'Initialize CodeCrew project', (yargs) => {
+    .command('init', 'Initialize CrewX project', (yargs) => {
       yargs.option('template', {
         alias: 't',
         type: 'string',

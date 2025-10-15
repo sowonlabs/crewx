@@ -54,8 +54,7 @@ class MentionLogicSimulator {
       const lastBotMessage = [...threadHistory]
         .reverse()
         .find((msg: any) =>
-          msg.metadata?.event_type === 'crewcode_response' ||
-          msg.metadata?.event_type === 'codecrew_response'
+          msg.metadata?.event_type === 'crewx_response'
         );
 
       if (lastBotMessage) {
@@ -121,7 +120,7 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       user: agentId === 'claude' ? BOT_CLAUDE_ID : BOT_GEMINI_ID,
       ts,
       metadata: {
-        event_type: 'crewcode_response',
+        event_type: 'crewx_response',
         event_payload: {
           agent_id: agentId,
           provider: agentId,
@@ -332,23 +331,23 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       expect(geminiSimulator.shouldRespond(msg7, history7)).toBe(true); // ✅ Gemini has ownership
     });
 
-    it('Scenario: Cross-bot with different event types (codecrew_response)', () => {
-      // Test scenario: CSO bot uses codecrew_response, CodeCrewDev uses crewcode_response
+  it('Scenario: Cross-bot with consistent event types (crewx_response)', () => {
+    // Test scenario: both bots use crewx_response event type
       const BOT_CSO_ID = 'U_BOT_CSO';
       const history = [
         createMessage(`<@${BOT_CLAUDE_ID}> start`, 'U_USER_1', undefined, '1000.001'),
-        createBotMessage('CodeCrewDev here', 'claude', '1000.002'),
+        createBotMessage('CrewXDev here', 'claude', '1000.002'),
         createMessage('continue', 'U_USER_1', '1000.001', '1000.003'),
-        createBotMessage('CodeCrewDev continues', 'claude', '1000.004'),
+        createBotMessage('CrewXDev continues', 'claude', '1000.004'),
         createMessage(`<@${BOT_CSO_ID}> your turn`, 'U_USER_1', '1000.001', '1000.005'),
-        // CSO bot message with codecrew_response event type
+      // CSO bot message with crewx_response event type
         {
           text: '✅ Completed! (@cso)',
           user: BOT_CSO_ID,
           ts: '1000.006',
           thread_ts: '1000.001',
           metadata: {
-            event_type: 'codecrew_response', // Different event type!
+            event_type: 'crewx_response',
             event_payload: { agent_id: 'cso' }
           }
         },
@@ -358,7 +357,7 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       const msg7 = createMessage('interesting', 'U_USER_1', '1000.001', '1000.007');
       const history7 = [...history, msg7];
 
-      // CodeCrewDev (claude) should NOT respond - CSO is last speaker
+      // CrewXDev (claude) should NOT respond - CSO is last speaker
       expect(simulator.shouldRespond(msg7, history7)).toBe(false);
 
       // CSO bot perspective - should respond

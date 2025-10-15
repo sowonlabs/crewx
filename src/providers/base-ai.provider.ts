@@ -110,7 +110,7 @@ export abstract class BaseAIProvider implements AIProvider {
    * Can be overridden by providers for additional parsing logic
    */
   protected parseToolUse(content: string): { isToolUse: boolean; toolName?: string; toolInput?: any } {
-    // Pattern 1: CodeCrew XML tags (most reliable)
+    // Pattern 1: CrewX XML tags (most reliable)
     const xmlMatch = content.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
     if (xmlMatch && xmlMatch[1]) {
       try {

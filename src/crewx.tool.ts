@@ -1246,7 +1246,7 @@ Read-Only Mode: No files were modified.`
     description: 'Execute multiple tasks through specialist agents simultaneously in parallel (execution mode). Efficiently distribute implementation work across multiple agents.',
     input: {
       tasks: z.array(z.object({
-        agentId: z.string().describe('Agent ID to execute (e.g., frontend_developer, backend_developer, crewcode_developer_claude, etc.)'),
+        agentId: z.string().describe('Agent ID to execute (e.g., frontend_developer, backend_developer, crewx_developer_claude, etc.)'),
         task: z.string().describe('Task or implementation request for the agent to perform'),
         projectPath: z.string().describe('Absolute path of the project to work on').optional(),
         context: z.string().describe('Additional context or background information').optional(),
@@ -1293,12 +1293,15 @@ Please provide at least one task in the tasks array.
 {
   "tasks": [
     {
-      "agentId": "crewcode_developer_claude",
       "task": "Create a utility function for handling timeouts"
     },
     {
-      "agentId": "crewcode_developer_gemini", 
+      "agentId": "crewx_developer_claude",
       "task": "Write unit tests for the new utility function"
+    },
+    {
+      "agentId": "crewx_developer_gemini",
+      "task": "Review the implementation for edge cases"
     }
   ]
 }

@@ -129,7 +129,7 @@ export async function processDocumentTemplate(
       }
 
       // IMPORTANT: Use the original hyphenated name as key
-      // Handlebars can access it via documents['crewcode-docs']
+      // Handlebars can access it via documents['crewx-docs']
       // We store it with hyphens to match the template reference
       context.documents[docName] = {
         content: content || '',
