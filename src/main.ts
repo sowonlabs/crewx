@@ -40,16 +40,16 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
 async function cli() {
   try {
     if (args.install) {
-      logger.log('Installation mode - CodeCrew MCP Server setup');
+      logger.log('Installation mode - CrewX MCP Server setup');
       
       const app = await NestFactory.createApplicationContext(AppModule.forRoot(args), {
-        logger: args.log ? new StderrLogger('CodeCrewInstall', { timestamp: true }) : false,
+        logger: args.log ? new StderrLogger('CrewXInstall', { timestamp: true }) : false,
       });
       
       // Output simple installation information
       console.log(`
 =================================
-CodeCrew MCP Server Setup
+CrewX MCP Server Setup
 =================================
 
 This MCP server provides AI-powered code analysis tools using Claude CLI and Gemini CLI.
@@ -104,7 +104,7 @@ async function bootstrap() {
     } else {
       adapter = new StdioExpressAdapter('/mcp');
       app = await NestFactory.create(AppModule.forRoot(args), adapter, {
-        logger: args.log ? new StderrLogger('CodeCrew', { timestamp: true }) : false,
+        logger: args.log ? new StderrLogger('CrewX', { timestamp: true }) : false,
       });
     }
 
@@ -154,7 +154,7 @@ async function runCli() {
   if (args.command) {
     // Handle CLI commands
     const app = await NestFactory.createApplicationContext(AppModule.forRoot(args), {
-      logger: args.log ? new StderrLogger('CodeCrewCLI', { timestamp: true }) : false,
+      logger: args.log ? new StderrLogger('CrewXCLI', { timestamp: true }) : false,
     });
 
     // Set custom config path if provided via --config
@@ -172,7 +172,7 @@ async function runCli() {
   } else {
     // Show help if no command is given
     const app = await NestFactory.createApplicationContext(AppModule.forRoot(args), {
-      logger: args.log ? new StderrLogger('CodeCrewCLI', { timestamp: true }) : false,
+      logger: args.log ? new StderrLogger('CrewXCLI', { timestamp: true }) : false,
     });
 
     // Set custom config path if provided via --config
@@ -234,7 +234,7 @@ async function runSlackBot() {
 
     // Create application context
     const app = await NestFactory.createApplicationContext(AppModule.forRoot(args), {
-      logger: args.log ? new StderrLogger('CodeCrewSlack', { timestamp: true }) : false,
+      logger: args.log ? new StderrLogger('CrewXSlack', { timestamp: true }) : false,
     });
 
     // Get CrewXTool, ConfigService, and AIProviderService from context

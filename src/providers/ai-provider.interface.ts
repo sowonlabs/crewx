@@ -33,6 +33,8 @@ export interface AIQueryOptions {
   model?: string; // Model to use for this query (e.g., "sonnet", "gemini-2.5-pro", "gpt-5")
   securityKey?: string; // Security key for prompt injection protection
   agentId?: string; // Agent requesting the provider (for logging)
+  messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
+  pipedContext?: string; // Optional context forwarded via STDIN (used by remote/file providers)
 }
 
 export interface AIResponse {

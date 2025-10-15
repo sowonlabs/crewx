@@ -27,7 +27,7 @@ function parseToolParams(paramString?: string): Record<string, any> {
 
 async function prepareApplicationContext(args: CliOptions) {
   const app = await NestFactory.createApplicationContext(AppModule.forRoot(args), {
-    logger: args.log ? new StderrLogger('CodeCrewMCP', { timestamp: true }) : false,
+    logger: args.log ? new StderrLogger('CrewXMCP', { timestamp: true }) : false,
   });
 
   if (args.config) {

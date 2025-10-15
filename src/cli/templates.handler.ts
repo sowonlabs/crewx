@@ -5,7 +5,7 @@ import { TemplateService } from '../services/template.service';
 const logger = new Logger('TemplatesHandler');
 
 /**
- * Handle templates command: crewcode templates [list|update]
+ * Handle templates command: crewx templates [list|update]
  * Manage agent templates from GitHub
  */
 export async function handleTemplates(app: any, args: CliOptions) {
@@ -26,25 +26,25 @@ export async function handleTemplates(app: any, args: CliOptions) {
       
       default:
         console.log(`
-📦 **CodeCrew Template Manager**
+📦 **CrewX Template Manager**
 
 Available commands:
-  crewcode templates list    - List available templates from GitHub
-  crewcode templates update  - Clear cache and re-download templates
+  crewx templates list    - List available templates from GitHub
+  crewx templates update  - Clear cache and re-download templates
 
 Templates are downloaded from:
   https://github.com/sowonlabs/crewx/tree/main/templates
 
 Examples:
   # List available templates
-  crewcode templates list
+  crewx templates list
   
   # Update template cache
-  crewcode templates update
+  crewx templates update
   
   # Use a specific template during init
-  crewcode init --template minimal
-  crewcode init --template development --version v0.1.8
+  crewx init --template minimal
+  crewx init --template development --version v0.1.8
         `);
         break;
     }
@@ -71,7 +71,7 @@ async function handleTemplatesList(templateService: TemplateService) {
       console.log('⚠️  Could not fetch template information from GitHub.');
       console.log('Using local templates only.\n');
       console.log('Available templates:');
-      console.log('  • default    - Full setup with @crewcode assistant');
+      console.log('  • default    - Full setup with @crewx assistant');
       console.log('  • minimal    - Basic agents only (claude, gemini, copilot)');
       return;
     }
@@ -85,22 +85,22 @@ async function handleTemplatesList(templateService: TemplateService) {
       if (versionInfo.description) {
         console.log(`   ${versionInfo.description}`);
       }
-      if (versionInfo.minCodeCrewVersion) {
-        console.log(`   Requires: CodeCrew >= ${versionInfo.minCodeCrewVersion}`);
+      if (versionInfo.minCrewxVersion) {
+        console.log(`   Requires: CrewX >= ${versionInfo.minCrewxVersion}`);
       }
       console.log(`   Templates: ${versionInfo.templates.join(', ')}`);
       console.log('');
     }
 
     console.log('**Usage:**');
-    console.log('  crewcode init --template <name> --version <version>');
-    console.log('  crewcode init --template minimal  # Use latest version');
-    console.log('  crewcode init --template default --version v0.1.8\n');
+    console.log('  crewx init --template <name> --version <version>');
+    console.log('  crewx init --template minimal  # Use latest version');
+    console.log('  crewx init --template default --version v0.1.8\n');
 
   } catch (error: any) {
     console.error(`❌ Failed to list templates: ${error?.message || error}`);
     console.log('\n⚠️  Using local templates as fallback:');
-    console.log('  • default    - Full setup with @crewcode assistant');
+    console.log('  • default    - Full setup with @crewx assistant');
     console.log('  • minimal    - Basic agents only (claude, gemini, copilot)\n');
   }
 }
@@ -114,7 +114,7 @@ async function handleTemplatesUpdate(templateService: TemplateService) {
   try {
     await templateService.clearCache();
     console.log('✅ Template cache cleared successfully!');
-    console.log('\nNext time you run `crewcode init`, templates will be freshly downloaded from GitHub.\n');
+    console.log('\nNext time you run `crewx init`, templates will be freshly downloaded from GitHub.\n');
   } catch (error: any) {
     console.error(`❌ Failed to clear cache: ${error?.message || error}`);
     process.exit(1);

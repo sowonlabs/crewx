@@ -41,25 +41,8 @@ export class GeminiProvider extends BaseAIProvider {
       return prompt;
     }
 
-    const toolsSection = `
-
-Available tools:
-${tools.map(t => `- ${t.name}: ${t.description}
-  Input schema: ${JSON.stringify(t.input_schema, null, 2)}`).join('\n')}
-
-To use a tool, wrap your JSON response in <crewx_tool_call> tags like this:
-<crewx_tool_call>
-{
-  "type": "tool_use",
-  "name": "tool_name",
-  "input": { ...tool parameters... }
-}
-</crewx_tool_call>
-
-    If you don't need to use a tool, respond normally.
-`;
-
-    return toolsSection + '\n' + prompt;
+    // Temporarily disable explicit tool instructions (call_tool support pending for Gemini)
+    return prompt;
   }
 
   async query(

@@ -57,7 +57,7 @@ export class CLIHandler {
 
         default:
           logger.error(`Unknown command: ${args.command}`);
-          console.log('Run \'crewcode help\' for a list of commands.');
+          console.log('Run \'crewx help\' for a list of commands.');
           process.exit(1);
       }
 

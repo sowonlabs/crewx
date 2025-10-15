@@ -1,5 +1,5 @@
 /**
- * Simplified DocumentManager for CodeCrew
+ * Simplified DocumentManager for CrewX
  * Adopted from SowonFlow's document system
  * 
  * Features:

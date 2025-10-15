@@ -110,7 +110,7 @@ export abstract class BaseAIProvider implements AIProvider {
    * Can be overridden by providers for additional parsing logic
    */
   protected parseToolUse(content: string): { isToolUse: boolean; toolName?: string; toolInput?: any } {
-    // Pattern 1: CodeCrew XML tags (most reliable)
+    // Pattern 1: CrewX XML tags (most reliable)
     const xmlMatch = content.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
     if (xmlMatch && xmlMatch[1]) {
       try {
@@ -538,12 +538,19 @@ Started: ${timestamp}
         });
 
         // Send prompt via stdin if not in args
+        const pipedContext = this.buildPipedContext(prompt, options);
+
+        if (pipedContext && this.shouldPipeContext(options)) {
+          child.stdin.write(pipedContext);
+          if (!pipedContext.endsWith('\n')) {
+            child.stdin.write('\n');
+          }
+        }
+
         if (!this.getPromptInArgs()) {
           child.stdin.write(prompt);
-          child.stdin.end();
-        } else {
-          child.stdin.end();
         }
+        child.stdin.end();
 
         // Timeout handling
         const timeout = setTimeout(() => {
@@ -743,12 +750,19 @@ Started: ${timestamp}
         });
 
         // Send prompt via stdin if not in args
+        const pipedContext = this.buildPipedContext(prompt, options);
+
+        if (pipedContext && this.shouldPipeContext(options)) {
+          child.stdin.write(pipedContext);
+          if (!pipedContext.endsWith('\n')) {
+            child.stdin.write('\n');
+          }
+        }
+
         if (!this.getPromptInArgs()) {
           child.stdin.write(prompt);
-          child.stdin.end();
-        } else {
-          child.stdin.end();
         }
+        child.stdin.end();
 
         // Timeout handling
         const timeout = setTimeout(() => {
@@ -776,5 +790,75 @@ Started: ${timestamp}
         taskId,
       };
     }
+  }
+
+  protected shouldPipeContext(_options?: AIQueryOptions): boolean {
+    return true;
+  }
+
+  private buildPipedContext(prompt: string, options?: AIQueryOptions): string | null {
+    const normalized = options?.pipedContext?.trim();
+    if (normalized) {
+      if (this.isStructuredPayload(normalized)) {
+        return normalized;
+      }
+      return this.createStructuredPayload(prompt, normalized, options);
+    }
+
+    if (options?.messages && options.messages.length > 0) {
+      return this.createStructuredPayload(prompt, null, options);
+    }
+
+    return null;
+  }
+
+  protected isStructuredPayload(value: string): boolean {
+    try {
+      const parsed = JSON.parse(value);
+      return Boolean(parsed && typeof parsed === 'object' && 'prompt' in parsed && 'messages' in parsed);
+    } catch {
+      return false;
+    }
+  }
+
+  protected createStructuredPayload(
+    prompt: string,
+    context: string | null,
+    options?: AIQueryOptions,
+  ): string {
+    const safeMessages = Array.isArray(options?.messages) ? options.messages : [];
+
+    const fallbackHistory =
+      safeMessages.length > 0
+        ? safeMessages
+            .map((msg, index) => {
+              const speaker = msg.isAssistant ? 'Assistant' : 'User';
+              return `${index + 1}. ${speaker}: ${msg.text}`;
+            })
+            .join('\n')
+        : '';
+
+    const normalizedContext = context?.trim() ?? '';
+
+    const payload = {
+      version: '1.0',
+      agent: {
+        id: options?.agentId ?? null,
+        provider: this.name,
+        mode: options?.additionalArgs?.includes('--execute') ? 'execute' : 'query',
+        model: options?.model ?? null,
+      },
+      prompt,
+      context: normalizedContext,
+      messages: safeMessages,
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        messageCount: safeMessages.length,
+        formattedHistory: fallbackHistory,
+        originalContext: normalizedContext,
+      },
+    };
+
+    return JSON.stringify(payload);
   }
 }

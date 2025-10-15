@@ -441,6 +441,32 @@ cat .env.slack
 npm run start:slack
 ```
 
+### Slack Execute Mode Not Working
+
+**Problem:** Agent execution commands fail in Slack
+
+**Cause:** Missing `--mode execute` flag when starting Slack bot
+
+**Solution:**
+```bash
+# Start Slack bot with execute mode enabled
+npm run start:slack -- --mode execute
+
+# Or using node directly
+node dist/main.js slack --mode execute
+```
+
+**Why this happens:**
+- Without `--mode execute`, Slack bot only handles query operations
+- Execute commands (`@agent do something`) require explicit execute mode
+- This is a security feature to prevent unauthorized code execution
+
+**Verification:**
+```bash
+# Check if bot is running in execute mode
+# Bot startup message should show: "Slack bot started in execute mode"
+```
+
 ### Slack Message Too Large
 
 **Problem:** `invalid_blocks` error

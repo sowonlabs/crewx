@@ -117,7 +117,7 @@ export class ContextEnhancementService {
     const sampleContent = `# ${projectName || 'Project'} Context
 
 ## Project Overview
-This project uses CodeCrew for multi-AI agent collaboration.
+This project uses CrewX for multi-AI agent collaboration.
 
 ## Key Architecture Points
 - NestJS-based MCP server architecture

@@ -121,23 +121,8 @@ export class CopilotProvider extends BaseAIProvider {
       return prompt;
     }
 
-    const toolsSection = `
-
-Available tools:
-${tools.map(t => `- ${t.name}: ${t.description}
-  Input schema: ${JSON.stringify(t.input_schema, null, 2)}`).join('\n')}
-
-To use a tool, respond with a JSON object in this format:
-{
-  "type": "tool_use",
-  "name": "tool_name",
-  "input": { ...tool parameters... }
-}
-
-If you don't need to use a tool, respond normally.
-`;
-
-    return toolsSection + '\n' + prompt;
+    // Temporarily disable explicit tool instructions (call_tool support under evaluation)
+    return prompt;
   }
 
   /**
@@ -160,7 +145,7 @@ Please continue with your response based on this tool result.`;
    * Overrides base implementation to handle Copilot-specific formats
    */
   protected parseToolUse(content: string): { isToolUse: boolean; toolName?: string; toolInput?: any } {
-    // First, try to extract from CodeCrew XML tags
+    // First, try to extract from CrewX XML tags
     const xmlMatch = content.match(/<crew(?:code|x)_tool_call>\s*([\s\S]*?)\s*<\/crew(?:code|x)_tool_call>/);
     if (xmlMatch && xmlMatch[1]) {
       try {

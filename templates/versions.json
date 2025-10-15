@@ -4,16 +4,16 @@
     "v0.1.8": {
       "released": "2025-01-01",
       "templates": ["default", "minimal", "development", "production"],
-      "description": "Initial template system with @crewcode agent and model selection support",
-      "minCodeCrewVersion": "0.1.8",
-      "maxCodeCrewVersion": null
+      "description": "Initial template system with @crewx agent and model selection support",
+      "minCrewxVersion": "0.1.8",
+      "maxCrewxVersion": null
     },
     "main": {
       "released": "development",
       "templates": ["default", "minimal", "development", "production"],
       "description": "Development branch - latest unreleased features",
-      "minCodeCrewVersion": "0.1.8",
-      "maxCodeCrewVersion": null
+      "minCrewxVersion": "0.1.8",
+      "maxCrewxVersion": null
     }
   }
 }
