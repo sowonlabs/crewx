@@ -205,9 +205,9 @@ export class SlackBot {
       }
     }
 
-    // 5. No mention present - respond with default agent
-    this.logger.log(`✅ DECISION: No mention, no thread → Default agent RESPOND`);
-    return true;
+    // 5. No mention present - skip in channel to avoid unsolicited replies
+    this.logger.log(`⏭️  DECISION: No mention, no thread → SKIP (channel requires explicit mention)`);
+    return false;
   }
 
   private registerHandlers() {
