@@ -2,12 +2,12 @@ import { vi } from 'vitest';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from 'fs';
 
 // Mock console methods to reduce noise in tests
-global.console = {
-  ...console,
-  log: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+// global.console = {
+//   ...console,
+//   log: vi.fn(),
+//   warn: vi.fn(),
+//   error: vi.fn(),
+// };
 
 // Setup test environment variables
 process.env.NODE_ENV = 'test';

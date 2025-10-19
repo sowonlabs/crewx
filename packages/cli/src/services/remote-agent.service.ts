@@ -8,7 +8,7 @@ import {
   RemoteAgentManager,
   RemoteAgentConfig,
 } from '@sowonai/crewx-sdk';
-import { RemoteProviderConfig } from '../providers/dynamic-provider.factory';
+import { RemoteProviderConfig } from '@sowonai/crewx-sdk';
 import { createSdkLoggerAdapter } from '../providers/logger.adapter';
 
 export interface RemoteAgentDescriptor {

@@ -198,7 +198,7 @@ Cross-cutting concerns:
 | **Chat Handler** | `cli/chat.handler.ts` | 575 | Interactive chat mode |
 | **Slack Bot** | `slack/slack-bot.ts` | 566 | Slack integration |
 | **Config Validator** | `services/config-validator.service.ts` | 536 | YAML validation |
-| **Claude Provider** | `providers/claude.provider.ts` | 494 | Claude Code integration |
+| **Dynamic Provider Factory** | `providers/dynamic-provider.factory.ts` | 792 | CLI safety wrappers for SDK dynamic providers |
 
 ---
 
@@ -236,10 +236,7 @@ NestJS providers registered in `app.module.ts`:
 - `ProjectService` - Project context
 
 ### Providers (Namespace-based)
-- `ClaudeProvider` - cli/claude (Claude Code integration)
-- `CopilotProvider` - cli/copilot (GitHub Copilot CLI)
-- `GeminiProvider` - cli/gemini (Gemini CLI)
-- `CodexProvider` - cli/codex (Codex CLI integration)
+- Built-in CLI providers (Claude, Gemini, Copilot, Codex) are constructed inside `AIProviderService` using SDK classes with CLI-specific logger/tool handlers.
 - `DynamicProviderFactory` - plugin/* & remote/* (YAML-based plugin and remote agent loader)
 
 ### Services

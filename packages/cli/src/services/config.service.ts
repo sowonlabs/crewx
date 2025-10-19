@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { readFileSync, existsSync } from 'fs';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
-import { PluginProviderConfig, RemoteProviderConfig } from '../providers/dynamic-provider.factory';
+import { PluginProviderConfig, RemoteProviderConfig } from '@sowonai/crewx-sdk';
 
 export interface AgentConfig {
   id: string;

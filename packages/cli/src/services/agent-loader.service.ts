@@ -9,7 +9,14 @@
  */
 
 import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
-import { AgentInfo, RemoteAgentInfo, RemoteAgentConfigInput, getErrorMessage } from '@sowonai/crewx-sdk';
+import {
+  AgentInfo,
+  RemoteAgentInfo,
+  RemoteAgentConfigInput,
+  CustomLayoutDefinition,
+  LayoutLoader,
+  getErrorMessage,
+} from '@sowonai/crewx-sdk';
 import * as yaml from 'js-yaml';
 import { readFile } from 'fs/promises';
 import type { TemplateContext } from '../utils/template-processor';
@@ -41,6 +48,7 @@ export class AgentLoaderService {
     @Optional() private readonly configValidatorService?: ConfigValidatorService,
     @Optional() @Inject(forwardRef(() => AIProviderService)) private readonly aiProviderService?: AIProviderService,
     @Optional() private readonly configService?: ConfigService,
+    @Optional() @Inject('LAYOUT_LOADER') private readonly layoutLoader?: LayoutLoader,
   ) {}
 
   /**
@@ -231,6 +239,9 @@ export class AgentLoaderService {
         await this.documentLoaderService.initialize(config.documents);
       }
 
+      // Register layouts bundled with built-in template so CLI remains zero-config
+      this.registerCustomLayoutsFromConfig(config, 'built-in template');
+
       // Process templates
       const processedAgents = await Promise.all(
         config.agents.map(async (agent: any) => {
@@ -299,6 +310,9 @@ export class AgentLoaderService {
         this.logger.log('Configuration validation passed');
       }
 
+      // Register any custom layouts defined in the project configuration
+      this.registerCustomLayoutsFromConfig(config, configPath);
+
       // Initialize DocumentLoaderService with documents from agents.yaml
       if (this.documentLoaderService) {
         const projectPath = path.dirname(configPath);
@@ -343,6 +357,108 @@ export class AgentLoaderService {
       this.logger.error(`Failed to load agents config from ${configPath}:`, getErrorMessage(error));
       // Return empty array if config loading fails
       return [];
+    }
+  }
+
+  /**
+   * Register custom layouts defined within agent configuration files
+   */
+  private registerCustomLayoutsFromConfig(config: any, source: string): void {
+    if (!this.layoutLoader) {
+      return;
+    }
+
+    if (!config || typeof config !== 'object') {
+      return;
+    }
+
+    const layouts = config.layouts;
+    if (!layouts || typeof layouts !== 'object') {
+      return;
+    }
+
+    const layoutEntries: Record<string, string | CustomLayoutDefinition> = {};
+
+    for (const [layoutId, layoutValue] of Object.entries(layouts)) {
+      if (layoutValue === null || layoutValue === undefined) {
+        continue;
+      }
+
+      if (typeof layoutValue === 'string') {
+        layoutEntries[layoutId] = layoutValue;
+        continue;
+      }
+
+      if (typeof layoutValue === 'object') {
+        const template = typeof (layoutValue as any).template === 'string' ? (layoutValue as any).template : undefined;
+        const nestedLayouts = (layoutValue as any).layouts;
+
+        if (template) {
+          const propsSchema =
+            (layoutValue as any).propsSchema ??
+            (layoutValue as any).props_schema ??
+            {};
+          const defaultProps =
+            (layoutValue as any).defaultProps ??
+            (layoutValue as any).default_props ??
+            {};
+
+          layoutEntries[layoutId] = {
+            template,
+            description: (layoutValue as any).description,
+            version: (layoutValue as any).version,
+            propsSchema: typeof propsSchema === 'object' ? (propsSchema as Record<string, any>) : undefined,
+            defaultProps: typeof defaultProps === 'object' ? (defaultProps as Record<string, any>) : undefined,
+          };
+          continue;
+        }
+
+        if (nestedLayouts && typeof nestedLayouts === 'object') {
+          for (const [nestedId, nestedTemplate] of Object.entries(nestedLayouts)) {
+            if (typeof nestedTemplate !== 'string') {
+              continue;
+            }
+            const resolvedId =
+              nestedId === 'default'
+                ? layoutId
+                : nestedId.includes('/')
+                  ? nestedId
+                  : `${layoutId}/${nestedId}`;
+            layoutEntries[resolvedId] = nestedTemplate;
+          }
+          continue;
+        }
+
+        // Object with direct string variants (e.g., { default: '...', minimal: '...' })
+        let registeredVariant = false;
+        for (const [variantId, variantTemplate] of Object.entries(layoutValue)) {
+          if (typeof variantTemplate !== 'string') {
+            continue;
+          }
+          const resolvedId =
+            variantId === 'default'
+              ? layoutId
+              : variantId.includes('/')
+                ? variantId
+                : `${layoutId}/${variantId}`;
+          layoutEntries[resolvedId] = variantTemplate;
+          registeredVariant = true;
+        }
+
+        if (!registeredVariant) {
+          this.logger.warn(`Skipping custom layout "${layoutId}" from ${source}: unsupported format`);
+        }
+
+        continue;
+      }
+
+      this.logger.warn(`Skipping custom layout "${layoutId}" from ${source}: expected string or object`);
+    }
+
+    const entryCount = Object.keys(layoutEntries).length;
+    if (entryCount > 0) {
+      this.layoutLoader.registerLayouts(layoutEntries);
+      this.logger.log(`Registered ${entryCount} custom layout(s) from ${source}`);
     }
   }
 

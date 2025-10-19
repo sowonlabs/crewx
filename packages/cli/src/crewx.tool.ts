@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
 import { McpTool } from '@sowonai/nestjs-mcp-adapter';
 import { z } from 'zod';
 import * as fs from 'fs';
@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
 import { AIService } from './ai.service';
 import { AIProviderService } from './ai-provider.service';
 import { ProjectService } from './project.service';
-import { PREFIX_TOOL_NAME, SERVER_NAME, AgentInfo, getErrorMessage, getErrorStack, getTimeoutConfig } from '@sowonai/crewx-sdk';
+import { PREFIX_TOOL_NAME, SERVER_NAME, AgentInfo, getErrorMessage, getErrorStack, getTimeoutConfig, LayoutLoader, LayoutRenderer, RenderContext } from '@sowonai/crewx-sdk';
 import { ParallelProcessingService } from './services/parallel-processing.service';
 import { TaskManagementService } from './services/task-management.service';
 import { ResultFormatterService } from './services/result-formatter.service';
@@ -15,8 +15,8 @@ import { TemplateService } from './services/template.service';
 import { DocumentLoaderService } from './services/document-loader.service';
 import { ToolCallService } from './services/tool-call.service';
 import { AgentLoaderService } from './services/agent-loader.service';
-import type { TemplateContext } from './utils/template-processor';
 import { RemoteAgentService } from './services/remote-agent.service';
+import type { TemplateContext } from './utils/template-processor';
 
 @Injectable()
 export class CrewXTool implements OnModuleInit {
@@ -121,6 +121,8 @@ export class CrewXTool implements OnModuleInit {
     private readonly toolCallService: ToolCallService,
     private readonly agentLoaderService: AgentLoaderService,
     private readonly remoteAgentService: RemoteAgentService,
+    @Inject('LAYOUT_LOADER') private readonly layoutLoader: LayoutLoader,
+    @Inject('LAYOUT_RENDERER') private readonly layoutRenderer: LayoutRenderer,
   ) {}
 
   /**
@@ -130,6 +132,89 @@ export class CrewXTool implements OnModuleInit {
   onModuleInit() {
     this.toolCallService.setCrewXTool(this);
     this.logger.log('CrewXTool registered to ToolCallService');
+  }
+
+  /**
+   * Process agent system prompt using SDK layout services if inline.layout is defined
+   * Falls back to inline.system_prompt if no layout is specified
+   *
+   * @param agent - Agent configuration
+   * @param templateContext - Template context for rendering
+   * @returns Processed system prompt string
+   */
+  private async processAgentSystemPrompt(
+    agent: AgentInfo,
+    templateContext: TemplateContext
+  ): Promise<string> {
+    const inlineLayout = agent.inline?.layout;
+    const baseSystemPrompt =
+      agent.inline?.prompt ||
+      agent.inline?.system_prompt ||
+      agent.systemPrompt ||
+      agent.description ||
+      `You are an expert ${agent.id}.`;
+
+    const layoutSpec = inlineLayout ?? 'crewx/default';
+
+    if (layoutSpec) {
+      const layoutId = typeof layoutSpec === 'string' ? layoutSpec : layoutSpec.id;
+      const layoutProps =
+        typeof layoutSpec === 'object' && layoutSpec !== null && 'props' in layoutSpec
+          ? (layoutSpec as { props?: Record<string, any> }).props
+          : undefined;
+
+      try {
+        this.logger.debug(`Loading layout: ${layoutId} for agent ${agent.id}`);
+
+        const layout = this.layoutLoader.load(layoutId, layoutProps);
+
+        const renderContext: RenderContext & Record<string, any> = {
+          agent: {
+            id: agent.id,
+            name: agent.name || agent.id,
+            inline: {
+              prompt: baseSystemPrompt,
+            },
+          },
+          documents: {},
+          vars: templateContext.vars || {},
+          props: layoutProps ?? {},
+          messages: templateContext.messages || [],
+          platform: templateContext.platform,
+          tools: templateContext.tools,
+        };
+
+        renderContext.layout = {
+          system_prompt: baseSystemPrompt,
+          prompt: baseSystemPrompt,
+        };
+
+        const rendered = this.layoutRenderer.render(layout, renderContext);
+
+        this.logger.debug(`Layout rendered successfully for agent ${agent.id}`);
+
+        const { processDocumentTemplate } = await import('./utils/template-processor');
+        return await processDocumentTemplate(rendered, this.documentLoaderService, templateContext);
+      } catch (error) {
+        const layoutIdForLog = typeof layoutSpec === 'string' ? layoutSpec : layoutSpec.id;
+        this.logger.warn(`Failed to process layout (${layoutIdForLog}) for agent ${agent.id}: ${getErrorMessage(error)}`);
+        if (inlineLayout) {
+          this.logger.warn('Falling back to inline.system_prompt');
+        } else {
+          this.logger.warn('Falling back to default system prompt');
+        }
+      }
+    }
+
+    let systemPrompt = baseSystemPrompt;
+
+    // Process template variables if present
+    if (systemPrompt) {
+      const { processDocumentTemplate } = await import('./utils/template-processor');
+      systemPrompt = await processDocumentTemplate(systemPrompt, this.documentLoaderService, templateContext);
+    }
+
+    return systemPrompt;
   }
 
 
@@ -507,40 +592,34 @@ ${errorMessage}`,
       // Configure agent's system prompt
       // Use current directory to avoid non-existent directory issues
       const workingDir = agent.workingDirectory || process.cwd();
-      let systemPrompt = agent.systemPrompt || agent.description || `You are an expert ${agentId}.`;
 
       // Generate security key for this session
       const securityKey = this.generateSecurityKey();
 
-      // Always process template if agent has a system prompt with template variables
-      // This handles both document references and conversation history
-      if (systemPrompt) {
-        const { processDocumentTemplate } = await import('./utils/template-processor');
+      // Build template context for rendering
+      // For query mode, exclude current message from conversation history
+      const contextMessages = messages && messages.length > 0 ? messages.slice(0, -1) : [];
 
-        // For query mode, exclude current message from conversation history
-        // For execute mode, include all messages as context
-        const contextMessages = messages && messages.length > 0 ? messages.slice(0, -1) : [];
-        
-        const templateContext: TemplateContext = {
-          env: process.env,
-          agent: {
-            id: agent.id,
-            name: agent.name || agent.id,
-            provider: (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude',
-            model: model || agent.inline?.model,
-            workingDirectory: workingDir,
-          },
-          mode: 'query',
-          messages: contextMessages, // Previous conversation messages (excluding current query)
-          platform: platform, // Pass platform information (slack/cli)
-          tools: this.buildToolsContext(),
-          vars: {
-            security_key: securityKey,
-          },
-        };
-        
-        systemPrompt = await processDocumentTemplate(systemPrompt, this.documentLoaderService, templateContext);
-      }
+      const templateContext: TemplateContext = {
+        env: process.env,
+        agent: {
+          id: agent.id,
+          name: agent.name || agent.id,
+          provider: (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude',
+          model: model || agent.inline?.model,
+          workingDirectory: workingDir,
+        },
+        mode: 'query',
+        messages: contextMessages, // Previous conversation messages (excluding current query)
+        platform: platform, // Pass platform information (slack/cli)
+        tools: this.buildToolsContext(),
+        vars: {
+          security_key: securityKey,
+        },
+      };
+
+      // Process system prompt (uses SDK layout services if inline.layout is defined)
+      let systemPrompt = await this.processAgentSystemPrompt(agent, templateContext);
 
       // Add context information
       systemPrompt += `
@@ -794,40 +873,35 @@ Please check the agent ID and try again.`
 
       // Configure agent's system prompt
       const workingDir = projectPath || agent.workingDirectory || './';
-      let systemPrompt = agent.systemPrompt || agent.description || `You are an expert ${agentId}.`;
 
       // Generate security key for this session
       const securityKey = this.generateSecurityKey();
 
-      // Always process template if agent has a system prompt with template variables
-      // This handles both document references and conversation history
-      if (systemPrompt) {
-        const { processDocumentTemplate } = await import('./utils/template-processor');
+      // Build template context for rendering
+      // For execute mode, exclude current task from conversation history
+      // The current task is added separately below as "Task: ${task}"
+      const contextMessages = messages && messages.length > 0 ? messages.slice(0, -1) : [];
 
-        // For execute mode, exclude current task from conversation history
-        // The current task is added separately below as "Task: ${task}"
-        const contextMessages = messages && messages.length > 0 ? messages.slice(0, -1) : [];
+      const templateContext: TemplateContext = {
+        env: process.env,
+        agent: {
+          id: agent.id,
+          name: agent.name || agent.id,
+          provider: (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude',
+          model: model || agent.inline?.model,
+          workingDirectory: workingDir,
+        },
+        mode: 'execute',
+        messages: contextMessages, // Previous conversation messages (excluding current task)
+        platform: platform, // Pass platform information (slack/cli)
+        tools: this.buildToolsContext(),
+        vars: {
+          security_key: securityKey,
+        },
+      };
 
-        const templateContext: TemplateContext = {
-          env: process.env,
-          agent: {
-            id: agent.id,
-            name: agent.name || agent.id,
-            provider: (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude',
-            model: model || agent.inline?.model,
-            workingDirectory: workingDir,
-          },
-          mode: 'execute',
-          messages: contextMessages, // Previous conversation messages (excluding current task)
-          platform: platform, // Pass platform information (slack/cli)
-          tools: this.buildToolsContext(),
-          vars: {
-            security_key: securityKey,
-          },
-        };
-
-        systemPrompt = await processDocumentTemplate(systemPrompt, this.documentLoaderService, templateContext);
-      }
+      // Process system prompt (uses SDK layout services if inline.layout is defined)
+      let systemPrompt = await this.processAgentSystemPrompt(agent, templateContext);
 
       // Add context information
       systemPrompt += `

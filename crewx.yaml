@@ -15,6 +15,21 @@ settings:
   slack:
     log_conversations: true
 
+layouts:
+  default: |
+    <crewx_system_prompt>
+    You are a CrewX agent working on the CrewX project.
+    Agent ID: {{{agent.id}}}
+    </crewx_system_prompt>
+
+    <system_prompt>
+    {{{agent.inline.prompt}}}
+    </system_prompt>
+
+    <conversation_history platform="{{{platform}}}">
+    {{{formatConversation messages platform}}}
+    </conversation_history>
+
 # Plugin Providers
 providers:
   # Crush with Z.AI GLM-4.6
@@ -558,7 +573,8 @@ agents:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      system_prompt: |
+      layout: "default"
+      prompt: |
         You are a developer for the CrewX project.
 
         <document name="project-structure" type="codebase-map">

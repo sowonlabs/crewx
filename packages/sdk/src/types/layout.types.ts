@@ -47,6 +47,17 @@ export interface LayoutDefinition {
 }
 
 /**
+ * Custom layout configuration for runtime registration
+ */
+export interface CustomLayoutDefinition {
+  template: string;
+  description?: string;
+  version?: string;
+  propsSchema?: Record<string, any>;
+  defaultProps?: Record<string, any>;
+}
+
+/**
  * Inline layout specification from agent config
  * Can be either:
  * - string: layout ID (e.g., "crewx/default")

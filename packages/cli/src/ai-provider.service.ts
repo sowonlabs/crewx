@@ -1,37 +1,73 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { AIProvider, AIQueryOptions, AIResponse, ProviderNotAvailableError } from '@sowonai/crewx-sdk';
-import { ClaudeProvider } from './providers/claude.provider';
-import { CopilotProvider } from './providers/copilot.provider';
-import { GeminiProvider } from './providers/gemini.provider';
-import { CodexProvider } from './providers/codex.provider';
+import {
+  AIProvider,
+  AIQueryOptions,
+  AIResponse,
+  ProviderNotAvailableError,
+  ClaudeProvider as SdkClaudeProvider,
+  GeminiProvider as SdkGeminiProvider,
+  CopilotProvider as SdkCopilotProvider,
+  CodexProvider as SdkCodexProvider,
+  BaseAIProvider,
+  BuiltInProviders,
+  type PluginProviderConfig,
+  type RemoteProviderConfig,
+} from '@sowonai/crewx-sdk';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
-import { RemoteProviderConfig } from './providers/dynamic-provider.factory';
 import { ConfigService } from './services/config.service';
+import { ToolCallService } from './services/tool-call.service';
+import { createLoggerAdapter } from './providers/logger.adapter';
+import { CREWX_VERSION } from './version';
 
 @Injectable()
 export class AIProviderService implements OnModuleInit {
   private readonly logger = new Logger(AIProviderService.name);
   private readonly providers = new Map<string, AIProvider>();
   private availableProviders: string[] = [];
+  private readonly builtInProviderNames = new Set<string>([
+    BuiltInProviders.CLAUDE,
+    BuiltInProviders.GEMINI,
+    BuiltInProviders.COPILOT,
+    BuiltInProviders.CODEX,
+  ]);
 
   constructor(
-    private readonly claudeProvider: ClaudeProvider,
-    private readonly copilotProvider: CopilotProvider,
-    private readonly geminiProvider: GeminiProvider,
-    private readonly codexProvider: CodexProvider,
+    private readonly toolCallService: ToolCallService,
     private readonly dynamicProviderFactory: DynamicProviderFactory,
     private readonly configService: ConfigService,
   ) {}
 
   async onModuleInit() {
-    // Register built-in providers
-    this.registerProvider(this.claudeProvider);
-    this.registerProvider(this.copilotProvider);
-    this.registerProvider(this.geminiProvider);
-    this.registerProvider(this.codexProvider);
+    for (const provider of this.createBuiltInProviders()) {
+      this.registerProvider(provider);
+    }
 
-    // Load and register plugin providers from YAML config
     await this.loadPluginProviders();
+  }
+
+  private createBuiltInProviders(): BaseAIProvider[] {
+    return [
+      new SdkClaudeProvider({
+        logger: createLoggerAdapter('ClaudeProvider'),
+        toolCallHandler: this.toolCallService,
+        crewxVersion: CREWX_VERSION,
+      }),
+      new SdkGeminiProvider({
+        logger: createLoggerAdapter('GeminiProvider'),
+        toolCallHandler: this.toolCallService,
+        crewxVersion: CREWX_VERSION,
+      }),
+      new SdkCopilotProvider({
+        logger: createLoggerAdapter('CopilotProvider'),
+        toolCallHandler: this.toolCallService,
+        crewxVersion: CREWX_VERSION,
+      }),
+      new SdkCodexProvider({
+        logger: createLoggerAdapter('CodexProvider'),
+        toolCallHandler: this.toolCallService,
+        crewxVersion: CREWX_VERSION,
+      }),
+    ];
   }
 
   /**
@@ -77,9 +113,8 @@ export class AIProviderService implements OnModuleInit {
    */
   async reloadPluginProviders(): Promise<void> {
     // Clear existing plugin providers (keep built-in CLI providers)
-    const builtInProviders = ['cli/claude', 'cli/gemini', 'cli/copilot', 'cli/codex'];
     for (const [name] of this.providers) {
-      if (!builtInProviders.includes(name)) {
+      if (!this.builtInProviderNames.has(name)) {
         this.providers.delete(name);
       }
     }
@@ -95,6 +130,7 @@ export class AIProviderService implements OnModuleInit {
 
   async initializeProviders(): Promise<void> {
     this.logger.log('Initializing AI providers...');
+    this.availableProviders = [];
     const checks = Array.from(this.providers.entries()).map(async ([name, provider]) => {
       try {
         const isAvailable = await provider.isAvailable();
@@ -215,7 +251,7 @@ export class AIProviderService implements OnModuleInit {
   /**
    * Get plugin provider configurations
    */
-  getPluginProviders(): any[] {
+  getPluginProviders(): PluginProviderConfig[] {
     return this.configService.getPluginProviders();
   }
 

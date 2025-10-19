@@ -373,12 +373,14 @@ ${userQuery}
     agentId?: string,
     model?: string | null,
   ): string {
-    const logFile = join(this.logsDir, `${taskId}.log`);
+    const safeTaskId = taskId.replace(/[\\/]/g, '_');
+    const logFile = join(this.logsDir, `${safeTaskId}.log`);
+    const safeAgentId = agentId ? agentId.replace(/[\\/]/g, '_') : 'N/A';
     const timestamp = new Date().toLocaleString();
     const header = `=== TASK LOG: ${taskId} ===
 CrewX Version: ${this.crewxVersion}
 Provider: ${provider}
-Agent: ${agentId || 'N/A'}
+Agent: ${safeAgentId}
 ${model ? `Model: ${model}\n` : ''}Command: ${command}
 Started: ${timestamp}
 
@@ -389,7 +391,8 @@ Started: ${timestamp}
 
   protected appendTaskLog(taskId: string, level: 'STDOUT' | 'STDERR' | 'INFO' | 'ERROR', message: string): void {
     try {
-      const logFile = join(this.logsDir, `${taskId}.log`);
+      const safeTaskId = taskId.replace(/[\\/]/g, '_');
+      const logFile = join(this.logsDir, `${safeTaskId}.log`);
       const timestamp = new Date().toLocaleString();
       const logEntry = `[${timestamp}] ${level}: ${message}\n`;
       appendFileSync(logFile, logEntry, 'utf8');

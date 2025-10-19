@@ -49,12 +49,19 @@ export {
   GeminiProvider,
   CopilotProvider,
   CodexProvider,
+  BaseDynamicProviderFactory,
 } from './core/providers';
 export type {
   BaseAIProviderOptions,
   LoggerLike,
   AIProviderConfig,
 } from './core/providers/base-ai.types';
+export type {
+  PluginProviderConfig,
+  RemoteProviderConfig,
+  DynamicProviderConfig,
+  DynamicProviderFactoryOptions,
+} from './core/providers/dynamic-provider.factory';
 export type {
   Tool,
   ToolExecutionContext,
@@ -173,7 +180,8 @@ export type {
   ValidationError as PropsValidationDetail,
 } from './types/layout.types';
 
-// Layout system (NEW: WBS-12 Phase 3)
+// Layout system (NEW: WBS-12 Phase 3, enhanced WBS-13)
+export { LayoutLoader } from './services/layout-loader.service';
 export {
   LayoutRenderer,
   PropsValidationError,
@@ -184,4 +192,8 @@ export type {
   LayoutDefinition,
   ValidationResult,
   ValidationError,
+  LoaderOptions,
+  LayoutLoadError,
+  InlineLayoutSpec,
+  CustomLayoutDefinition,
 } from './types/layout.types';

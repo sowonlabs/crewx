@@ -322,11 +322,9 @@ packages/cli/
 │   │   ├── execute.handler.ts
 │   │   ├── chat.handler.ts
 │   │   └── ...
-│   ├── providers/        # AI provider implementations (NestJS wrappers)
-│   │   ├── claude.provider.ts    # Extends SDK ClaudeProvider
-│   │   ├── gemini.provider.ts    # Extends SDK GeminiProvider
-│   │   ├── copilot.provider.ts   # Extends SDK CopilotProvider
-│   │   └── codex.provider.ts     # Extends SDK CodexProvider
+│   ├── providers/        # CLI-specific provider utilities
+│   │   ├── dynamic-provider.factory.ts  # Security wrapper over SDK dynamic providers
+│   │   └── logger.adapter.ts            # Nest logger adapter for SDK providers
 │   ├── services/         # Business logic
 │   │   ├── ai.service.ts
 │   │   ├── ai-provider.service.ts
