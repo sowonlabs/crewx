@@ -1,11 +1,11 @@
 #!/bin/bash
 # scripts/rc-test-incremental.sh
 #
-# RC 릴리스 점진적 테스트 스크립트 (CodeCrew 병렬 처리 활용)
+# RC 릴리스 점진적 테스트 스크립트 (CrewX 병렬 처리 활용)
 # 사용법: ./scripts/rc-test-incremental.sh 0.3.16-rc.1 [--batch N]
 #
 # 이 스크립트는:
-# 1. CodeCrew의 내장 병렬 처리 기능 활용
+# 1. CrewX의 내장 병렬 처리 기능 활용
 # 2. N개씩 배치로 나눠서 테스트 (기본: 2개씩)
 # 3. 각 배치 완료 후 AI로 결과 검증
 # 4. 최종 통합 보고서 자동 생성
@@ -51,7 +51,7 @@ BUGS=(
 
 echo "╔═══════════════════════════════════════════════════════════╗"
 echo "║   RC $RC_VERSION Incremental Testing                    ║"
-echo "║   (CodeCrew Native Parallel Processing)                 ║"
+echo "║   (CrewX Native Parallel Processing)                 ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
 echo "📋 Total: ${#BUGS[@]} bugs"

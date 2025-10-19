@@ -158,7 +158,9 @@ export class LayoutLoader {
           const layout = this.loadLayoutFile(layoutPath, layoutName);
           const layoutId = `crewx/${layoutName}`;
           this.layouts.set(layoutId, layout);
-          console.log(`Loaded layout: ${layoutId} from ${file}`);
+          if (layoutId !== 'crewx/minimal') {
+            console.log(`Loaded layout: ${layoutId} from ${file}`);
+          }
         } catch (error) {
           console.error(`Failed to load layout file ${file}:`, error);
           // Continue loading other layouts
@@ -343,8 +345,20 @@ export class LayoutLoader {
       defaultProps: { ...defaultPropsFromSchema, ...explicitDefaults },
     };
 
+    const existingLayout = this.layouts.get(normalizedId);
+
+    const templatesEqual =
+      existingLayout?.template === template &&
+      JSON.stringify(existingLayout?.defaultProps ?? {}) === JSON.stringify(layoutDefinition.defaultProps ?? {}) &&
+      JSON.stringify(existingLayout?.propsSchema ?? {}) === JSON.stringify(layoutDefinition.propsSchema ?? {});
+
     this.layouts.set(normalizedId, layoutDefinition);
-    console.log(`Registered custom layout: ${normalizedId}`);
+
+    if (!existingLayout) {
+      console.log(`Registered custom layout: ${normalizedId}`);
+    } else if (!templatesEqual) {
+      console.log(`Updated custom layout: ${normalizedId}`);
+    }
   }
 
   /**

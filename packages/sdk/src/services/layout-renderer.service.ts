@@ -8,6 +8,8 @@
  */
 
 import Handlebars from 'handlebars';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { PropsValidator } from './props-validator.service';
 import type {
   LayoutDefinition,
@@ -160,6 +162,75 @@ export class LayoutRenderer {
 
     this.handlebars.registerHelper('json', function(obj: any): Handlebars.SafeString {
       return new Handlebars.SafeString(JSON.stringify(obj));
+    });
+
+    this.handlebars.registerHelper('raw', function(this: any, options: any) {
+      return typeof options?.fn === 'function' ? options.fn(this) : '';
+    });
+
+    const handlebarsInstance = this.handlebars;
+
+    this.handlebars.registerHelper('formatConversation', (messages: any, platform: any, options?: any) => {
+      const isBlockHelper = options && typeof options.fn === 'function';
+
+      if (!Array.isArray(messages) || messages.length === 0) {
+        return '';
+      }
+
+      const assistantAgentIds: string[] = Array.from(
+        new Set(
+          messages
+            .filter((msg: any) => msg?.isAssistant && msg?.metadata?.agent_id)
+            .map((msg: any) => msg.metadata.agent_id)
+        )
+      );
+
+      const primaryAgentId = assistantAgentIds.length > 0 ? assistantAgentIds[0] : '';
+
+      if (isBlockHelper) {
+        return options.fn({
+          messages,
+          platform,
+          messagesCount: messages.length,
+          agentIds: assistantAgentIds,
+          primaryAgentId,
+        });
+      }
+
+      const templatePath = join(process.cwd(), '.crewx', 'templates', 'conversation-history-default.hbs');
+      let templateContent: string | undefined;
+
+      try {
+        if (existsSync(templatePath)) {
+          templateContent = readFileSync(templatePath, 'utf8');
+        }
+      } catch {
+        // Ignore read errors and fall back to inline template
+      }
+
+      if (!templateContent) {
+        templateContent = `{{#if messages}}
+{{#if primaryAgentId}}Primary agent: @{{primaryAgentId}}
+{{else}}Primary agent: (unknown)
+{{/if}}
+Previous conversation ({{messagesCount}} messages):
+{{#each messages}}
+{{#if isAssistant}}
+**Assistant{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
+{{else}}
+**{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
+{{/if}}: {{{text}}}
+{{/each}}{{/if}}`;
+      }
+
+      const template = handlebarsInstance.compile(templateContent, { noEscape: true });
+      return template({
+        messages,
+        platform,
+        messagesCount: messages.length,
+        agentIds: assistantAgentIds,
+        primaryAgentId,
+      });
     });
   }
 

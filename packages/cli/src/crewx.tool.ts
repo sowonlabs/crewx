@@ -168,20 +168,74 @@ export class CrewXTool implements OnModuleInit {
 
         const layout = this.layoutLoader.load(layoutId, layoutProps);
 
+        const providerRaw = agent.provider;
+        const providerList = Array.isArray(providerRaw)
+          ? providerRaw
+          : (typeof providerRaw === 'string' && providerRaw.length > 0)
+            ? [providerRaw]
+            : [];
+        const providerDisplay =
+          providerList.length > 0
+            ? providerList.join(', ')
+            : (typeof providerRaw === 'string' ? providerRaw : '');
+
+        const inlineConfig = agent.inline
+          ? { ...agent.inline, prompt: baseSystemPrompt }
+          : { prompt: baseSystemPrompt };
+
+        const templateOptions = Array.isArray(templateContext.options)
+          ? templateContext.options
+          : [];
+
+        const sessionInfo = {
+          mode: templateContext.mode ?? 'query',
+          platform: templateContext.platform ?? 'cli',
+          options: templateOptions,
+          env: templateContext.env ?? {},
+          vars: templateContext.vars ?? {},
+          tools: templateContext.tools ?? null,
+        };
+
         const renderContext: RenderContext & Record<string, any> = {
           agent: {
             id: agent.id,
             name: agent.name || agent.id,
-            inline: {
-              prompt: baseSystemPrompt,
-            },
+            role: agent.role || '',
+            team: agent.team || '',
+            description: agent.description || '',
+            workingDirectory: agent.workingDirectory,
+            capabilities: agent.capabilities || [],
+            specialties: agent.specialties || [],
+            provider: providerDisplay,
+            providerList,
+            providerRaw,
+            inline: inlineConfig,
+            model: agent.inline?.model,
+            options: agent.options ?? {},
+            optionsArray: Array.isArray(agent.options) ? agent.options : undefined,
+            optionsByMode:
+              !Array.isArray(agent.options) && typeof agent.options === 'object'
+                ? agent.options
+                : undefined,
+            remote: agent.remote ?? null,
+            documents: agent.inline && 'documents' in agent.inline ? agent.inline.documents : undefined,
           },
           documents: {},
           vars: templateContext.vars || {},
           props: layoutProps ?? {},
           messages: templateContext.messages || [],
-          platform: templateContext.platform,
+          platform: templateContext.platform ?? 'cli',
           tools: templateContext.tools,
+          session: sessionInfo,
+          env: templateContext.env ?? {},
+          context: {
+            mode: templateContext.mode ?? 'query',
+            platform: templateContext.platform ?? 'cli',
+            options: templateOptions,
+            env: templateContext.env ?? {},
+            vars: templateContext.vars ?? {},
+            agent: templateContext.agent ?? null,
+          },
         };
 
         renderContext.layout = {

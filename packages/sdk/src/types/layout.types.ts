@@ -104,11 +104,32 @@ export interface RenderContext {
     name: string;
     inline: {
       prompt: string;
+      [key: string]: any;
     };
+    [key: string]: any;
   };
   documents: Record<string, { content: string; toc?: string; summary?: string }>;
   vars: Record<string, any>;  // security_key, etc.
   props: Record<string, any>; // Validated props
+  platform?: string;
+  messages?: Array<Record<string, any>>;
+  tools?: {
+    list?: Array<Record<string, any>>;
+    json?: string;
+    count?: number;
+    [key: string]: any;
+  } | null;
+  session?: {
+    mode?: string;
+    platform?: string;
+    options?: string[];
+    env?: Record<string, any>;
+    vars?: Record<string, any>;
+    tools?: any;
+    [key: string]: any;
+  };
+  env?: Record<string, any>;
+  context?: Record<string, any>;
 }
 
 /**

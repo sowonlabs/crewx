@@ -90,6 +90,8 @@ export class AgentLoaderService {
     },
   ];
 
+  private registeredLayoutSources: Set<string> = new Set<string>();
+
   /**
    * Get all available agents (using loadAvailableAgents)
    * Simple wrapper for backward compatibility
@@ -377,15 +379,29 @@ export class AgentLoaderService {
       return;
     }
 
+    if (this.registeredLayoutSources.has(source)) {
+      return;
+    }
+
     const layoutEntries: Record<string, string | CustomLayoutDefinition> = {};
+    const seenLayoutIds = new Set<string>();
+    const normalizeLayoutId = (id: string) => (id.includes('/') ? id : `crewx/${id}`);
+    const shouldSkipLayout = (normalizedId: string) =>
+      source === 'built-in template' && normalizedId === 'crewx/minimal';
 
     for (const [layoutId, layoutValue] of Object.entries(layouts)) {
       if (layoutValue === null || layoutValue === undefined) {
         continue;
       }
 
+      const normalizedId = normalizeLayoutId(layoutId);
+
       if (typeof layoutValue === 'string') {
-        layoutEntries[layoutId] = layoutValue;
+        if (shouldSkipLayout(normalizedId) || seenLayoutIds.has(normalizedId)) {
+          continue;
+        }
+        seenLayoutIds.add(normalizedId);
+        layoutEntries[normalizedId] = layoutValue;
         continue;
       }
 
@@ -403,7 +419,11 @@ export class AgentLoaderService {
             (layoutValue as any).default_props ??
             {};
 
-          layoutEntries[layoutId] = {
+          if (shouldSkipLayout(normalizedId) || seenLayoutIds.has(normalizedId)) {
+            continue;
+          }
+          seenLayoutIds.add(normalizedId);
+          layoutEntries[normalizedId] = {
             template,
             description: (layoutValue as any).description,
             version: (layoutValue as any).version,
@@ -418,12 +438,19 @@ export class AgentLoaderService {
             if (typeof nestedTemplate !== 'string') {
               continue;
             }
-            const resolvedId =
+            const resolvedId = normalizeLayoutId(
               nestedId === 'default'
                 ? layoutId
                 : nestedId.includes('/')
                   ? nestedId
-                  : `${layoutId}/${nestedId}`;
+                  : `${layoutId}/${nestedId}`
+            );
+
+            if (shouldSkipLayout(resolvedId) || seenLayoutIds.has(resolvedId)) {
+              continue;
+            }
+
+            seenLayoutIds.add(resolvedId);
             layoutEntries[resolvedId] = nestedTemplate;
           }
           continue;
@@ -435,12 +462,19 @@ export class AgentLoaderService {
           if (typeof variantTemplate !== 'string') {
             continue;
           }
-          const resolvedId =
+          const resolvedId = normalizeLayoutId(
             variantId === 'default'
               ? layoutId
               : variantId.includes('/')
                 ? variantId
-                : `${layoutId}/${variantId}`;
+                : `${layoutId}/${variantId}`
+          );
+
+          if (shouldSkipLayout(resolvedId) || seenLayoutIds.has(resolvedId)) {
+            continue;
+          }
+
+          seenLayoutIds.add(resolvedId);
           layoutEntries[resolvedId] = variantTemplate;
           registeredVariant = true;
         }
@@ -457,8 +491,16 @@ export class AgentLoaderService {
 
     const entryCount = Object.keys(layoutEntries).length;
     if (entryCount > 0) {
-      this.layoutLoader.registerLayouts(layoutEntries);
-      this.logger.log(`Registered ${entryCount} custom layout(s) from ${source}`);
+      if (typeof (this.layoutLoader as any)?.registerLayouts === 'function') {
+        this.layoutLoader.registerLayouts(layoutEntries);
+        this.logger.log(`Registered ${entryCount} custom layout(s) from ${source}`);
+        this.registeredLayoutSources.add(source);
+      } else {
+        this.logger.warn(
+          `LayoutLoader.registerLayouts not available (source: ${source}). ` +
+          'Consider upgrading @sowonai/crewx-sdk to the latest dev version.'
+        );
+      }
     }
   }
 

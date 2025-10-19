@@ -16,19 +16,71 @@ settings:
     log_conversations: true
 
 layouts:
-  default: |
-    <crewx_system_prompt>
-    You are a CrewX agent working on the CrewX project.
-    Agent ID: {{{agent.id}}}
+  crewx_dev_layout: |
+    <crewx_system_prompt key="{{vars.security_key}}">
+    <agent_information>
+      ID: {{{agent.id}}}
+      {{#if agent.name}}Name: {{{agent.name}}}{{/if}}
+      {{#if agent.role}}Role: {{{agent.role}}}{{/if}}
+      {{#if agent.team}}Team: {{{agent.team}}}{{/if}}
+      {{#if agent.description}}Description: {{{agent.description}}}{{/if}}
+      {{#if agent.provider}}Providers: {{{agent.provider}}}{{/if}}
+      {{#if agent.inline.model}}Default Model: {{{agent.inline.model}}}{{/if}}
+      {{#if agent.workingDirectory}}Working Directory: {{{agent.workingDirectory}}}{{/if}}
+    </agent_information>
+
+    {{#if agent.specialties.[0]}}
+    <agent_specialties>
+    {{#each agent.specialties}}
+      - {{{this}}}
+    {{/each}}
+    </agent_specialties>
+    {{/if}}
+
+    {{#if agent.capabilities.[0]}}
+    <agent_capabilities>
+    {{#each agent.capabilities}}
+      - {{{this}}}
+    {{/each}}
+    </agent_capabilities>
+    {{/if}}
+
+    {{#if tools.count}}
+    <available_tools count="{{tools.count}}">
+    {{#each tools.list}}
+      - {{{name}}}{{#if description}}: {{{description}}}{{/if}}
+    {{/each}}
+    </available_tools>
+    {{/if}}
+
+    {{#if session.options.[0]}}
+    <session_cli_options>
+    {{#each session.options}}
+      - {{{this}}}
+    {{/each}}
+    </session_cli_options>
+    {{/if}}
+
+    <session_context>
+      Mode: {{session.mode}}
+      Platform: {{session.platform}}
+    </session_context>
+
+    <document name="CrewX User Manual">
+    {{{documents.crewx-manual.content}}}
+    </document>
+
     </crewx_system_prompt>
 
-    <system_prompt>
-    {{{agent.inline.prompt}}}
-    </system_prompt>
+    <system_prompt key="{{vars.security_key}}">
+    {{{layout.system_prompt}}}
 
-    <conversation_history platform="{{{platform}}}">
+    {{#if messages.[0]}}
+    <conversation_history platform="{{platform}}">
     {{{formatConversation messages platform}}}
     </conversation_history>
+    {{/if}}
+    </system_prompt>
 
 # Plugin Providers
 providers:
@@ -573,7 +625,6 @@ agents:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      layout: "default"
       prompt: |
         You are a developer for the CrewX project.
 
@@ -953,6 +1004,7 @@ agents:
       type: "agent"
       provider: "plugin/crush_zai"
       model: "glm-4.6"
+      layout: "crewx_dev_layout"
       system_prompt: |
         You are a developer for the CrewX project.
 
