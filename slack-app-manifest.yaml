@@ -5,6 +5,20 @@ display_information:
   name: CrewX
   description: CrewX Slack Bot
   background_color: "#4A154B"
+  long_description: "CrewX는 개발팀을 위한 다중 AI 에이전트 협업 플랫폼입니다."
+  short_description: "AI 개발 도우미"
+  help_url: "https://crewx.io/docs"
+  privacy_policy_url: "https://crewx.io/privacy"
+  image_default: "https://your-domain.com/logo.png"
+  image_24: "https://your-domain.com/logo-24x24.png"
+  image_32: "https://your-domain.com/logo-32x32.png"
+  image_48: "https://your-domain.com/logo-48x48.png"
+  image_72: "https://your-domain.com/logo-72x72.png"
+  image_96: "https://your-domain.com/logo-96x96.png"
+  image_128: "https://your-domain.com/logo-128x128.png"
+  image_192: "https://your-domain.com/logo-192x192.png"
+  image_512: "https://your-domain.com/logo-512x512.png"
+  image_1024: "https://your-domain.com/logo-1024x1024.png"
 features:
   bot_user:
     display_name: CrewX

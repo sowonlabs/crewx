@@ -1,0 +1,123 @@
+{
+  "name": "@sowonai/crewx-cli",
+  "version": "0.4.0-dev.11",
+  "license": "MIT",
+  "description": "SowonAI CrewX CLI - Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
+  "private": false,
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "module": "dist/main.js",
+  "bin": {
+    "crewx": "dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/main.js",
+      "require": "./dist/main.js"
+    }
+  },
+  "files": [
+    "dist",
+    "scripts",
+    "README.md",
+    "crewx.yaml",
+    "docs",
+    "templates"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sowonlabs/crewx"
+  },
+  "homepage": "https://github.com/sowonlabs/crewx",
+  "bugs": {
+    "url": "https://github.com/sowonlabs/crewx/issues"
+  },
+  "author": "SowonLabs",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "nest build",
+    "postbuild": "node ./scripts/postbuild-cli.mjs",
+    "postinstall": "node ./scripts/postinstall-cli.mjs",
+    "start": "node dist/main.js",
+    "start:mcp": "node dist/main.js mcp",
+    "start:slack": "caffeinate -i dotenv -e ../../.env.slack -- node dist/main.js slack --log --agent crewx_glm_dev",
+    "dev": "dotenv -e ../../.env.test -- nest start --watch -- --log",
+    "dev:install": "ts-node ../../src/main.ts --install --log",
+    "debug": "dotenv -e ../../.env.test -- nest start --debug --watch -- --log --protocol HTTP",
+    "inspector": "npx @modelcontextprotocol/inspector --config ../../inspector.config.json --server crewx",
+    "test": "vitest run --config ./vitest.config.ts",
+    "test:watch": "vitest --config ./vitest.config.ts",
+    "test:ui": "vitest --ui --config ./vitest.config.ts",
+    "test:unit": "vitest run --config ./vitest.config.ts tests/unit/**/*.test.ts",
+    "test:integration": "vitest run --config ./vitest.config.ts tests/integration/**/*.test.ts --passWithNoTests",
+    "test:coverage": "vitest run --config ./vitest.config.ts --coverage",
+    "cli": "npm run build && node dist/main.js",
+    "cli:help": "npm run build && node dist/main.js",
+    "cli:init": "npm run build && node dist/main.js init",
+    "cli:doctor": "npm run build && node dist/main.js doctor",
+    "cli:query": "npm run build && node dist/main.js query",
+    "cli:execute": "npm run build && node dist/main.js execute",
+    "mcp": "npm run build && node dist/main.js mcp",
+    "mcp:log": "npm run build && node dist/main.js mcp --log",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@sowonai/crewx-sdk": "^0.1.0-dev.4",
+    "@sowonai/nestjs-mcp-adapter": "^0.1.3",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@slack/bolt": "^4.4.0",
+    "@slack/web-api": "^7.10.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/mdast": "^4.0.4",
+    "@types/unist": "^3.0.3",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "chalk": "^4.1.2",
+    "execa": "^8.0.1",
+    "fast-glob": "^3.3.0",
+    "handlebars": "^4.7.8",
+    "ignore": "^5.2.0",
+    "js-yaml": "^4.1.0",
+    "md-to-slack": "^1.0.0",
+    "reflect-metadata": "^0.1.13",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "rxjs": "^7.8.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0",
+    "yargs": "^17.7.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "@types/ajv": "^0.0.5",
+    "@types/express": "^5.0.3",
+    "@types/node": "^20.19.19",
+    "@types/yargs": "^17.0.0",
+    "@vitest/ui": "^1.0.0",
+    "dotenv-cli": "^6.0.0",
+    "ts-loader": "^9.0.0",
+    "ts-node": "^10.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "crewx",
+    "claude",
+    "gemini",
+    "copilot",
+    "mcp",
+    "ai",
+    "model-context-protocol",
+    "multi-agent",
+    "ai-collaboration"
+  ]
+}

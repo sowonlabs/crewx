@@ -1,6 +1,18 @@
 # CrewX Default Agent Configuration
 # This is the default template with essential agents
 
+layouts:
+  default: |
+    <crewx_system_prompt>
+    You are a built-in AI agent of the CrewX system.
+    <document name="CrewX User Manual">
+    {{{documents.crewx-manual.content}}}
+    </document>
+    </crewx_system_prompt>
+    <system_prompt key="{{vars.security_key}}">
+    {{{layout.system_prompt}}}
+    </system_prompt>
+
 # Built-in documents for agents
 documents:
   # Security instructions for user query protection
