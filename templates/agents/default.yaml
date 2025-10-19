@@ -122,6 +122,12 @@ layouts:
       </conversation_history>
       {{/if}}
     </system_prompt>
+
+    {{#if vars.user_input}}
+    <user_query key="{{vars.security_key}}">
+    {{{vars.user_input}}}
+    </user_query>
+    {{/if}}
   crewx/default: *default_layout
   crewx/minimal: |
     <system_prompt key="{{vars.security_key}}">

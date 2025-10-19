@@ -761,6 +761,56 @@ describe('LayoutRenderer', () => {
       expect(result).toContain('<system_prompt key="test-key">');
       expect(result).toContain('Test prompt');
     });
+
+    it('should escape user_input while preserving container structure', () => {
+      const layout: LayoutDefinition = {
+        id: 'secure-test-layout',
+        version: '1.0.0',
+        description: 'Secure layout test',
+        template: `
+          {{#if vars.user_input}}
+          <user_query key="{{vars.security_key}}">
+          {{{vars.user_input}}}
+          </user_query>
+          {{/if}}
+        `,
+        propsSchema: {},
+        defaultProps: {}
+      };
+
+      const context: RenderContext = {
+        agent: {
+          id: 'test-agent',
+          name: 'Test Agent',
+          inline: {
+            prompt: 'ignored'
+          }
+        },
+        documents: {},
+        vars: {
+          security_key: 'test-key',
+          user_input: '<script>alert("pwned")</script>'
+        },
+        props: {}
+      };
+
+      const result = renderer.render(layout, context);
+
+      expect(result).toContain('<user_query key="test-key">');
+      expect(result).toContain('&lt;script&gt;alert(&quot;pwned&quot;)&lt;/script&gt;');
+      expect(result).not.toContain('<script>alert("pwned")</script>');
+    });
+
+    it('should keep a raw copy of user_input for diagnostics', () => {
+      const sanitized = (renderer as unknown as { sanitizeVars(vars: RenderContext['vars']): RenderContext['vars'] })
+        .sanitizeVars({
+          security_key: 'audit-key',
+          user_input: '<b>raw</b>'
+        });
+
+      expect(sanitized.user_input).toBe('&lt;b&gt;raw&lt;/b&gt;');
+      expect(sanitized.user_input_raw).toBe('<b>raw</b>');
+    });
   });
 
   describe('custom helpers', () => {

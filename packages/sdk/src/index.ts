@@ -202,4 +202,5 @@ export type {
 export type {
   TemplateContext,
   AgentMetadata,
+  TemplateVars,
 } from './types/template.types';

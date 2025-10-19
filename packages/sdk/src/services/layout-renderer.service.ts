@@ -122,6 +122,7 @@ export class LayoutRenderer {
 
     return {
       ...context,
+      vars: this.sanitizeVars(context.vars),
       props: resolvedProps,
     };
   }
@@ -329,5 +330,20 @@ Previous conversation ({{messagesCount}} messages):
 
   private isPlainObject(value: unknown): value is Record<string, any> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private sanitizeVars(vars?: RenderContext['vars']): RenderContext['vars'] {
+    if (!vars) {
+      return {};
+    }
+
+    const sanitizedVars = { ...vars };
+
+    if (typeof vars.user_input === 'string') {
+      sanitizedVars.user_input_raw = vars.user_input;
+      sanitizedVars.user_input = this.handlebars.escapeExpression(vars.user_input);
+    }
+
+    return sanitizedVars;
   }
 }

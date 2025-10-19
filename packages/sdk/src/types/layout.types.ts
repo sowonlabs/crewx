@@ -3,6 +3,8 @@
  * Based on WBS-11 specification (React PropTypes style)
  */
 
+import type { TemplateVars } from './template.types';
+
 /**
  * Prop schema definition (React PropTypes style)
  * Used to define and validate layout props
@@ -109,7 +111,7 @@ export interface RenderContext {
     [key: string]: any;
   };
   documents: Record<string, { content: string; toc?: string; summary?: string }>;
-  vars: Record<string, any>;  // security_key, etc.
+  vars: TemplateVars;  // security_key, escaped user_input, etc.
   props: Record<string, any>; // Validated props
   platform?: string;
   messages?: Array<Record<string, any>>;
@@ -124,7 +126,7 @@ export interface RenderContext {
     platform?: string;
     options?: string[];
     env?: Record<string, any>;
-    vars?: Record<string, any>;
+    vars?: TemplateVars;
     tools?: any;
     [key: string]: any;
   };

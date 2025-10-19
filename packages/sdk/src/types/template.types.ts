@@ -18,6 +18,27 @@ export interface AgentMetadata {
 }
 
 /**
+ * Template variables shared across layouts.
+ *
+ * These keys are intentionally typed so security critical values
+ * (like `security_key` and `user_input`) stay consistent across
+ * CLI/SDK integrations while still allowing custom extensions.
+ */
+export interface TemplateVars {
+  /** Authentication token used to validate <user_query> containers */
+  security_key?: string;
+  /**
+   * Current user input rendered into layouts.
+   * Always HTML-escaped by the renderer to guard against injection.
+   */
+  user_input?: string;
+  /** Original (unsanitised) user input – provided for audit/logging only. */
+  user_input_raw?: string;
+  /** Allow custom variables without losing backwards compatibility. */
+  [key: string]: unknown;
+}
+
+/**
  * Template context for document processing
  * Cross-platform compatible (CLI, Slack, MCP, etc.)
  */
@@ -62,6 +83,9 @@ export interface TemplateContext {
     count: number;
   };
   
-  /** Additional custom variables */
-  vars?: Record<string, any>;
+  /**
+   * Additional variables passed to layouts.
+   * Includes security helpers and escaped user input for safe rendering.
+   */
+  vars?: TemplateVars;
 }

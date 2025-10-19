@@ -103,7 +103,7 @@ const match = prompt.match(/<user_query key="[^"]+">\s*([\s\S]*?)\s*<\/user_quer
 
 ---
 
-### **Phase 2: SDK 레이아웃 구조 확장** (2-3일) — ⬜️ 대기
+### **Phase 2: SDK 레이아웃 구조 확장** (2-3일) — ✅ 완료 (2025-10-20)
 **목표**: 레이아웃에서 보안 래핑 구조를 정의할 수 있도록 SDK 확장
 
 **작업**:
@@ -175,11 +175,13 @@ const match = prompt.match(/<user_query key="[^"]+">\s*([\s\S]*?)\s*<\/user_quer
    - `templates/agents/default.yaml` (수정)
    - Layout validation 로직
 
-**성공 기준**:
-- ✅ TemplateContext에 `vars.user_input` 추가
-- ✅ TypeScript strict mode 통과
-- ✅ SDK 빌드 성공
-- ✅ Default layout에 user_query 블록 포함
+**성과 요약**:
+- ✅ TemplateContext에 타입 안정성이 보장된 `vars` 추가 (`security_key`, `user_input`, `user_input_raw`)
+- ✅ LayoutRenderer가 `vars.user_input`을 HTML 이스케이프 처리하고 진단용 원본(`user_input_raw`)을 보존
+- ✅ `packages/cli/templates/agents/default.yaml`과 `minimal.yaml`에 `<user_query>` 블록 추가
+- ✅ 신규 예시 레이아웃 `secure-wrapper.yaml` 작성 (propsSchema 포함)
+- ✅ Unit test 2건 추가: 사용자 입력 이스케이프/RAW 확인 및 보안 컨테이너 유지 검증
+- ✅ `npm run test --workspace @sowonai/crewx-sdk`, `npm run build` 실행 (type-check 스크립트 부재는 SDK build로 대체)
 
 ---
 

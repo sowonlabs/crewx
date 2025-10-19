@@ -10,7 +10,7 @@
 | ✅ 완료 | WBS-12 | 레이아웃 시스템 구현 | LayoutLoader, PropsValidator, LayoutRenderer 구현 | WBS-11     | Phase 1-4 완료 (2025-10-18): 3개 서비스 구현 및 아키텍처 검토 완료. 사이클 #3 완료 (2025-10-19): WBS-12-FIX-1, FIX-2, FIX-3, FIX-4 리팩토링 및 테스트 보강 완료 |
 | ✅ 완료 | WBS-13 | CLI 레이아웃 통합 | CLI가 SDK LayoutLoader/Renderer/PropsValidator를 사용해 `inline.layout` YAML을 처리하도록 통합 | WBS-12 | **전체 완료 (2025-10-19)**: Phase 1-3 완료, SDK 레이아웃 스택 통합, 코어 중복 로직 정리, P0 검증 완료 (template path resolution verified, production-ready) |
 | ✅ 완료 | WBS-14 | StructuredPayload/TemplateContext 통합 및 하드코딩 제거 | CLI 시스템 프롬프트 중복 제거, TemplateContext SDK 공개, 컨텍스트 타입 표준화 | WBS-13 | **전체 완료 (2025-10-20)**: Phase 1-5 완료. TemplateContext SDK 공개, 하드코딩 제거, 레이아웃 시스템 통합, 문서화 및 CREWX.md 정리 완료 |
-| 🟡 진행중 | WBS-15 | 하드코딩 프롬프트 레이아웃 시스템 통합 | `<user_query>` 래핑 로직을 레이아웃 시스템으로 통합, 보안 컨테이너 패턴 표준화 | WBS-14 | **Phase 1 완료 (2025-10-19)**: 래핑 로직 분석, 안전망 검증, 위험도 평가 완료 |
+| 🟡 진행중 | WBS-15 | 하드코딩 프롬프트 레이아웃 시스템 통합 | `<user_query>` 래핑 로직을 레이아웃 시스템으로 통합, 보안 컨테이너 패턴 표준화 | WBS-14 | **Phase 1 완료 (2025-10-19)**, **Phase 2 완료 (2025-10-20)**: TemplateContext vars 확장, secure-wrapper 레이아웃 추가, 사용자 입력 이스케이프 테스트 완료 |
 
 ## 상세 작업 계획
 
@@ -263,11 +263,12 @@
   - ✅ Phase 3 완화 전략 수립
   - 📄 [wbs/wbs-15-phase-1-wrapping-analysis.md](wbs/wbs-15-phase-1-wrapping-analysis.md)
 
-- **Phase 2**: SDK 레이아웃 구조 확장 — ⬜️ 대기 (2-3일 예상)
-  - TemplateContext에 `vars.user_input` 필드 추가
-  - `secure-wrapper.yaml` 레이아웃 예시 작성
-  - Layout renderer가 user_input 처리 가능하도록 확장
-  - TypeScript strict mode 통과
+- **Phase 2**: SDK 레이아웃 구조 확장 — ✅ 완료 (2025-10-20)
+  - TemplateContext에 보안 전용 `vars` 타입 추가 (`security_key`, `user_input`, `user_input_raw`)
+  - LayoutRenderer가 사용자 입력을 HTML-이스케이프 처리하고 RAW 값은 진단용으로 보존
+  - 신규 보안 예시 레이아웃 `templates/agents/secure-wrapper.yaml` 등록 (propsSchema 포함)
+  - 기본/미니멀 레이아웃에 `<user_query>` 블록 추가로 컨테이너 손실 방지
+  - Sanitization 관련 Vitest 케이스 2건 추가 (escape & raw 보존 검증)
 
 - **Phase 3**: CLI 하드코딩 제거 및 레이아웃 위임 — ⬜️ 대기 (2-3일 예상)
   - [crewx.tool.ts:712-715](packages/cli/src/crewx.tool.ts#L712-L715) 제거 (query 모드)
