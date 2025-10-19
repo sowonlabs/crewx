@@ -110,8 +110,7 @@ function createCrewXTool(deps?: {
 
   const stub = <T extends object>(methods: Partial<T>): T => methods as T;
 
-  return {
-    tool: new CrewXTool(
+  const toolInstance = new CrewXTool(
       stub({}) as any,
       stub({ log: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }) as any, // Logger mock with all methods
       stub({}) as any,
@@ -125,7 +124,13 @@ function createCrewXTool(deps?: {
       stub({}) as any,
       layoutLoader,
       layoutRenderer,
-    ),
+    );
+
+  const loggerMock = { log: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() };
+  Reflect.set(toolInstance, 'logger', loggerMock);
+
+  return {
+    tool: toolInstance,
     layoutLoader,
   };
 }
