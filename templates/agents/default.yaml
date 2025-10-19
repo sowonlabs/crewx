@@ -4,100 +4,111 @@
 layouts:
   default: &default_layout |
     <crewx_system_prompt key="{{vars.security_key}}">
-    <agent_information>
-      ID: {{{agent.id}}}
-      {{#if agent.name}}Name: {{{agent.name}}}{{/if}}
-      {{#if agent.role}}Role: {{{agent.role}}}{{/if}}
-      {{#if agent.team}}Team: {{{agent.team}}}{{/if}}
-      {{#if agent.description}}Description: {{{agent.description}}}{{/if}}
-      {{#if agent.provider}}Provider: {{{agent.provider}}}{{/if}}
-      {{#if agent.inline.model}}Default Model: {{{agent.inline.model}}}{{/if}}
-      {{#if agent.workingDirectory}}Working Directory: {{{agent.workingDirectory}}}{{/if}}
-    </agent_information>
+      <agent_profile>
+        <identity>
+          <id>{{{agent.id}}}</id>
+          {{#if agent.name}}<name>{{{agent.name}}}</name>{{/if}}
+          {{#if agent.role}}<role>{{{agent.role}}}</role>{{/if}}
+          {{#if agent.team}}<team>{{{agent.team}}}</team>{{/if}}
+          {{#if agent.description}}<description>{{{agent.description}}}</description>{{/if}}
+          {{#if agent.provider}}<providers>{{{agent.provider}}}</providers>{{/if}}
+          {{#if agent.inline.model}}<default_model>{{{agent.inline.model}}}</default_model>{{/if}}
+          {{#if agent.workingDirectory}}<working_directory>{{{agent.workingDirectory}}}</working_directory>{{/if}}
+        </identity>
 
-    {{#if agent.specialties.[0]}}
-    <agent_specialties>
-    {{#each agent.specialties}}
-      - {{{this}}}
-    {{/each}}
-    </agent_specialties>
-    {{/if}}
+        {{#if agent.specialties.[0]}}
+        <specialties>
+          {{#each agent.specialties}}
+          <item>{{{this}}}</item>
+          {{/each}}
+        </specialties>
+        {{/if}}
 
-    {{#if agent.capabilities.[0]}}
-    <agent_capabilities>
-    {{#each agent.capabilities}}
-      - {{{this}}}
-    {{/each}}
-    </agent_capabilities>
-    {{/if}}
+        {{#if agent.capabilities.[0]}}
+        <capabilities>
+          {{#each agent.capabilities}}
+          <item>{{{this}}}</item>
+          {{/each}}
+        </capabilities>
+        {{/if}}
 
-    {{#if agent.optionsArray}}
-    <agent_cli_options mode="legacy">
-    {{#each agent.optionsArray}}
-      - {{{this}}}
-    {{/each}}
-    </agent_cli_options>
-    {{/if}}
+        {{#if agent.remote}}
+        <remote_connection type="{{agent.remote.type}}">
+          {{#if agent.remote.url}}<url>{{{agent.remote.url}}}</url>{{/if}}
+          {{#if agent.remote.agentId}}<agent_id>{{{agent.remote.agentId}}}</agent_id>{{/if}}
+          {{#if agent.remote.timeoutMs}}<timeout_ms>{{agent.remote.timeoutMs}}</timeout_ms>{{/if}}
+        </remote_connection>
+        {{/if}}
 
-    {{#if agent.optionsByMode.query}}
-    <agent_cli_options mode="query">
-    {{#each agent.optionsByMode.query}}
-      {{#if @root.agent.optionsByMode.query.[0]}}
-      - {{{this}}}
-      {{else}}
-      - {{@key}}: {{{this}}}
+        {{#if agent.optionsArray}}
+        <cli_options mode="legacy">
+          {{#each agent.optionsArray}}
+          <item>{{{this}}}</item>
+          {{/each}}
+        </cli_options>
+        {{/if}}
+
+        {{#if agent.optionsByMode.query}}
+        <cli_options mode="query">
+          {{#each agent.optionsByMode.query}}
+          {{#if @root.agent.optionsByMode.query.[0]}}
+          <item>{{{this}}}</item>
+          {{else}}
+          <item provider="{{@key}}">{{{this}}}</item>
+          {{/if}}
+          {{/each}}
+        </cli_options>
+        {{/if}}
+
+        {{#if agent.optionsByMode.execute}}
+        <cli_options mode="execute">
+          {{#each agent.optionsByMode.execute}}
+          {{#if @root.agent.optionsByMode.execute.[0]}}
+          <item>{{{this}}}</item>
+          {{else}}
+          <item provider="{{@key}}">{{{this}}}</item>
+          {{/if}}
+          {{/each}}
+        </cli_options>
+        {{/if}}
+
+        {{#if tools.count}}
+        <available_tools count="{{tools.count}}">
+          {{#each tools.list}}
+          <tool>
+            <name>{{{name}}}</name>
+            {{#if description}}<description>{{{description}}}</description>{{/if}}
+          </tool>
+          {{/each}}
+        </available_tools>
+        {{/if}}
+
+        <session mode="{{session.mode}}" platform="{{session.platform}}">
+          {{#if session.options.[0]}}
+          <cli_options>
+            {{#each session.options}}
+            <item>{{{this}}}</item>
+            {{/each}}
+          </cli_options>
+          {{/if}}
+        </session>
+      </agent_profile>
+
+      {{#if documents.crewx-manual.content}}
+      <document name="CrewX User Manual">
+      {{{documents.crewx-manual.content}}}
+      </document>
       {{/if}}
-    {{/each}}
-    </agent_cli_options>
-    {{/if}}
-
-    {{#if agent.optionsByMode.execute}}
-    <agent_cli_options mode="execute">
-    {{#each agent.optionsByMode.execute}}
-      {{#if @root.agent.optionsByMode.execute.[0]}}
-      - {{{this}}}
-      {{else}}
-      - {{@key}}: {{{this}}}
-      {{/if}}
-    {{/each}}
-    </agent_cli_options>
-    {{/if}}
-
-    {{#if agent.remote}}
-    <remote_connection type="{{agent.remote.type}}">
-      {{#if agent.remote.url}}URL: {{{agent.remote.url}}}{{/if}}
-      {{#if agent.remote.agentId}}Agent ID: {{{agent.remote.agentId}}}{{/if}}
-      {{#if agent.remote.timeoutMs}}Timeout: {{agent.remote.timeoutMs}}ms{{/if}}
-    </remote_connection>
-    {{/if}}
-
-    {{#if tools.count}}
-    <available_tools count="{{tools.count}}">
-    {{#each tools.list}}
-      - {{{name}}}{{#if description}}: {{{description}}}{{/if}}
-    {{/each}}
-    </available_tools>
-    {{/if}}
-
-    <session_context>
-      Mode: {{session.mode}}
-      Platform: {{session.platform}}
-      {{#if session.options.[0]}}CLI Options: {{#each session.options}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}
-    </session_context>
-
-    <document name="CrewX User Manual">
-    {{{documents.crewx-manual.content}}}
-    </document>
     </crewx_system_prompt>
 
     <system_prompt key="{{vars.security_key}}">
-    {{{layout.system_prompt}}}
+      {{{layout.system_prompt}}}
 
-    {{#if messages.length}}
-    <conversation_history platform="{{platform}}">
-    {{{formatConversation messages platform}}}
-    </conversation_history>
-    {{/if}}
+      {{#if messages.[0]}}
+      <conversation_history platform="{{platform}}">
+        {{{formatConversation messages platform}}}
+      </conversation_history>
+      {{/if}}
     </system_prompt>
   crewx/default: *default_layout
   crewx/minimal: |
