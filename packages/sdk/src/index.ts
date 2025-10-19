@@ -197,3 +197,9 @@ export type {
   InlineLayoutSpec,
   CustomLayoutDefinition,
 } from './types/layout.types';
+
+// Template system (WBS-14 Phase 3)
+export type {
+  TemplateContext,
+  AgentMetadata,
+} from './types/template.types';

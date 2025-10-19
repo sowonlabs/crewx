@@ -525,6 +525,10 @@ The CLI is optimized for:
 - [Agent Configuration](../../docs/agent-configuration.md) - Configuration details
 - [Remote Agents](../../docs/remote-agents.md) - Distributed setup
 - [Template System](../../docs/templates.md) - Knowledge management
+- [Template Variables](../../docs/template-variables.md) - Dynamic variables and TemplateContext usage (WBS-14)
+- [Context Integration Standard](../../packages/docs/context-integration-standard.md) - TemplateContext pipeline and layout responsibilities
+- [Context Migration Guide](../../packages/docs/context-integration-migration.md) - Upgrade steps for custom agents
+- [Layout DSL Reference](../../packages/docs/layout-dsl-field-reference.md) - Layout fields, props, and helpers
 - [MCP Integration](../../docs/mcp-integration.md) - IDE setup
 
 ## Contributing

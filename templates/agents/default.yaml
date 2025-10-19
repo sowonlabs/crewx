@@ -16,7 +16,13 @@ layouts:
           {{#if agent.workingDirectory}}<working_directory>{{{agent.workingDirectory}}}</working_directory>{{/if}}
         </identity>
 
-        {{#if agent.specialties.[0]}}
+        {{#if agentMetadata.specialties.[0]}}
+        <specialties>
+          {{#each agentMetadata.specialties}}
+          <item>{{{this}}}</item>
+          {{/each}}
+        </specialties>
+        {{else if agent.specialties.[0]}}
         <specialties>
           {{#each agent.specialties}}
           <item>{{{this}}}</item>
@@ -24,7 +30,13 @@ layouts:
         </specialties>
         {{/if}}
 
-        {{#if agent.capabilities.[0]}}
+        {{#if agentMetadata.capabilities.[0]}}
+        <capabilities>
+          {{#each agentMetadata.capabilities}}
+          <item>{{{this}}}</item>
+          {{/each}}
+        </capabilities>
+        {{else if agent.capabilities.[0]}}
         <capabilities>
           {{#each agent.capabilities}}
           <item>{{{this}}}</item>

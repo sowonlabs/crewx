@@ -192,6 +192,12 @@ Phase 5 (CREWX.md 정리)
 - ✅ Telemetry 소유자/종료 계획 문서화
 - ✅ 안전 검증 보고서 작성
 
+**2025-10-19 산출물 요약**
+- 📄 `wbs/wbs-14-phase-1-safety-report.md` — layout dependency graph, risk matrix, automated evidence
+- 📄 `wbs/wbs-14-phase-1-append-metrics.md` — static usage snapshot table (query/execute append paths)
+- 📄 `wbs/wbs-14-phase-1-fallback-paths.md` — scenarios 1-7 + automated coverage mapping
+- ✅ 테스트: `packages/cli/tests/unit/services/crewx-tool-layout.spec.ts`
+
 ### Phase 3 완료
 - ✅ TemplateContext 정제 (CLI 필드 제거)
 - ✅ agentMetadata 필드 추가 및 매핑 (crewx.tool.ts → templateContext)

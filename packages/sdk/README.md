@@ -987,6 +987,34 @@ Please follow these steps:
 
 Apache-2.0 License - See [LICENSE](./LICENSE) for details.
 
+## Context Integration (WBS-14)
+
+The SDK provides `TemplateContext` and `AgentMetadata` exports for dynamic template processing:
+
+```typescript
+import { TemplateContext, AgentMetadata } from '@sowonai/crewx-sdk';
+
+// Use TemplateContext for dynamic prompts
+const context: TemplateContext = {
+  env: process.env,
+  agent: {
+    id: 'claude',
+    name: 'Claude Assistant',
+    provider: 'cli/claude',
+    model: 'claude-3-5-sonnet'
+  },
+  agentMetadata: {
+    specialties: ['code-analysis', 'architecture'],
+    capabilities: ['file-operations', 'web-search'],
+    description: 'Advanced reasoning and analysis specialist'
+  },
+  mode: 'query',
+  platform: 'cli'
+};
+```
+
+For detailed usage, see [Template Variables Guide](../../docs/template-variables.md).
+
 ## Support
 
 - [GitHub Issues](https://github.com/sowonlabs/crewx/issues)

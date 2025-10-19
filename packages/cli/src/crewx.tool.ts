@@ -1,3 +1,4 @@
+import { PREFIX_TOOL_NAME, SERVER_NAME, getErrorMessage, getErrorStack, getTimeoutConfig, LayoutLoader, LayoutRenderer, RenderContext, TemplateContext, AgentInfo } from '@sowonai/crewx-sdk';
 import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
 import { McpTool } from '@sowonai/nestjs-mcp-adapter';
 import { z } from 'zod';
@@ -7,7 +8,6 @@ import * as crypto from 'crypto';
 import { AIService } from './ai.service';
 import { AIProviderService } from './ai-provider.service';
 import { ProjectService } from './project.service';
-import { PREFIX_TOOL_NAME, SERVER_NAME, AgentInfo, getErrorMessage, getErrorStack, getTimeoutConfig, LayoutLoader, LayoutRenderer, RenderContext } from '@sowonai/crewx-sdk';
 import { ParallelProcessingService } from './services/parallel-processing.service';
 import { TaskManagementService } from './services/task-management.service';
 import { ResultFormatterService } from './services/result-formatter.service';
@@ -16,7 +16,6 @@ import { DocumentLoaderService } from './services/document-loader.service';
 import { ToolCallService } from './services/tool-call.service';
 import { AgentLoaderService } from './services/agent-loader.service';
 import { RemoteAgentService } from './services/remote-agent.service';
-import type { TemplateContext } from './utils/template-processor';
 
 @Injectable()
 export class CrewXTool implements OnModuleInit {
@@ -183,9 +182,9 @@ export class CrewXTool implements OnModuleInit {
           ? { ...agent.inline, prompt: baseSystemPrompt }
           : { prompt: baseSystemPrompt };
 
-        const templateOptions = Array.isArray(templateContext.options)
-          ? templateContext.options
-          : [];
+        // Since options is CLI-specific, we pass empty array for SDK TemplateContext
+        // Options are handled separately by the CLI agent configuration
+        const templateOptions: string[] = [];
 
         const sessionInfo = {
           mode: templateContext.mode ?? 'query',
@@ -663,6 +662,11 @@ ${errorMessage}`,
           model: model || agent.inline?.model,
           workingDirectory: workingDir,
         },
+        agentMetadata: {
+          specialties: agent.specialties,
+          capabilities: agent.capabilities,
+          description: agent.description,
+        },
         mode: 'query',
         messages: contextMessages, // Previous conversation messages (excluding current query)
         platform: platform, // Pass platform information (slack/cli)
@@ -675,12 +679,34 @@ ${errorMessage}`,
       // Process system prompt (uses SDK layout services if inline.layout is defined)
       let systemPrompt = await this.processAgentSystemPrompt(agent, templateContext);
 
-      // Add context information
-      systemPrompt += `
+      // WBS-14 Phase 2: Removed hardcoded append (specialties, capabilities, workingDirectory)
+      // These fields are now handled by agentMetadata in TemplateContext and rendered via layouts
+      // Feature flag CREWX_APPEND_LEGACY=true can re-enable for backward compatibility
+      if (process.env.CREWX_APPEND_LEGACY === 'true') {
+        this.logger.debug('[WBS-14] Legacy append mode enabled (query)', {
+          agentId: agent.id,
+          layoutId: typeof agent.inline?.layout === 'string'
+            ? agent.inline?.layout
+            : agent.inline?.layout?.id ?? 'crewx/default',
+        });
+
+        systemPrompt += `
 
 Specialties: ${agent.specialties?.join(', ') || 'General'}
 Capabilities: ${agent.capabilities?.join(', ') || 'Analysis'}
 Working Directory: ${workingDir}`;
+      } else if (process.env.CREWX_WBS14_TELEMETRY === 'true') {
+        this.logger.debug('[WBS-14] Metadata delegated to layout (query mode)', {
+          agentId: agent.id,
+          hasLayout: Boolean(agent.inline?.layout),
+          layoutId: typeof agent.inline?.layout === 'string'
+            ? agent.inline?.layout
+            : agent.inline?.layout?.id ?? 'crewx/default',
+          specialtiesCount: agent.specialties?.length ?? 0,
+          capabilitiesCount: agent.capabilities?.length ?? 0,
+          workingDirectory: workingDir,
+        });
+      }
 
       // Wrap user query with security tag to prevent prompt injection
       const wrappedQuery = `
@@ -945,6 +971,11 @@ Please check the agent ID and try again.`
           model: model || agent.inline?.model,
           workingDirectory: workingDir,
         },
+        agentMetadata: {
+          specialties: agent.specialties,
+          capabilities: agent.capabilities,
+          description: agent.description,
+        },
         mode: 'execute',
         messages: contextMessages, // Previous conversation messages (excluding current task)
         platform: platform, // Pass platform information (slack/cli)
@@ -957,11 +988,33 @@ Please check the agent ID and try again.`
       // Process system prompt (uses SDK layout services if inline.layout is defined)
       let systemPrompt = await this.processAgentSystemPrompt(agent, templateContext);
 
-      // Add context information
-      systemPrompt += `
+      // WBS-14 Phase 2: Removed hardcoded append (specialties, capabilities, workingDirectory)
+      // These fields are now handled by agentMetadata in TemplateContext and rendered via layouts
+      // Feature flag CREWX_APPEND_LEGACY=true can re-enable for backward compatibility
+      if (process.env.CREWX_APPEND_LEGACY === 'true') {
+        this.logger.debug('[WBS-14] Legacy append mode enabled (execute)', {
+          agentId: agent.id,
+          layoutId: typeof agent.inline?.layout === 'string'
+            ? agent.inline?.layout
+            : agent.inline?.layout?.id ?? 'crewx/default',
+        });
+
+        systemPrompt += `
 Specialties: ${agent.specialties?.join(', ') || 'General'}
 Capabilities: ${agent.capabilities?.join(', ') || 'Implementation'}
 Working Directory: ${workingDir}`;
+      } else if (process.env.CREWX_WBS14_TELEMETRY === 'true') {
+        this.logger.debug('[WBS-14] Metadata delegated to layout (execute mode)', {
+          agentId: agent.id,
+          hasLayout: Boolean(agent.inline?.layout),
+          layoutId: typeof agent.inline?.layout === 'string'
+            ? agent.inline?.layout
+            : agent.inline?.layout?.id ?? 'crewx/default',
+          specialtiesCount: agent.specialties?.length ?? 0,
+          capabilitiesCount: agent.capabilities?.length ?? 0,
+          workingDirectory: workingDir,
+        });
+      }
 
       // Build full prompt (context already formatted by template)
       const fullPrompt = context 

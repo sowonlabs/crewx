@@ -17,9 +17,11 @@ import {
   LayoutLoader,
   getErrorMessage,
 } from '@sowonai/crewx-sdk';
+
+// Import TemplateContext from template-processor to maintain compatibility
+import type { TemplateContext } from '../utils/template-processor';
 import * as yaml from 'js-yaml';
 import { readFile } from 'fs/promises';
-import type { TemplateContext } from '../utils/template-processor';
 import { DocumentLoaderService } from './document-loader.service';
 import { TemplateService } from './template.service';
 import { ConfigValidatorService } from './config-validator.service';

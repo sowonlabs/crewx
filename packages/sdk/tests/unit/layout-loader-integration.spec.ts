@@ -28,7 +28,7 @@ describe('LayoutLoader Integration (Real Templates)', () => {
 
       expect(layout).toBeDefined();
       expect(layout.id).toBe('crewx/default');
-      expect(layout.template).toContain('<crewx_system_prompt>');
+      expect(layout.template).toContain('<crewx_system_prompt key="{{vars.security_key}}">');
       expect(layout.template).toContain('You are a built-in AI agent');
     });
 

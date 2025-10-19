@@ -65,7 +65,7 @@ SLEEP_TIME=${SLEEP_TIME:-3600} # 기본 1시간 (3600초)
 
 # 진행 상황 파일
 PROGRESS_FILE="wbs-progress.log"
-ERROR_FILE="monorepo-errors.log"
+ERROR_FILE="wbs-errors.log"
 
 # Thread IDs (일 단위 기본)
 DAY_THREAD="wbs-$(date +%Y%m%d)"
@@ -105,19 +105,31 @@ work_cycle() {
 
     # Coordinator가 system prompt에 따라 자동으로:
     # - wbs.md 분석 → Phase 선택 → 병렬 실행 → wbs.md 업데이트
+    local exit_code=0
+    local cycle_temp_log
+    cycle_temp_log=$(mktemp -t crewx-cycle-XXXXXX)
+
+    set +e
     $CREWX_CMD execute "@coordinator 사이클 #$cycle: wbs.md 확인하고 미처리 Phase들을 병렬로 진행해주세요." \
         --config $CONFIG_FILE \
         --thread $CONTEXT_THREAD \
-        --timeout "$COORDINATOR_TIMEOUT" 2>&1 | tee -a "$PROGRESS_FILE"
-
-    local exit_code=$?
+        --timeout "$COORDINATOR_TIMEOUT" 2>&1 | tee -a "$PROGRESS_FILE" | tee "$cycle_temp_log"
+    exit_code=$?
+    set -e
 
     if [ $exit_code -eq 0 ]; then
         log "✅ 사이클 #$cycle 완료"
     else
         error_log "❌ 사이클 #$cycle 실패 (exit code: $exit_code)"
-        echo "ERROR: Cycle $cycle failed" >> "$ERROR_FILE"
+        {
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: Cycle $cycle failed (exit code: $exit_code)"
+            echo "----- Last output -----"
+            tail -n 40 "$cycle_temp_log"
+            echo "-----------------------"
+        } >> "$ERROR_FILE"
     fi
+
+    rm -f "$cycle_temp_log"
 }
 
 

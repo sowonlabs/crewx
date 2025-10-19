@@ -1,0 +1,49 @@
+# WBS-14 Phase 1 test agents for layout regression validation
+# Usage: crewx query --config wbs/wbs-14-phase-1-test-agents.yaml "@wbs14_default_fallback Describe layout handling"
+# Provides three controlled agents covering default fallback, minimal layout, and custom layout paths.
+
+agents:
+  - id: "wbs14_default_fallback"
+    name: "WBS-14 Default Fallback"
+    description: "Validates default layout renders specialties/capabilities without append"
+    specialties:
+      - "Reasoning"
+      - "Security review"
+    capabilities:
+      - "Analysis"
+      - "Documentation"
+    inline:
+      type: "agent"
+      provider: "cli/claude"
+      system_prompt: |
+        You are a layout regression tester focusing on default fallbacks.
+        Confirm that specialties and capabilities appear exactly once.
+        Note any duplicates in the final system prompt.
+
+  - id: "wbs14_minimal_layout"
+    name: "WBS-14 Minimal Layout"
+    description: "Ensures minimal layout renders prompt without metadata"
+    inline:
+      type: "agent"
+      provider: "cli/claude"
+      layout: "crewx/minimal"
+      prompt: |
+        You are the minimal layout smoke test agent.
+        Verify that no specialties or capabilities blocks appear.
+
+  - id: "wbs14_custom_layout"
+    name: "WBS-14 Custom Layout"
+    description: "Exercises crewx_dev_layout metadata rendering"
+    specialties:
+      - "Implementation"
+      - "CLI tooling"
+    capabilities:
+      - "Execution"
+      - "Testing"
+    inline:
+      type: "agent"
+      provider: "cli/claude"
+      layout: "crewx_dev_layout"
+      system_prompt: |
+        You are validating the custom developer layout.
+        Confirm that specialties, capabilities, remote info, and CLI options render correctly.

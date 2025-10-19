@@ -11,46 +11,11 @@
 import * as Handlebars from 'handlebars';
 import { DocumentLoaderService } from '../services/document-loader.service';
 
-/**
- * Additional context for template processing
- */
-export interface TemplateContext {
-  /** Environment variables */
-  env?: Record<string, string | undefined>;
-  /** Agent options passed via CLI */
-  options?: string[];
-  /** Agent metadata */
-  agent?: {
-    id: string;
-    name: string;
-    provider: string;
-    model?: string;
-    workingDirectory?: string;
-  };
-  /** Query/execution mode */
-  mode?: 'query' | 'execute';
-  /** Conversation messages for history */
-  messages?: Array<{
-    text: string;
-    isAssistant: boolean;
-    metadata?: Record<string, any>; // Platform-specific metadata (e.g., Slack user info)
-  }>;
-  /** Platform (slack or cli) */
-  platform?: 'slack' | 'cli';
-  /** Available tools */
-  tools?: {
-    list: Array<{
-      name: string;
-      description: string;
-      input_schema: any;
-      output_schema?: any;
-    }>;
-    json: string;
-    count: number;
-  };
-  /** Additional custom variables */
-  vars?: Record<string, any>;
-}
+// Import TemplateContext from SDK and re-export for CLI internal use
+import type { TemplateContext } from '@sowonai/crewx-sdk';
+
+// Re-export for other CLI modules
+export type { TemplateContext } from '@sowonai/crewx-sdk';
 
 /**
  * Process Handlebars template with document variables and context
@@ -88,8 +53,8 @@ export async function processDocumentTemplate(
   const context: any = {
     documents: {},
     env: additionalContext?.env || process.env,
-    options: additionalContext?.options || [],
     agent: additionalContext?.agent || {},
+    agentMetadata: additionalContext?.agentMetadata || {},
     mode: additionalContext?.mode,
     messages: additionalContext?.messages || [],
     platform: additionalContext?.platform,
