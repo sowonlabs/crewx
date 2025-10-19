@@ -16,12 +16,11 @@ import {
   CustomLayoutDefinition,
   LayoutLoader,
   getErrorMessage,
+  parseCrewxConfig,
+  parseCrewxConfigFromFile,
+  SkillLoadError,
+  type SkillsConfig,
 } from '@sowonai/crewx-sdk';
-
-// Import TemplateContext from template-processor to maintain compatibility
-import type { TemplateContext } from '../utils/template-processor';
-import * as yaml from 'js-yaml';
-import { readFile } from 'fs/promises';
 import { DocumentLoaderService } from './document-loader.service';
 import { TemplateService } from './template.service';
 import { ConfigValidatorService } from './config-validator.service';
@@ -232,7 +231,7 @@ export class AgentLoaderService {
         this.logger.log('Loaded built-in agents from GitHub template');
       }
 
-      const config = yaml.load(templateContent) as any;
+      const config = parseCrewxConfig(templateContent, { validationMode: 'lenient' });
 
       if (!config.agents || !Array.isArray(config.agents)) {
         throw new Error('Invalid template: missing agents array');
@@ -240,20 +239,26 @@ export class AgentLoaderService {
 
       // Initialize DocumentLoaderService with built-in documents
       if (this.documentLoaderService) {
-        await this.documentLoaderService.initialize(config.documents);
+        await this.documentLoaderService.initialize(
+          config.documents as Record<string, string | { path: string; name?: string }>,
+        );
       }
 
       // Register layouts bundled with built-in template so CLI remains zero-config
       this.registerCustomLayoutsFromConfig(config, 'built-in template');
 
+      const projectSkills = config.skills;
+
       // Process templates
       const processedAgents = await Promise.all(
-        config.agents.map(async (agent: any) => {
+        config.agents.map(async (agent) => {
           let systemPrompt = agent.inline?.system_prompt;
 
           // Do NOT process system_prompt template here
           // It will be processed at execution time in crewx.tool.ts
           // This allows formatConversation and other runtime helpers to work correctly
+
+          const mergedSkills = this.mergeSkillsConfig(projectSkills, agent.skills);
 
           return {
             id: agent.id,
@@ -269,6 +274,7 @@ export class AgentLoaderService {
             options: agent.options || [],
             inline: agent.inline,
             remote: this.parseRemoteConfig(agent),
+            ...(mergedSkills ? { skills: mergedSkills } : {}),
           };
         })
       );
@@ -290,22 +296,17 @@ export class AgentLoaderService {
 
       this.logger.log(`Loading agents from config: ${configPath}`);
 
-      const configContent = await readFile(configPath, 'utf-8');
-      let config;
+      const parsedConfig =
+        this.configService?.getProjectConfig() ??
+        parseCrewxConfigFromFile(configPath, { validationMode: 'lenient' });
 
-      if (configPath.endsWith('.yaml') || configPath.endsWith('.yml')) {
-        config = yaml.load(configContent) as any;
-      } else {
-        config = JSON.parse(configContent);
-      }
-
-      if (!config.agents || !Array.isArray(config.agents)) {
+      if (!parsedConfig.agents || !Array.isArray(parsedConfig.agents)) {
         throw new Error('Invalid config: missing agents array');
       }
 
       // Validate configuration if validator is available
       if (this.configValidatorService) {
-        const validationResult = this.configValidatorService.validateConfig(config, configPath);
+        const validationResult = this.configValidatorService.validateConfig(parsedConfig, configPath);
         if (!validationResult.valid) {
           const errorMessage = this.configValidatorService.formatErrorMessage(validationResult.errors);
           this.logger.error(errorMessage);
@@ -315,25 +316,32 @@ export class AgentLoaderService {
       }
 
       // Register any custom layouts defined in the project configuration
-      this.registerCustomLayoutsFromConfig(config, configPath);
+      this.registerCustomLayoutsFromConfig(parsedConfig, configPath);
 
       // Initialize DocumentLoaderService with documents from agents.yaml
       if (this.documentLoaderService) {
         const projectPath = path.dirname(configPath);
-        this.logger.log(`Initializing DocumentLoaderService, has documents: ${!!config.documents}`);
-        await this.documentLoaderService.initialize(config.documents, projectPath);
+        this.logger.log(`Initializing DocumentLoaderService, has documents: ${!!parsedConfig.documents}`);
+        await this.documentLoaderService.initialize(
+          parsedConfig.documents as Record<string, string | { path: string; name?: string }>,
+          projectPath,
+        );
       } else {
         this.logger.warn('DocumentLoaderService not injected - documents will not be loaded');
       }
 
+      const projectSkills = parsedConfig.skills;
+
       // Process templates using the template-processor utility
       const agents = await Promise.all(
-        config.agents.map(async (agent: any) => {
+        parsedConfig.agents.map(async (agent) => {
           let systemPrompt = agent.inline?.system_prompt;
 
           // Do NOT process system_prompt template here
           // It will be processed at execution time in crewx.tool.ts
           // This allows formatConversation and other runtime helpers to work correctly
+
+          const mergedSkills = this.mergeSkillsConfig(projectSkills, agent.skills);
 
           return {
             id: agent.id,
@@ -352,13 +360,20 @@ export class AgentLoaderService {
               system_prompt: systemPrompt, // Use the original (unprocessed) system_prompt
             } : undefined,
             remote: this.parseRemoteConfig(agent),
+            ...(mergedSkills ? { skills: mergedSkills } : {}),
           };
         })
       );
 
       return agents;
     } catch (error) {
-      this.logger.error(`Failed to load agents config from ${configPath}:`, getErrorMessage(error));
+      if (error instanceof SkillLoadError) {
+        this.logger.error(
+          `Failed to parse CrewX configuration at ${configPath}: ${error.message}`,
+        );
+      } else {
+        this.logger.error(`Failed to load agents config from ${configPath}:`, getErrorMessage(error));
+      }
       // Return empty array if config loading fails
       return [];
     }
@@ -504,6 +519,63 @@ export class AgentLoaderService {
         );
       }
     }
+  }
+
+  private mergeSkillsConfig(
+    projectSkills?: SkillsConfig,
+    agentSkills?: SkillsConfig,
+  ): SkillsConfig | undefined {
+    if (!projectSkills && !agentSkills) {
+      return undefined;
+    }
+
+    const merged: SkillsConfig = {};
+
+    const includeSet = new Set<string>();
+    if (projectSkills?.include) {
+      for (const skill of projectSkills.include) {
+        if (typeof skill === 'string' && skill.trim()) {
+          includeSet.add(skill);
+        }
+      }
+    }
+    if (agentSkills?.include) {
+      for (const skill of agentSkills.include) {
+        if (typeof skill === 'string' && skill.trim()) {
+          includeSet.add(skill);
+        }
+      }
+    }
+    if (includeSet.size > 0) {
+      merged.include = Array.from(includeSet);
+    }
+
+    const excludeSet = new Set<string>();
+    if (projectSkills?.exclude) {
+      for (const skill of projectSkills.exclude) {
+        if (typeof skill === 'string' && skill.trim()) {
+          excludeSet.add(skill);
+        }
+      }
+    }
+    if (agentSkills?.exclude) {
+      for (const skill of agentSkills.exclude) {
+        if (typeof skill === 'string' && skill.trim()) {
+          excludeSet.add(skill);
+        }
+      }
+    }
+    if (excludeSet.size > 0) {
+      merged.exclude = Array.from(excludeSet);
+    }
+
+    if (agentSkills?.autoload !== undefined) {
+      merged.autoload = agentSkills.autoload;
+    } else if (projectSkills?.autoload !== undefined) {
+      merged.autoload = projectSkills.autoload;
+    }
+
+    return Object.keys(merged).length === 0 ? undefined : merged;
   }
 
   /**

@@ -416,8 +416,9 @@ export class ParallelProcessingService {
     }
 
     const agentConfig = this.configService.getAgentConfig(agentId);
-    if (agentConfig && agentConfig.inline?.provider) {
-      return agentConfig.inline.provider as ProviderName;
+    const resolved = this.resolveProviderFromConfig(agentConfig);
+    if (resolved) {
+      return resolved;
     }
 
     this.logger.warn(`No provider found for agent ${agentId}, defaulting to claude`);
@@ -435,5 +436,43 @@ export class ParallelProcessingService {
       }
     }
     return [];
+  }
+
+  private resolveProviderFromConfig(agentConfig: any): ProviderName | null {
+    if (!agentConfig) {
+      return null;
+    }
+
+    const providerValue = Array.isArray(agentConfig.provider)
+      ? agentConfig.provider[0]
+      : agentConfig.provider;
+    const normalized = this.normalizeProviderName(providerValue);
+    if (normalized) {
+      return normalized;
+    }
+
+    if (agentConfig.inline?.provider) {
+      return this.normalizeProviderName(agentConfig.inline.provider);
+    }
+
+    return null;
+  }
+
+  private normalizeProviderName(provider?: string): ProviderName | null {
+    if (!provider || typeof provider !== 'string') {
+      return null;
+    }
+
+    const trimmed = provider.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const candidate = trimmed.includes('/') ? trimmed.split('/')[1] : trimmed;
+    if (candidate === 'claude' || candidate === 'gemini' || candidate === 'copilot' || candidate === 'codex') {
+      return candidate;
+    }
+
+    return null;
   }
 }

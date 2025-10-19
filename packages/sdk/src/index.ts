@@ -204,3 +204,61 @@ export type {
   AgentMetadata,
   TemplateVars,
 } from './types/template.types';
+
+// Skills schema (WBS-16 Phase 1)
+export type {
+  SkillMetadata,
+  SkillContent,
+  SkillDefinition,
+  SkillsConfig,
+  CrewxProjectConfig,
+  AgentDefinition,
+  SkillParserOptions,
+  SkillManifest,
+} from './schema/skills.types';
+export {
+  SkillLoadError,
+  SkillNotFoundError,
+  SkillDependencyError,
+  SkillVersionMismatchError,
+} from './schema/skills.types';
+
+// Skills parser (WBS-16 Phase 2)
+export {
+  parseCrewxConfig,
+  parseCrewxConfigFromFile,
+  parseSkillManifest,
+  parseSkillManifestFromFile,
+  validateSkillMetadata,
+  loadSkillContent,
+  clearSkillCache,
+} from './schema/skills-parser';
+
+// Skill Runtime (WBS-17 Phase 1)
+export {
+  ProgressiveSkillLoader,
+  ClaudeSkillAdapter,
+  SystemRuntimeValidator,
+  MockRuntimeValidator,
+} from './skills';
+export type {
+  ISkillRuntime,
+  IProgressiveSkillLoader,
+  IClaudeSkillAdapter,
+  RuntimeRequirementsValidator,
+  SkillExecutionContext,
+  SkillExecutionResult,
+  SkillLoadOptions,
+  SkillCacheStats,
+  SkillRuntimeInfo,
+  SkillRuntimeEvents,
+  SkillRuntimeError,
+  ProgressiveLoadingError,
+  SkillExecutionError,
+  SkillContextError,
+  SDKExecutionContext,
+  CLIExecutionContext,
+  ProgressiveDisclosureConfig,
+  RuntimeInfo,
+  SkillBundleInfo,
+} from './skills';

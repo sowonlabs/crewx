@@ -1,3 +1,4 @@
+import type { SkillsConfig } from '../schema/skills.types';
 export interface RemoteAgentToolsConfig {
     query?: string;
     execute?: string;
@@ -35,6 +36,7 @@ export interface AgentConfig {
         query?: string[];
         execute?: string[];
     };
+    skills?: SkillsConfig;
     tools?: string[];
     capabilities?: {
         autonomous_work?: boolean;
@@ -114,4 +116,5 @@ export interface AgentInfo {
         model?: string;
     };
     remote?: RemoteAgentInfo;
+    skills?: SkillsConfig;
 }
