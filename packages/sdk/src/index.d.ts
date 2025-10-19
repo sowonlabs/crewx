@@ -7,6 +7,10 @@ export { DEFAULT_CONVERSATION_CONFIG, getConversationConfig, } from './conversat
 export { DocumentManager } from './knowledge/DocumentManager';
 export { ProviderNamespace, BuiltInProviders, ProviderNotAvailableError, } from './core/providers/ai-provider.interface';
 export type { ProviderNamespaceType, AIProvider, AIQueryOptions, AIResponse, } from './core/providers/ai-provider.interface';
+export { BaseAIProvider } from './core/providers/base-ai.provider';
+export { ClaudeProvider, GeminiProvider, CopilotProvider, CodexProvider, BaseDynamicProviderFactory, } from './core/providers';
+export type { BaseAIProviderOptions, LoggerLike, AIProviderConfig, } from './core/providers/base-ai.types';
+export type { PluginProviderConfig, RemoteProviderConfig, DynamicProviderConfig, DynamicProviderFactoryOptions, } from './core/providers/dynamic-provider.factory';
 export type { AgentAction, AgentConfig, AgentsConfig, AgentInfo, AgentQueryOptions, AgentResponse, RemoteAgentConfigInput, RemoteAgentInfo, } from './types/agent.types';
 export { ExecutionMode, SecurityLevel } from './types/agent.types';
 export { getErrorMessage, getErrorStack, isError } from './utils/error-utils';

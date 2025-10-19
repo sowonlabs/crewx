@@ -14,14 +14,15 @@ process.env.LOG_LEVEL = 'error';
 
 // Mock NestJS common dependencies
 vi.mock('@nestjs/common', () => ({
-  Injectable: vi.fn(),
-  Inject: vi.fn(),
+  Injectable: () => (target: any) => target, // Decorator that returns the class unchanged
+  Inject: () => (target: any, propertyKey: string | symbol, parameterIndex: number) => {}, // Parameter decorator
   Logger: vi.fn().mockImplementation(() => ({
     log: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
     debug: vi.fn(),
   })),
+  OnModuleInit: vi.fn(), // Interface/type, not used at runtime
 }));
 
 vi.mock('@nestjs/config', () => ({

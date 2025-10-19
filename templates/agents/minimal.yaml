@@ -1,25 +1,13 @@
-# CrewX Custom Agents Configuration
-# 
-# This file is for your project-specific custom agents.
-# Built-in agents (@claude, @gemini, @copilot, @crewx) are always available
-# and don't need to be defined here.
+# CrewX Minimal Layout Definition
 #
-# Add your custom agents below:
+# This layout provides a lightweight structure that simply wraps the agent prompt
+# and preserves backward compatibility with inline system prompts.
 
-agents: []
-  # Example custom agent:
-  # - id: "my_agent"
-  #   name: "My Custom Agent"
-  #   role: "developer"
-  #   team: "My Team"
-  #   working_directory: "./"
-  #   options:
-  #     query:
-  #       - "--add-dir=."
-  #   inline:
-  #     type: "agent"
-  #     provider: "claude"
-  #     model: "sonnet"  # Optional: specify model
-  #     system_prompt: |
-  #       Your custom system prompt here...
+layouts:
+  minimal: |
+    <crewx_system_prompt>
+    {{{agent.inline.prompt}}}
+    </crewx_system_prompt>
 
+propsSchema: {}
+defaultProps: {}

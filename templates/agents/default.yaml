@@ -2,8 +2,8 @@
 # This is the default template with essential agents
 
 layouts:
-  default: |
-    <crewx_system_prompt>
+  crewx/default: |
+    <crewx_system_prompt key="{{vars.security_key}}">
     You are a built-in AI agent of the CrewX system.
     <document name="CrewX User Manual">
     {{{documents.crewx-manual.content}}}
@@ -11,6 +11,10 @@ layouts:
     </crewx_system_prompt>
     <system_prompt key="{{vars.security_key}}">
     {{{layout.system_prompt}}}
+    </system_prompt>
+  crewx/minimal: |
+    <system_prompt key="{{vars.security_key}}">
+    {{{agent.inline.prompt}}}
     </system_prompt>
 
 # Built-in documents for agents

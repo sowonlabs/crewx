@@ -2,7 +2,14 @@
  * Utility for reading stdin input in CLI handlers
  */
 
-import { getTimeoutConfig } from '@sowonai/crewx-sdk';
+import {
+  getTimeoutConfig,
+  parseStructuredPayload as sdkParseStructuredPayload,
+  type StructuredPayload,
+} from '@sowonai/crewx-sdk';
+
+export { sdkParseStructuredPayload as parseStructuredPayload };
+export type { StructuredPayload } from '@sowonai/crewx-sdk';
 
 /**
  * Read content from stdin if available (for pipe operations)
@@ -139,65 +146,10 @@ export function formatPipedContext(pipedContent: string): string {
 }
 
 /**
- * @deprecated Use SDK types instead: import { StructuredPayload, parseStructuredPayload } from '@sowonai/crewx-sdk'
- */
-export interface StructuredContextPayload {
-  version?: string;
-  agent?: {
-    id?: string | null;
-    provider?: string;
-    mode?: string;
-    model?: string | null;
-  };
-  prompt?: string;
-  context?: string;
-  messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
-  metadata?: {
-    platform?: string;
-    formattedHistory?: string;
-    originalContext?: string;
-    messageCount?: number;
-    generatedAt?: string;
-  };
-}
-
-/**
- * Parse structured payload from stdin input.
- * Uses SDK's parseStructuredPayload for forward compatibility.
- *
- * @deprecated Use SDK version: import { parseStructuredPayload } from '@sowonai/crewx-sdk'
- */
-export function parseStructuredPayload(input: string | null | undefined): StructuredContextPayload | null {
-  if (!input) {
-    return null;
-  }
-
-  const trimmed = input.trim();
-  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (parsed && typeof parsed === 'object' && 'prompt' in parsed && 'messages' in parsed) {
-      const payload = parsed as StructuredContextPayload;
-      if (!Array.isArray(payload.messages)) {
-        payload.messages = [];
-      }
-      return payload;
-    }
-  } catch (error) {
-    // Ignore JSON parse errors - fall back to legacy behavior
-  }
-
-  return null;
-}
-
-/**
  * Build context string from structured payload.
  * Extracts relevant context based on whether messages are present.
  */
-export function buildContextFromStructuredPayload(payload: StructuredContextPayload | null): string | undefined {
+export function buildContextFromStructuredPayload(payload: StructuredPayload | null): string | undefined {
   if (!payload) {
     return undefined;
   }

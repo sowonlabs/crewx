@@ -1,5 +1,6 @@
 /dist
 /packages/*/dist
+/packages/cli/templates/
 /node_modules
 **/package-lock.json
 sowonai-*.tgz

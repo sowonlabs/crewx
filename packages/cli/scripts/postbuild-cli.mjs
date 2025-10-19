@@ -3,12 +3,31 @@
  * Ensure the CLI build artifact has an executable shebang after compilation.
  * Works both inside the monorepo and when the package is installed from npm.
  */
-import { chmodSync, existsSync, readFileSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, readFileSync, writeFileSync, cpSync, rmSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageRoot = dirname(scriptDir);
+const candidateTemplateSources = [
+  join(dirname(packageRoot), 'templates'),
+  join(dirname(dirname(packageRoot)), 'templates'),
+  join(packageRoot, 'templates'),
+];
+const sourceTemplatesDir = candidateTemplateSources.find(candidate => existsSync(candidate));
+const targetTemplatesDir = join(packageRoot, 'templates');
+
+try {
+  if (sourceTemplatesDir && sourceTemplatesDir !== targetTemplatesDir) {
+    rmSync(targetTemplatesDir, { recursive: true, force: true });
+    cpSync(sourceTemplatesDir, targetTemplatesDir, { recursive: true });
+    console.log(`✅ Synced templates to ${targetTemplatesDir}`);
+  } else if (!sourceTemplatesDir && !existsSync(targetTemplatesDir)) {
+    console.warn('⚠️ Templates directory not found in monorepo; packaged CLI may rely on CDN fallback.');
+  }
+} catch (err) {
+  console.warn(`⚠️ Failed to sync templates directory: ${err instanceof Error ? err.message : err}`);
+}
 
 const candidatePaths = [
   join(packageRoot, 'dist', 'main.js'),

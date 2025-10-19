@@ -120,8 +120,10 @@ export interface AgentInfo {
   inline?: {
     type: 'agent';
     provider: 'claude' | 'gemini' | 'copilot';
-    system_prompt: string;
+    system_prompt?: string; // Legacy system prompt (backward compatibility)
+    prompt?: string; // Alternative to system_prompt
     model?: string; // Default model for this agent
+    layout?: string | { id: string; props?: Record<string, any> }; // WBS-13: Layout DSL support
   };
   remote?: RemoteAgentInfo;
 }

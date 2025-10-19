@@ -74,6 +74,7 @@ describe('LayoutRenderer', () => {
       };
 
       const result = renderer.render(layout, context);
+      console.log(result);
       
       expect(result).toContain('Theme: dark');
       expect(result).toContain('Count: 42');
