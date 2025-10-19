@@ -9,7 +9,7 @@
 | ✅ 완료   | WBS-11 | 레이아웃 시스템 기획 | 레이아웃 DSL 정의, 로더 설계 (단순화) | WBS-10     | Phase 1-2 완료 (2025-10-18): DSL 명세, 로더 아키텍처 |
 | ✅ 완료 | WBS-12 | 레이아웃 시스템 구현 | LayoutLoader, PropsValidator, LayoutRenderer 구현 | WBS-11     | Phase 1-4 완료 (2025-10-18): 3개 서비스 구현 및 아키텍처 검토 완료. 사이클 #3 완료 (2025-10-19): WBS-12-FIX-1, FIX-2, FIX-3, FIX-4 리팩토링 및 테스트 보강 완료 |
 | ✅ 완료 | WBS-13 | CLI 레이아웃 통합 | CLI가 SDK LayoutLoader/Renderer/PropsValidator를 사용해 `inline.layout` YAML을 처리하도록 통합 | WBS-12 | **전체 완료 (2025-10-19)**: Phase 1-3 완료, SDK 레이아웃 스택 통합, 코어 중복 로직 정리, P0 검증 완료 (template path resolution verified, production-ready) |
-| 🟡 진행중 | WBS-14 | StructuredPayload/TemplateContext 통합 및 하드코딩 제거 | CLI 시스템 프롬프트 중복 제거, TemplateContext SDK 공개, 컨텍스트 타입 표준화 | WBS-13 | **Phase 1 완료 (2025-10-19)**, **Phase 3 완료 (2025-10-19)**, **Phase 2 완료 (2025-10-19)**, **Phase 4 완료 (2025-10-20)** → 다음 Phase 5: CREWX.md 정리 |
+| ✅ 완료 | WBS-14 | StructuredPayload/TemplateContext 통합 및 하드코딩 제거 | CLI 시스템 프롬프트 중복 제거, TemplateContext SDK 공개, 컨텍스트 타입 표준화 | WBS-13 | **전체 완료 (2025-10-20)**: Phase 1-5 완료. TemplateContext SDK 공개, 하드코딩 제거, 레이아웃 시스템 통합, 문서화 및 CREWX.md 정리 완료 |
 
 ## 상세 작업 계획
 
@@ -187,7 +187,7 @@
 - Phase 분할 필요: CLI 주요 서비스와 SDK 신기능을 연결하는 작업으로 영향 범위가 넓음.
 - 난이도: **중상** — Nest DI 구조, 템플릿 파이프라인, 배포 스크립트 등 여러 컴포넌트를 동시에 맞춰야 하고 회귀 위험이 높음.
 
-### WBS-14 StructuredPayload/TemplateContext 통합 및 하드코딩 제거 (🟡 진행중)
+### WBS-14 StructuredPayload/TemplateContext 통합 및 하드코딩 제거 (✅ 완료)
 > 📄 상세 계획: [wbs/wbs-14-context-integration-revised.md](wbs/wbs-14-context-integration-revised.md) - **Codex 검토 반영**
 > 📄 회의 요약: [wbs/wbs-14-meeting-summary.md](wbs/wbs-14-meeting-summary.md)
 
@@ -233,6 +233,11 @@
   - ✅ packages/cli/CREWX.md: TemplateContext Integration 강화, data flow diagram 추가, feature flag 문서화
   - ✅ README 파일 업데이트: Context Integration 관련 문서 링크 추가 (SDK, CLI, Root)
   - ✅ wbs.md: WBS-14 Phase 5 및 전체 상태를 ✅ 완료로 업데이트
+  - 📄 [wbs/wbs-14-phase-5-completion-summary.md](wbs/wbs-14-phase-5-completion-summary.md): TemplateContext 문서 작업 전부 종료
+
+**Phase 5 완료 요약 (2025-10-20):**
+- CREWX.md 문서 구조와 링크를 SDK/CLI/Root 전반에서 정리해 TemplateContext 흐름을 일관되게 반영
+- [wbs/wbs-14-phase-5-completion-summary.md](wbs/wbs-14-phase-5-completion-summary.md)을 기준으로 TemplateContext 문서화 TODO를 모두 마감
 
 **개발 배경**:
 - 개발자 회의 완료: @crewx_claude_dev, @crewx_codex_dev, @crewx_glm_dev
