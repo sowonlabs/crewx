@@ -4,13 +4,16 @@
 
 ## 현황
 
-| 상태     | ID    | 작업명             | 주요 산출물 및 범위                                   | 선행 디펜던시 | 병행 가능성/메모                                       |
-| ------ | ----- | ----------------- | ----------------------------------------------- | ---------- | ------------------------------------------------- |
-| ✅ 완료   | WBS-11 | 레이아웃 시스템 기획 | 레이아웃 DSL 정의, 로더 설계 (단순화) | WBS-10     | Phase 1-2 완료 (2025-10-18): DSL 명세, 로더 아키텍처 |
-| ✅ 완료 | WBS-12 | 레이아웃 시스템 구현 | LayoutLoader, PropsValidator, LayoutRenderer 구현 | WBS-11     | Phase 1-4 완료 (2025-10-18): 3개 서비스 구현 및 아키텍처 검토 완료. 사이클 #3 완료 (2025-10-19): WBS-12-FIX-1, FIX-2, FIX-3, FIX-4 리팩토링 및 테스트 보강 완료 |
-| ✅ 완료 | WBS-13 | CLI 레이아웃 통합 | CLI가 SDK LayoutLoader/Renderer/PropsValidator를 사용해 `inline.layout` YAML을 처리하도록 통합 | WBS-12 | **전체 완료 (2025-10-19)**: Phase 1-3 완료, SDK 레이아웃 스택 통합, 코어 중복 로직 정리, P0 검증 완료 (template path resolution verified, production-ready) |
-| ✅ 완료 | WBS-14 | StructuredPayload/TemplateContext 통합 및 하드코딩 제거 | CLI 시스템 프롬프트 중복 제거, TemplateContext SDK 공개, 컨텍스트 타입 표준화 | WBS-13 | **전체 완료 (2025-10-20)**: Phase 1-5 완료. TemplateContext SDK 공개, 하드코딩 제거, 레이아웃 시스템 통합, 문서화 및 CREWX.md 정리 완료 |
-| 🟡 진행중 | WBS-15 | 하드코딩 프롬프트 레이아웃 시스템 통합 | `<user_query>` 래핑 로직을 레이아웃 시스템으로 통합, 보안 컨테이너 패턴 표준화 | WBS-14 | **Phase 1 완료 (2025-10-19)**, **Phase 2 완료 (2025-10-20)**: TemplateContext vars 확장, secure-wrapper 레이아웃 추가, 사용자 입력 이스케이프 테스트 완료 |
+| 상태     | ID     | 작업명                                            | 주요 산출물 및 범위                                                                       | 선행 디펜던시 | 병행 가능성/메모                                                                                                                         |
+| ------ | ------ | ---------------------------------------------- | --------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| ✅ 완료   | WBS-11 | 레이아웃 시스템 기획                                    | 레이아웃 DSL 정의, 로더 설계 (단순화)                                                          | WBS-10  | Phase 1-2 완료 (2025-10-18): DSL 명세, 로더 아키텍처                                                                                        |
+| ✅ 완료   | WBS-12 | 레이아웃 시스템 구현                                    | LayoutLoader, PropsValidator, LayoutRenderer 구현                                   | WBS-11  | Phase 1-4 완료 (2025-10-18): 3개 서비스 구현 및 아키텍처 검토 완료. 사이클 #3 완료 (2025-10-19): WBS-12-FIX-1, FIX-2, FIX-3, FIX-4 리팩토링 및 테스트 보강 완료     |
+| ✅ 완료   | WBS-13 | CLI 레이아웃 통합                                    | CLI가 SDK LayoutLoader/Renderer/PropsValidator를 사용해 `inline.layout` YAML을 처리하도록 통합 | WBS-12  | **전체 완료 (2025-10-19)**: Phase 1-3 완료, SDK 레이아웃 스택 통합, 코어 중복 로직 정리, P0 검증 완료 (template path resolution verified, production-ready) |
+| ✅ 완료   | WBS-14 | StructuredPayload/TemplateContext 통합 및 하드코딩 제거 | CLI 시스템 프롬프트 중복 제거, TemplateContext SDK 공개, 컨텍스트 타입 표준화                           | WBS-13  | **전체 완료 (2025-10-20)**: Phase 1-5 완료. TemplateContext SDK 공개, 하드코딩 제거, 레이아웃 시스템 통합, 문서화 및 CREWX.md 정리 완료                          |
+| ✅ 완료   | WBS-15 | 하드코딩 프롬프트 레이아웃 시스템 통합                          | `<user_query>` 보안 래핑을 레이아웃 계층으로 이관, Legacy 플래그로 안전한 전환 기반 확보                           | WBS-14  | Phase 1-2 완료 (2025-10-19~20), 잔여 하드코딩 정리는 WBS-16~18에서 Claude 스킬 통합과 함께 진행                                                       |
+| ⬜️ 대기   | WBS-16 | SDK Config & Skills Schema                             | Claude `skills.md` 스키마 흡수, CrewX YAML/JSON Schema 정규화, CLI 파서 재사용 구조                              | WBS-14  | WBS-17 선행, WBS-18과 병행 가능                                                                                                            |
+| ⬜️ 대기   | WBS-17 | Skill Runtime & Package                                 | 스킬 실행 수명주기, AppManifest/번들 포맷, progressive disclosure 러닝타임                                       | WBS-16  | 레지스트리/배포 준비, WBS-18 Phase 2와 연계                                                                                                 |
+| ⬜️ 대기   | WBS-18 | Developer Enablement                                    | 검증/테스트 헬퍼, 샘플 스킬, 런타임 의존성 안내 및 Docker 베이스 이미지 로드맵                                      | WBS-17  | 문서/도구 패키지 화, Marketplace 론치 직전 마무리                                                                                           |
 
 ## 상세 작업 계획
 
@@ -251,7 +254,7 @@
 - 난이도: **중상** — 하드코딩 제거 시 폴백 경로 검증 필수, SDK 타입 확장 필요
 - 위험도: 🔴 **High** (inline 에이전트 손실 가능) → Phase 1 안전망 검증으로 완화
 
-### WBS-15 하드코딩 프롬프트 레이아웃 시스템 통합 (🟡 진행중)
+### WBS-15 하드코딩 프롬프트 레이아웃 시스템 통합 (✅ 완료)
 > 📄 상세 계획: [wbs/wbs-15-prompt-wrapping-integration.md](wbs/wbs-15-prompt-wrapping-integration.md)
 
 **목표**: `<user_query>` 보안 래핑 로직을 레이아웃 시스템으로 통합하여 하드코딩 제거
@@ -270,30 +273,56 @@
   - 기본/미니멀 레이아웃에 `<user_query>` 블록 추가로 컨테이너 손실 방지
   - Sanitization 관련 Vitest 케이스 2건 추가 (escape & raw 보존 검증)
 
-- **Phase 3**: CLI 하드코딩 제거 및 레이아웃 위임 — ⬜️ 대기 (2-3일 예상)
-  - [crewx.tool.ts:712-715](packages/cli/src/crewx.tool.ts#L712-L715) 제거 (query 모드)
-  - base-ai.provider.ts `wrapUserQueryWithSecurity()` deprecated 표시
-  - Feature flag `CREWX_WRAPPING_LEGACY=true` 구현
-  - 레이아웃 기반 래핑으로 전환
+- **Phase 3 ~ Phase 5** 범위는 Claude 스킬 통합 로드맵(WBS-16~18)으로 이관하여 SDK 중심 구조 개편과 함께 처리 예정
+- Legacy 경로는 `CREWX_WRAPPING_LEGACY` 플래그로 통제, 신규 레이아웃 기반 래핑이 기본값
 
-- **Phase 4**: 회귀 테스트 및 통합 검증 — ⬜️ 대기 (1-2일 예상)
-  - Inline, Minimal, Default, Secure-wrapper, Remote 에이전트 테스트
-  - npm build + test:cli + test:sdk 회귀 테스트
-  - crewx.layout.yaml 기반 E2E 테스트
-  - 테스트 리포트 작성
+**결과 요약**
+- 사용자 입력 보안 처리가 레이아웃 계층으로 표준화되어 CLI/SDK 동작이 일치
+- secure-wrapper 레이아웃과 Sanitization 테스트로 회귀 위험 최소화
+- 하드코딩 제거 잔여 작업은 Skill 런타임 통합과 병행하도록 재계획 완료
 
-- **Phase 5**: 문서화 및 마이그레이션 가이드 — ⬜️ 대기 (1-2일 예상)
-  - `docs/architecture/prompt-wrapping-standard.md` 작성
-  - Layout DSL 문서 확장 (vars.security_key, vars.user_input 사용법)
-  - 마이그레이션 가이드 작성
+**후속 조치**
+- CLI 하드코딩 제거 및 문서화는 WBS-16 Phase 2, WBS-18 Phase 3에서 완료
+- Legacy 플래그는 Marketplace 론치 전까지 유지하며 단계적 제거 계획 수립
 
-**발견된 하드코딩 패턴**:
-- `packages/cli/src/crewx.tool.ts:712-715` — `<user_query>` 래핑 (query 모드)
-- `packages/sdk/src/core/providers/base-ai.provider.ts:349-351` — wrapUserQueryWithSecurity() (미사용)
-- `packages/sdk/src/core/providers/dynamic-provider.factory.ts:545` — parseUserQueryForRemote (파싱용)
+### WBS-16 SDK Config & Skills Schema (⬜️ 대기)
+> 📄 상세 계획: [wbs/wbs-16-sdk-config-schema.md](wbs/wbs-16-sdk-config-schema.md)
 
-**규모 및 난이도 평가**:
-- 규모: **중** — 5개 Phase, 8-12일 예상
-- 난이도: **중상** — 보안 래핑 로직 변경, 레이아웃 DSL 확장 필요
-- 위험도: 🟡 **Medium** (feature flag로 완화 가능)
-- 이슈: 중복 래핑 로직 (2곳), 레이아웃 시스템과 분리된 보안 패턴
+**목표**: Claude `skills.md` 포맷과 CrewX YAML을 통합 스키마로 정규화하고 SDK에서 직접 검증/파싱할 수 있게 한다.
+
+- **Phase 1**: 스키마 설계 및 아티팩트 정의 — Claude 스킬 메타데이터 분석, CrewX YAML 필드 맵핑, JSON Schema/TypeScript 타입 초안 작성
+- **Phase 2**: SDK 파서/검증기 구현 — `parseCrewxConfig`, `parseSkillManifest` 추가, 에러 메시지 및 progressive disclosure 캐시 구조 마련
+- **Phase 3**: CLI 파서 전환 및 회귀 테스트 — ConfigService/AgentLoaderService가 SDK 파서를 재사용하도록 리팩터링, 회귀 테스트/문서 업데이트
+
+**산출물**
+- `packages/sdk/src/schema/*.ts` 스키마 모듈
+- JSON Schema & VS Code completion snippet
+- 마이그레이션 가이드 초안
+
+### WBS-17 Skill Runtime & Package (⬜️ 대기)
+> 📄 상세 계획: [wbs/wbs-17-skill-runtime.md](wbs/wbs-17-skill-runtime.md)
+
+**목표**: 스킬 실행 수명주기와 AppManifest/번들 포맷을 정의해 Marketplace 업로드/다운로드를 지원한다.
+
+- **Phase 1**: SkillRuntime 설계 — progressive disclosure 대응 로더, execution context 표준화, Claude 스킬 어댑터 초안
+- **Phase 2**: AppManifest & 번들 빌더 — YAML+리소스 패킹 포맷 정의, 서명/버전 필드, 검증 CLI 프로토타입
+- **Phase 3**: Registry 연동 — 업로드/다운로드 API, 권한 메타데이터, CLI workspace 연동(설치/업데이트)
+
+**산출물**
+- `packages/sdk/src/skills/runtime/*`
+- `packages/sdk/src/skills/manifest.ts`
+- Registry 클라이언트 및 간단한 Mock 서버
+
+### WBS-18 Developer Enablement (⬜️ 대기)
+> 📄 상세 계획: [wbs/wbs-18-developer-enablement.md](wbs/wbs-18-developer-enablement.md)
+
+**목표**: 스킬 제작 경험을 개선하기 위한 검증 도구, 샘플, 배포 가이드를 제공하고 런타임 의존성을 자동 점검한다.
+
+- **Phase 1**: 검증/테스트 헬퍼 — `validateSkillPackage`, `runSkillSmokeTest`, Vitest/Jest용 모킹 유틸
+- **Phase 2**: 샘플/문서/IDE 지원 — 예제 스킬 3종, JSON Schema 기반 자동완성, 문서/튜토리얼 업데이트
+- **Phase 3**: 런타임 의존성 & 배포 경고 — Python/Node 미설치 감지, 설치 가이드 출력, Docker 베이스 이미지 로드맵/PoC
+
+**산출물**
+- `packages/sdk/tests/skills/*` 샘플 및 하네스
+- 문서 업데이트(`docs/skills`, `CREWX.md`)
+- 설치 가이드 스크립트 및 경고 메시지 템플릿
