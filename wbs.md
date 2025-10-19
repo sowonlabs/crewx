@@ -11,9 +11,8 @@
 | ✅ 완료   | WBS-13 | CLI 레이아웃 통합                                    | CLI가 SDK LayoutLoader/Renderer/PropsValidator를 사용해 `inline.layout` YAML을 처리하도록 통합 | WBS-12  | **전체 완료 (2025-10-19)**: Phase 1-3 완료, SDK 레이아웃 스택 통합, 코어 중복 로직 정리, P0 검증 완료 (template path resolution verified, production-ready) |
 | ✅ 완료   | WBS-14 | StructuredPayload/TemplateContext 통합 및 하드코딩 제거 | CLI 시스템 프롬프트 중복 제거, TemplateContext SDK 공개, 컨텍스트 타입 표준화                           | WBS-13  | **전체 완료 (2025-10-20)**: Phase 1-5 완료. TemplateContext SDK 공개, 하드코딩 제거, 레이아웃 시스템 통합, 문서화 및 CREWX.md 정리 완료                          |
 | ✅ 완료   | WBS-15 | 하드코딩 프롬프트 레이아웃 시스템 통합                          | `<user_query>` 보안 래핑을 레이아웃 계층으로 이관, Legacy 플래그로 안전한 전환 기반 확보                           | WBS-14  | Phase 1-2 완료 (2025-10-19~20), 잔여 하드코딩 정리는 WBS-16~18에서 Claude 스킬 통합과 함께 진행                                                       |
-| ⬜️ 대기   | WBS-16 | SDK Config & Skills Schema                             | Claude `skills.md` 스키마 흡수, CrewX YAML/JSON Schema 정규화, CLI 파서 재사용 구조                              | WBS-14  | WBS-17 선행, WBS-18과 병행 가능                                                                                                            |
-| ⬜️ 대기   | WBS-17 | Skill Runtime & Package                                 | 스킬 실행 수명주기, AppManifest/번들 포맷, progressive disclosure 러닝타임                                       | WBS-16  | 레지스트리/배포 준비, WBS-18 Phase 2와 연계                                                                                                 |
-| ⬜️ 대기   | WBS-18 | Developer Enablement                                    | 검증/테스트 헬퍼, 샘플 스킬, 런타임 의존성 안내 및 Docker 베이스 이미지 로드맵                                      | WBS-17  | 문서/도구 패키지 화, Marketplace 론치 직전 마무리                                                                                           |
+| ⬜️ 대기   | WBS-16 | SDK Config & Skills Schema                             | Claude `skills.md` 스키마 흡수, CrewX YAML/JSON Schema 정규화, CLI 파서 재사용 구조                              | WBS-14  | WBS-17 선행                                                                                                                               |
+| ⬜️ 대기   | WBS-17 | Skill Runtime & Package                                 | 스킬 실행 수명주기, AppManifest/번들 포맷, progressive disclosure 러닝타임                                       | WBS-16  | 레지스트리는 장기 목표로 Mock 기반 검증만 수행, SDK/CLI 번들 생성·검증 기능 제공                                                             |
 
 ## 상세 작업 계획
 
@@ -282,7 +281,7 @@
 - 하드코딩 제거 잔여 작업은 Skill 런타임 통합과 병행하도록 재계획 완료
 
 **후속 조치**
-- CLI 하드코딩 제거 및 문서화는 WBS-16 Phase 2, WBS-18 Phase 3에서 완료
+- CLI 하드코딩 제거 및 문서화는 WBS-16 Phase 2에서 완료
 - Legacy 플래그는 Marketplace 론치 전까지 유지하며 단계적 제거 계획 수립
 
 ### WBS-16 SDK Config & Skills Schema (⬜️ 대기)
@@ -293,6 +292,9 @@
 - **Phase 1**: 스키마 설계 및 아티팩트 정의 — Claude 스킬 메타데이터 분석, CrewX YAML 필드 맵핑, JSON Schema/TypeScript 타입 초안 작성
 - **Phase 2**: SDK 파서/검증기 구현 — `parseCrewxConfig`, `parseSkillManifest` 추가, 에러 메시지 및 progressive disclosure 캐시 구조 마련
 - **Phase 3**: CLI 파서 전환 및 회귀 테스트 — ConfigService/AgentLoaderService가 SDK 파서를 재사용하도록 리팩터링, 회귀 테스트/문서 업데이트
+- **핵심 설계 포인트**:
+  - 기본 스킬 소스는 Claude Code `skills/` 디렉터리, `skillsPaths` 배열로 프로젝트·외부 경로 추가
+  - 에이전트별 `skills.include`/`skills.exclude` 필드로 특정 스킬만 활성화/제외 가능
 
 **산출물**
 - `packages/sdk/src/schema/*.ts` 스키마 모듈
@@ -302,27 +304,13 @@
 ### WBS-17 Skill Runtime & Package (⬜️ 대기)
 > 📄 상세 계획: [wbs/wbs-17-skill-runtime.md](wbs/wbs-17-skill-runtime.md)
 
-**목표**: 스킬 실행 수명주기와 AppManifest/번들 포맷을 정의해 Marketplace 업로드/다운로드를 지원한다.
+**목표**: 스킬 실행 수명주기와 AppManifest/번들 포맷을 정의하고 향후 레지스트리 연동을 대비한 SDK 준비를 완료한다. 초기에는 Claude Code의 `skills/` 디렉터리를 그대로 활용하며, 패키징 시 스킬과 runtime 요구 메타데이터를 함께 포함한다.
 
 - **Phase 1**: SkillRuntime 설계 — progressive disclosure 대응 로더, execution context 표준화, Claude 스킬 어댑터 초안
-- **Phase 2**: AppManifest & 번들 빌더 — YAML+리소스 패킹 포맷 정의, 서명/버전 필드, 검증 CLI 프로토타입
-- **Phase 3**: Registry 연동 — 업로드/다운로드 API, 권한 메타데이터, CLI workspace 연동(설치/업데이트)
+- **Phase 2**: AppManifest & 번들 빌더 — YAML+리소스 패킹 포맷 정의, runtimeRequirements 메타데이터 저장, 서명/버전 필드, 검증 CLI 프로토타입
+- **Phase 3**: Registry Mock 및 E2E — Mock 기반 업로드/설치/실행 흐름 검증, 설치 시 runtimeRequirements 안내로 장기 목표 준비
 
 **산출물**
 - `packages/sdk/src/skills/runtime/*`
 - `packages/sdk/src/skills/manifest.ts`
-- Registry 클라이언트 및 간단한 Mock 서버
-
-### WBS-18 Developer Enablement (⬜️ 대기)
-> 📄 상세 계획: [wbs/wbs-18-developer-enablement.md](wbs/wbs-18-developer-enablement.md)
-
-**목표**: 스킬 제작 경험을 개선하기 위한 검증 도구, 샘플, 배포 가이드를 제공하고 런타임 의존성을 자동 점검한다.
-
-- **Phase 1**: 검증/테스트 헬퍼 — `validateSkillPackage`, `runSkillSmokeTest`, Vitest/Jest용 모킹 유틸
-- **Phase 2**: 샘플/문서/IDE 지원 — 예제 스킬 3종, JSON Schema 기반 자동완성, 문서/튜토리얼 업데이트
-- **Phase 3**: 런타임 의존성 & 배포 경고 — Python/Node 미설치 감지, 설치 가이드 출력, Docker 베이스 이미지 로드맵/PoC
-
-**산출물**
-- `packages/sdk/tests/skills/*` 샘플 및 하네스
-- 문서 업데이트(`docs/skills`, `CREWX.md`)
-- 설치 가이드 스크립트 및 경고 메시지 템플릿
+- Registry Mock 스크립트, API 계약서(RFC), CLI 통합 PoC

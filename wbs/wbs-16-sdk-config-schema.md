@@ -17,6 +17,8 @@
 - Claude `skills.md` 예제 수집 및 메타데이터 필드 정리 (`name`, `description`, `visibility`, `version`, `dependencies` 등)
 - CrewX `crewx.yaml` 필드 맵핑: agents, providers, layouts, documents, settings
 - 스킬/에이전트 공통 타입 정의 초안 작성 (`SkillMetadata`, `CrewxProjectConfig`, `AgentDefinition`)
+- 스킬 소스 정의: 기본값은 Claude Code `skills/` 디렉터리 참조, `skillsPaths` 배열로 프로젝트/외부 디렉터리 추가 지원 (초기 단계는 Claude 스킬을 그대로 소비)
+- 에이전트별 스킬 선택 필드 설계 (`agent.skills.include/exclude`)로 선택적 활성화 시나리오 수용
 - JSON Schema 초안과 TypeScript 타입 선언(`packages/sdk/src/schema/types.ts`) 설계
 - **산출물**: 스키마 사양 문서, 타입 다이어그램, 샘플 YAML/Markdown 세트
 
@@ -49,6 +51,8 @@ description: "Creates a Conventional Commits compliant commit message from a cod
 version: "1.2.0"
 dependencies:
   - code-analyzer@2.5.0
+runtime:
+  python: ">=3.11"
 ---
 
 ## Role
@@ -69,6 +73,7 @@ Analyze the provided code changes and generate a Conventional Commits compliant 
 ### Phase 2 — SDK 파서/검증기 구현 (예상 5일)
 - `packages/sdk/src/schema/` 디렉터리 생성, `config.schema.ts`, `skill.schema.ts` 추가
 - `parseCrewxConfig`, `parseSkillManifest` 함수 구현: Zod 혹은 자체 검증기 활용, 에러 코드/메시지 표준화
+- `skillsPaths`/`skills.include`/`skills.exclude` 필드를 처리해 기본 Claude 디렉터리 + 사용자 정의 경로를 병합
 - Progressive disclosure 대비 캐시 구조 설계 (frontmatter 우선/본문 지연 로딩)
 - JSON Schema 자동 생성 파이프라인 구현 (`npm run generate:schema`)
 - 단위 테스트/스냅샷 테스트 작성 (`packages/sdk/tests/schema`)
