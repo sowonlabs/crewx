@@ -1,0 +1,42 @@
+# Test fixture: dashboard layout with props
+id: "crewx/dashboard"
+version: "1.0.0"
+description: "Dashboard layout with customizable settings"
+
+propsSchema:
+  theme:
+    type: string
+    oneOf: ["light", "dark", "auto"]
+    defaultValue: "auto"
+    description: "UI theme preference"
+
+  enableTimeline:
+    type: bool
+    defaultValue: true
+    description: "Show conversation timeline"
+
+  maxContextDocs:
+    type: number
+    min: 1
+    max: 50
+    defaultValue: 10
+    description: "Maximum number of context documents"
+
+  sections:
+    type: arrayOf
+    itemType: string
+    itemOneOf: ["overview", "tasks", "knowledge", "tools"]
+    defaultValue: ["overview", "tasks"]
+    description: "Dashboard sections to display"
+
+template: |
+  <crewx_system_prompt>
+  Dashboard Configuration:
+  - Theme: {{props.theme}}
+  - Timeline: {{props.enableTimeline}}
+  - Max Docs: {{props.maxContextDocs}}
+  - Sections: {{#each props.sections}}{{this}}, {{/each}}
+  </crewx_system_prompt>
+  <system_prompt key="{{vars.security_key}}">
+  {{{agent.inline.prompt}}}
+  </system_prompt>

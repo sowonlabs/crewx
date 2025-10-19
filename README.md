@@ -1,4 +1,4 @@
-# CrewX
+# SowonAI CrewX
 
 > Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions
 
@@ -152,7 +152,7 @@ Built-in CLI providers:
 ## Create Custom Agents
 
 ```bash
-# Let @crewx create agents for you
+# Let SowonAI CrewX create agents for you
 crewx execute "@crewx Create a Python expert agent"
 crewx execute "@crewx Create a React specialist with TypeScript"
 crewx execute "@crewx Create a DevOps agent for Docker"
@@ -209,8 +209,96 @@ crewx query "@remote_backend check API status"
 
 👉 **[Remote Agents Guide →](./docs/remote-agents.md)** for detailed setup and configuration
 
+## Monorepo Architecture
+
+SowonAI CrewX is structured as a monorepo with separate packages for maximum flexibility:
+
+```
+crewx/
+├── packages/
+│   ├── sdk/          # @sowonai/crewx-sdk (Apache-2.0)
+│   │   ├── Core AI provider interfaces
+│   │   ├── Conversation management
+│   │   ├── Knowledge utilities
+│   │   └── Agent domain types
+│   └── cli/          # crewx (MIT)
+│       ├── CLI implementation
+│       ├── Slack integration
+│       ├── MCP server
+│       └── Provider implementations
+├── docs/             # Comprehensive documentation
+└── README.md         # This file
+```
+
+### Package Overview
+
+| Package | License | Description | Install |
+|---------|---------|-------------|---------|
+| `@sowonai/crewx-sdk` | Apache-2.0 | Core SDK for building custom AI integrations | `npm install @sowonai/crewx-sdk` |
+| `crewx` | MIT | Full-featured CLI tool for immediate use | `npm install -g crewx` |
+
+**When to use what:**
+- **Use `crewx` CLI** if you want to use AI agents immediately in your terminal, Slack, or IDE
+- **Use `@sowonai/crewx-sdk`** if you're building custom AI tools or integrating SowonAI CrewX into your application
+
+### SDK/CLI Integration
+
+The SDK provides reusable components that power the CLI, enabling custom integrations:
+
+**SDK Provides:**
+- `BaseMessageFormatter` - Platform-agnostic message formatting
+- `BaseAIProvider` - Extensible AI provider base class
+- Built-in providers: `ClaudeProvider`, `GeminiProvider`, `CopilotProvider`, `CodexProvider`
+- `RemoteAgentManager` - Remote agent communication
+- `createCrewxAgent` - High-level agent factory API
+
+**CLI Adds:**
+- NestJS integration and dependency injection
+- Slack-specific formatting and bot features
+- MCP server implementation
+- File system operations and tool execution
+- Platform-specific security and authentication
+
+**Example - Using SDK Directly:**
+```typescript
+import { ClaudeProvider, RemoteAgentManager } from '@sowonai/crewx-sdk';
+
+// Use SDK providers without CLI
+const provider = new ClaudeProvider({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  logger: console,
+});
+
+const result = await provider.query('Analyze codebase');
+```
+
+For detailed integration patterns, see [WBS-9 Integration Guide](docs/wbs-9-phase1-5-integration.md).
+
+### Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build all packages
+npm run build
+
+# Run tests
+npm test
+
+# Build specific package
+npm run build --workspace @sowonai/crewx-sdk
+npm run build --workspace crewx
+```
+
+For more information, see:
+- [SDK Development Guide](packages/sdk/README.md)
+- [CLI Development Guide](packages/cli/README.md)
+- [Build & Release Guide](BUILD.md)
+
 ## Documentation
 
+### User Guides
 - [📖 CLI Guide](docs/cli-guide.md) - Complete CLI reference
 - [🔌 MCP Integration](docs/mcp-integration.md) - IDE setup and MCP servers
 - [⚙️ Agent Configuration](docs/agent-configuration.md) - Custom agents and advanced config
@@ -221,13 +309,24 @@ crewx query "@remote_backend check API status"
 - [🔧 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 - [💬 Slack Integration](SLACK_INSTALL.md) - Slack bot setup
 
+### Developer Guides
+- [🏗️ SDK API Reference](packages/sdk/README.md) - Build custom integrations
+- [⚙️ CLI Development](packages/cli/README.md) - CLI architecture and development
+- [📦 Build & Release](BUILD.md) - Building and releasing packages
+- [🔧 Development Workflow](docs/development.md) - Contributing guidelines
+
 ## License
 
-Apache-2.0 License - Copyright (c) 2025 SowonLabs
+- **SDK** (`@sowonai/crewx-sdk`): Apache-2.0 License
+- **CLI** (`crewx`): MIT License
+
+Copyright (c) 2025 SowonLabs
 
 ## Contributing
 
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) and sign our [Contributor License Agreement (CLA)](docs/CLA.md) before submitting pull requests.
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) before submitting pull requests.
+
+For SDK contributions, please sign our [Contributor License Agreement (CLA)](docs/CLA.md).
 
 ---
 

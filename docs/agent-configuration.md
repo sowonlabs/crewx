@@ -281,7 +281,7 @@ agents:
 
 ## Creating Agents via CLI
 
-Use the `@crewx` assistant to create agents:
+Use the SowonAI CrewX assistant to create agents:
 
 ```bash
 # Create a Python expert
@@ -297,7 +297,7 @@ crewx execute "@crewx Create a DevOps agent for Docker and Kubernetes"
 crewx execute "@crewx Create a security analyst agent"
 ```
 
-The `@crewx` assistant understands your request and creates a complete agent configuration.
+The SowonAI CrewX assistant understands your request and creates a complete agent configuration.
 
 ## Best Practices
 

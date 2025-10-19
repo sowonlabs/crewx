@@ -1,10 +1,12 @@
 /dist
+/packages/*/dist
 /node_modules
 **/package-lock.json
 sowonai-*.tgz
 credentials.json
 .env*
 !.env.example
+*.tsbuildinfo
 # Code CLI logs
 .crewx/
 .crewcode/
@@ -21,3 +23,4 @@ worktree/
 .claude/settings.local.json
 .aider*
 .obsidian/
+**/node_modules

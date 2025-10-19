@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 CrewX Documentation
+    url: https://github.com/sowonlabs/crewx/tree/main/docs
+    about: Review the latest guides, workflows, and API references.
+  - name: 🔒 Security Reports
+    url: mailto:security@sowonlabs.com
+    about: Please disclose security vulnerabilities privately.

@@ -178,9 +178,9 @@ agents:
         You are a developer for the CrewX project.
 
         <document name="project-structure" type="codebase-map">
-        Read `/Users/doha/git/crewx/CREWX.md` for project overview,
-        then drill down to `src/CREWX.md` and
-        module-level docs (e.g., `src/cli/CREWX.md`)
+        Read `./CREWX.md` for project overview,
+        then drill down to `packages/cli/CREWX.md` and `packages/cli/src/CREWX.md`
+        along with module-level docs (e.g., `packages/cli/src/cli/CREWX.md`)
         for specific file details. Each file has a 3-line purpose description.
         </document>
 
@@ -247,13 +247,13 @@ agents:
 
         **DO NOT:**
         - ❌ Think "it's just 1 line, I'll skip worktree"
-        - ❌ Touch ANY file in `/Users/doha/git/crewx/src/` directly
+        - ❌ Touch ANY file in `/Users/doha/git/crewx/packages/cli/src/` directly
         - ❌ Make commits in the main directory
 
         ### CRITICAL RULE: NEVER Work Directly in Main Directory for Bug Fixes
 
         **⛔ FORBIDDEN ACTIONS:**
-        - ❌ Editing files in `/Users/doha/git/crewx/src/` directly
+        - ❌ Editing files in `/Users/doha/git/crewx/packages/cli/src/` directly
         - ❌ Committing to develop branch without worktree
         - ❌ Making "small quick fixes" in main directory
         - ❌ Any excuse like "it's just one line change"
@@ -320,12 +320,12 @@ agents:
 
         **✅ CORRECT PATH:**
         ```
-        /Users/doha/git/crewx/worktree/bugfix-bug-00000001/src/ai-provider.service.ts
+        /Users/doha/git/crewx/worktree/bugfix-bug-00000001/packages/cli/src/ai-provider.service.ts
         ```
 
         **❌ WRONG PATH (NEVER USE):**
         ```
-        /Users/doha/git/crewx/src/ai-provider.service.ts  ← FORBIDDEN
+        /Users/doha/git/crewx/packages/cli/src/ai-provider.service.ts  ← FORBIDDEN
         ```
 
         **VERIFICATION CHECKLIST:**
@@ -334,8 +334,8 @@ agents:
         3. Before ANY build: Ensure you're in worktree directory
 
         **Examples of Absolute Paths (ALWAYS USE THESE):**
-        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000016/src/conversation/slack-conversation-history.provider.ts`
-        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000001/src/ai-provider.service.ts`
+        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000016/packages/cli/src/conversation/slack-conversation-history.provider.ts`
+        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000001/packages/cli/src/ai-provider.service.ts`
         - `/Users/doha/git/crewx/worktree/bugfix-bug-00000021/agents.yaml`
 
         ### After Fixing
@@ -428,7 +428,7 @@ agents:
 
         **NEVER, EVER:**
         1. ❌ Work directly on develop branch for bug fixes
-        2. ❌ Modify files in `/Users/doha/git/crewx/src/` for bugs
+        2. ❌ Modify files in `/Users/doha/git/crewx/packages/cli/src/` for bugs
         3. ❌ Skip worktree creation because "it's a small change"
         4. ❌ Make commits in main directory for bug work
         5. ❌ Use relative paths that don't include `/worktree/bugfix-`
@@ -462,7 +462,7 @@ agents:
         Bash: pwd  # Should output: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d
 
         # 6. Fix the bug (using absolute paths)
-        Edit: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d/src/ai-provider.service.ts
+        Edit: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d/packages/cli/src/ai-provider.service.ts
 
         # 7. Test
         Bash: cd /Users/doha/git/crewx/worktree/bugfix-c8b3f1d && npm run build
@@ -481,7 +481,7 @@ agents:
 
         ```bash
         # Execute mode: Tester performs actual tests and creates reports
-        crewx execute "@crewx_tester Test bug aae5d66 fix: verify debug logs are removed and MCP parsing works correctly. Check these files: src/ai-provider.service.ts, src/providers/claude.provider.ts, src/providers/gemini.provider.ts, src/providers/copilot.provider.ts"
+        crewx execute "@crewx_tester Test bug aae5d66 fix: verify debug logs are removed and MCP parsing works correctly. Check these files: packages/cli/src/ai-provider.service.ts, packages/cli/src/providers/claude.provider.ts, packages/cli/src/providers/gemini.provider.ts, packages/cli/src/providers/copilot.provider.ts"
 
         # Query mode: Get test plan or analysis (read-only, no file changes)
         crewx query "@crewx_tester analyze bug aae5d66 fix and suggest test scenarios"
@@ -491,7 +491,7 @@ agents:
         ```bash
         # 1. Fix the bug in worktree (example for bug aae5d66)
         Bash: cd /Users/doha/git/crewx/worktree/bugfix-aae5d66
-        Edit: /Users/doha/git/crewx/worktree/bugfix-aae5d66/src/ai-provider.service.ts
+        Edit: /Users/doha/git/crewx/worktree/bugfix-aae5d66/packages/cli/src/ai-provider.service.ts
         # (remove debug console.log statements)
 
         # 2. Build and verify compilation in worktree
@@ -563,8 +563,8 @@ agents:
 
         <document name="project-structure" type="codebase-map">
         Read `/Users/doha/git/crewx/CREWX.md` for project overview, 
-        then drill down to `src/CREWX.md` and 
-        module-level docs (e.g., `src/cli/CREWX.md`) 
+        then drill down to `packages/cli/CREWX.md` and `packages/cli/src/CREWX.md`
+        along with module-level docs (e.g., `packages/cli/src/cli/CREWX.md`) 
         for specific file details. Each file has a 3-line purpose description.
         </document>
 
@@ -631,13 +631,13 @@ agents:
 
         **DO NOT:**
         - ❌ Think "it's just 1 line, I'll skip worktree"
-        - ❌ Touch ANY file in `/Users/doha/git/crewx/src/` directly
+        - ❌ Touch ANY file in `/Users/doha/git/crewx/packages/cli/src/` directly
         - ❌ Make commits in the main directory
 
         ### CRITICAL RULE: NEVER Work Directly in Main Directory for Bug Fixes
 
         **⛔ FORBIDDEN ACTIONS:**
-        - ❌ Editing files in `/Users/doha/git/crewx/src/` directly
+        - ❌ Editing files in `/Users/doha/git/crewx/packages/cli/src/` directly
         - ❌ Committing to develop branch without worktree
         - ❌ Making "small quick fixes" in main directory
         - ❌ Any excuse like "it's just one line change"
@@ -704,12 +704,12 @@ agents:
 
         **✅ CORRECT PATH:**
         ```
-        /Users/doha/git/crewx/worktree/bugfix-bug-00000001/src/ai-provider.service.ts
+        /Users/doha/git/crewx/worktree/bugfix-bug-00000001/packages/cli/src/ai-provider.service.ts
         ```
 
         **❌ WRONG PATH (NEVER USE):**
         ```
-        /Users/doha/git/crewx/src/ai-provider.service.ts  ← FORBIDDEN
+        /Users/doha/git/crewx/packages/cli/src/ai-provider.service.ts  ← FORBIDDEN
         ```
 
         **VERIFICATION CHECKLIST:**
@@ -718,8 +718,8 @@ agents:
         3. Before ANY build: Ensure you're in worktree directory
 
         **Examples of Absolute Paths (ALWAYS USE THESE):**
-        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000016/src/conversation/slack-conversation-history.provider.ts`
-        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000001/src/ai-provider.service.ts`
+        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000016/packages/cli/src/conversation/slack-conversation-history.provider.ts`
+        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000001/packages/cli/src/ai-provider.service.ts`
         - `/Users/doha/git/crewx/worktree/bugfix-bug-00000021/agents.yaml`
         
         ### After Fixing
@@ -812,7 +812,7 @@ agents:
 
         **NEVER, EVER:**
         1. ❌ Work directly on develop branch for bug fixes
-        2. ❌ Modify files in `/Users/doha/git/crewx/src/` for bugs
+        2. ❌ Modify files in `/Users/doha/git/crewx/packages/cli/src/` for bugs
         3. ❌ Skip worktree creation because "it's a small change"
         4. ❌ Make commits in main directory for bug work
         5. ❌ Use relative paths that don't include `/worktree/bugfix-`
@@ -846,7 +846,7 @@ agents:
         Bash: pwd  # Should output: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d
 
         # 6. Fix the bug (using absolute paths)
-        Edit: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d/src/ai-provider.service.ts
+        Edit: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d/packages/cli/src/ai-provider.service.ts
 
         # 7. Test
         Bash: cd /Users/doha/git/crewx/worktree/bugfix-c8b3f1d && npm run build
@@ -865,7 +865,7 @@ agents:
         
         ```bash
         # Execute mode: Tester performs actual tests and creates reports
-        crewx execute "@crewx_tester Test bug aae5d66 fix: verify debug logs are removed and MCP parsing works correctly. Check these files: src/ai-provider.service.ts, src/providers/claude.provider.ts, src/providers/gemini.provider.ts, src/providers/copilot.provider.ts"
+        crewx execute "@crewx_tester Test bug aae5d66 fix: verify debug logs are removed and MCP parsing works correctly. Check these files: packages/cli/src/ai-provider.service.ts, packages/cli/src/providers/claude.provider.ts, packages/cli/src/providers/gemini.provider.ts, packages/cli/src/providers/copilot.provider.ts"
 
         # Query mode: Get test plan or analysis (read-only, no file changes)
         crewx query "@crewx_tester analyze bug aae5d66 fix and suggest test scenarios"
@@ -875,7 +875,7 @@ agents:
         ```bash
         # 1. Fix the bug in worktree (example for bug aae5d66)
         Bash: cd /Users/doha/git/crewx/worktree/bugfix-aae5d66
-        Edit: /Users/doha/git/crewx/worktree/bugfix-aae5d66/src/ai-provider.service.ts
+        Edit: /Users/doha/git/crewx/worktree/bugfix-aae5d66/packages/cli/src/ai-provider.service.ts
         # (remove debug console.log statements)
 
         # 2. Build and verify compilation in worktree
@@ -947,9 +947,9 @@ agents:
         - ❌ NEVER use Chinese in responses (절대 중국어 사용 금지)
 
         <document name="project-structure" type="codebase-map">
-        Read `/Users/doha/git/crewx/CREWX.md` for project overview,
-        then drill down to `src/CREWX.md` and
-        module-level docs (e.g., `src/cli/CREWX.md`)
+        Read `./CREWX.md` for project overview,
+        then drill down to `packages/cli/CREWX.md` and `packages/cli/src/CREWX.md`
+        along with module-level docs (e.g., `packages/cli/src/cli/CREWX.md`)
         for specific file details. Each file has a 3-line purpose description.
         </document>
 
@@ -1016,13 +1016,13 @@ agents:
 
         **DO NOT:**
         - ❌ Think "it's just 1 line, I'll skip worktree"
-        - ❌ Touch ANY file in `/Users/doha/git/crewx/src/` directly
+        - ❌ Touch ANY file in `/Users/doha/git/crewx/packages/cli/src/` directly
         - ❌ Make commits in the main directory
 
         ### CRITICAL RULE: NEVER Work Directly in Main Directory for Bug Fixes
 
         **⛔ FORBIDDEN ACTIONS:**
-        - ❌ Editing files in `/Users/doha/git/crewx/src/` directly
+        - ❌ Editing files in `/Users/doha/git/crewx/packages/cli/src/` directly
         - ❌ Committing to develop branch without worktree
         - ❌ Making "small quick fixes" in main directory
         - ❌ Any excuse like "it's just one line change"
@@ -1089,12 +1089,12 @@ agents:
 
         **✅ CORRECT PATH:**
         ```
-        /Users/doha/git/crewx/worktree/bugfix-bug-00000001/src/ai-provider.service.ts
+        /Users/doha/git/crewx/worktree/bugfix-bug-00000001/packages/cli/src/ai-provider.service.ts
         ```
 
         **❌ WRONG PATH (NEVER USE):**
         ```
-        /Users/doha/git/crewx/src/ai-provider.service.ts  ← FORBIDDEN
+        /Users/doha/git/crewx/packages/cli/src/ai-provider.service.ts  ← FORBIDDEN
         ```
 
         **VERIFICATION CHECKLIST:**
@@ -1103,8 +1103,8 @@ agents:
         3. Before ANY build: Ensure you're in worktree directory
 
         **Examples of Absolute Paths (ALWAYS USE THESE):**
-        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000016/src/conversation/slack-conversation-history.provider.ts`
-        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000001/src/ai-provider.service.ts`
+        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000016/packages/cli/src/conversation/slack-conversation-history.provider.ts`
+        - `/Users/doha/git/crewx/worktree/bugfix-bug-00000001/packages/cli/src/ai-provider.service.ts`
         - `/Users/doha/git/crewx/worktree/bugfix-bug-00000021/agents.yaml`
         
         ### After Fixing
@@ -1197,7 +1197,7 @@ agents:
 
         **NEVER, EVER:**
         1. ❌ Work directly on develop branch for bug fixes
-        2. ❌ Modify files in `/Users/doha/git/crewx/src/` for bugs
+        2. ❌ Modify files in `/Users/doha/git/crewx/packages/cli/src/` for bugs
         3. ❌ Skip worktree creation because "it's a small change"
         4. ❌ Make commits in main directory for bug work
         5. ❌ Use relative paths that don't include `/worktree/bugfix-`
@@ -1231,7 +1231,7 @@ agents:
         Bash: pwd  # Should output: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d
 
         # 6. Fix the bug (using absolute paths)
-        Edit: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d/src/ai-provider.service.ts
+        Edit: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d/packages/cli/src/ai-provider.service.ts
 
         # 7. Test
         Bash: cd /Users/doha/git/crewx/worktree/bugfix-c8b3f1d && npm run build
@@ -1250,7 +1250,7 @@ agents:
         
         ```bash
         # Execute mode: Tester performs actual tests and creates reports
-        crewx execute "@crewx_tester Test bug aae5d66 fix: verify debug logs are removed and MCP parsing works correctly. Check these files: src/ai-provider.service.ts, src/providers/claude.provider.ts, src/providers/gemini.provider.ts, src/providers/copilot.provider.ts"
+        crewx execute "@crewx_tester Test bug aae5d66 fix: verify debug logs are removed and MCP parsing works correctly. Check these files: packages/cli/src/ai-provider.service.ts, packages/cli/src/providers/claude.provider.ts, packages/cli/src/providers/gemini.provider.ts, packages/cli/src/providers/copilot.provider.ts"
 
         # Query mode: Get test plan or analysis (read-only, no file changes)
         crewx query "@crewx_tester analyze bug aae5d66 fix and suggest test scenarios"
@@ -1260,7 +1260,7 @@ agents:
         ```bash
         # 1. Fix the bug in worktree (example for bug aae5d66)
         Bash: cd /Users/doha/git/crewx/worktree/bugfix-aae5d66
-        Edit: /Users/doha/git/crewx/worktree/bugfix-aae5d66/src/ai-provider.service.ts
+        Edit: /Users/doha/git/crewx/worktree/bugfix-aae5d66/packages/cli/src/ai-provider.service.ts
         # (remove debug console.log statements)
 
         # 2. Build and verify compilation in worktree
@@ -1317,7 +1317,7 @@ agents:
     role: "tester"
     team: "Development Team"
     description: "Specialized tester for analyzing and improving the CrewX project"
-    working_directory: "/Users/doha/git/crewx"
+    working_directory: "."
     options:
       query:
         - "--verbose"
@@ -1429,19 +1429,19 @@ agents:
         
         **Parallel Query Test:**
         ```bash
-        node /Users/doha/git/crewx/dist/main.js query "@claude:haiku @claude:haiku 1+1?"
+        node dist/main.js query "@claude:haiku @claude:haiku 1+1?"
         ```
-        
+
         **Parallel Execute Test:**
         ```bash
-        node /Users/doha/git/crewx/dist/main.js execute \
+        node dist/main.js execute \
           "@claude:haiku gugudan1.js 파일에 javascript 구구단 프로그램을 만들어 주세요." \
           "@claude:haiku gugudan2.js 파일에 javascript 구구단 프로그램을 만들어 주세요."
         ```
-        
+
         **Thread Option Test:**
         ```bash
-        node /Users/doha/git/crewx/dist/main.js query "@claude:haiku test" --thread "test-thread"
+        node dist/main.js query "@claude:haiku test" --thread "test-thread"
         ```
         
         ## Important Notes:
@@ -1788,7 +1788,7 @@ agents:
 
         ## Critical: Read development.md First
         **MANDATORY: Always read this document before any release task**
-        - Location: `/Users/doha/git/crewx/docs/development.md`
+        - Location: `./docs/development.md`
         - Contains: Branch strategy, RC workflow, merge procedures
         - You MUST understand and follow this process exactly
 
