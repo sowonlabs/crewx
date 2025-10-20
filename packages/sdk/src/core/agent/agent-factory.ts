@@ -23,6 +23,7 @@ export interface CrewxAgentConfig {
   knowledgeBase?: KnowledgeBaseConfig;
   enableCallStack?: boolean;
   defaultAgentId?: string;
+  validAgents?: string[];  // List of valid agent IDs for mention parsing
 }
 
 export interface CrewxAgent {
@@ -93,6 +94,7 @@ export async function createCrewxAgent(
     eventBus,
     enableCallStack: config.enableCallStack ?? false,
     defaultAgentId: config.defaultAgentId ?? 'crewx',
+    validAgents: config.validAgents,  // Pass validAgents for mention parsing
   };
 
   // Initialize runtime

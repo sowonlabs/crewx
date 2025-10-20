@@ -6,7 +6,12 @@ import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.inter
 import type { BaseAIProviderOptions, LoggerLike } from './base-ai.types';
 import type { ToolCallHandler } from './tool-call.types';
 
-class ConsoleLogger implements LoggerLike {
+/**
+ * Simple console logger implementation.
+ * Outputs to stdout/stderr with context prefix.
+ * Used as default logger throughout SDK.
+ */
+export class ConsoleLogger implements LoggerLike {
   constructor(private readonly context: string) {}
 
   log(message: string, ...optionalParams: any[]): void {
