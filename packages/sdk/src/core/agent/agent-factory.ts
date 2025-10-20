@@ -5,13 +5,14 @@
 
 import { AgentRuntime, AgentRuntimeOptions } from './agent-runtime';
 import { EventBus, EventListener } from './event-bus';
-
-export interface ProviderConfig {
-  namespace: string;
-  id: string;
-  apiKey?: string;
-  model?: string;
-}
+import { MockProvider } from '../providers/mock.provider';
+import { createProviderFromConfig } from '../providers/provider-factory';
+import type { AIProvider } from '../providers/ai-provider.interface';
+import type {
+  ProviderConfig,
+  ProviderInput,
+  ProviderResolutionResult,
+} from '../../types/provider.types';
 
 export interface KnowledgeBaseConfig {
   path?: string;
@@ -19,7 +20,7 @@ export interface KnowledgeBaseConfig {
 }
 
 export interface CrewxAgentConfig {
-  provider?: ProviderConfig;
+  provider?: ProviderConfig | AIProvider;
   knowledgeBase?: KnowledgeBaseConfig;
   enableCallStack?: boolean;
   defaultAgentId?: string;
@@ -63,6 +64,26 @@ export interface CrewxAgentResult {
   eventBus: EventBus;
 }
 
+function isAIProvider(candidate: ProviderInput): candidate is AIProvider {
+  return typeof candidate === 'object' && candidate !== null && 'query' in candidate;
+}
+
+async function resolveProvider(config?: ProviderInput): Promise<ProviderResolutionResult> {
+  if (!config) {
+    return { provider: new MockProvider() };
+  }
+
+  if (isAIProvider(config)) {
+    return { provider: config };
+  }
+
+  const provider = await createProviderFromConfig(config);
+  return {
+    provider,
+    defaultModel: config.model,
+  };
+}
+
 /**
  * Create a CrewX agent with the specified configuration.
  *
@@ -89,12 +110,16 @@ export async function createCrewxAgent(
   // Create event bus
   const eventBus = new EventBus();
 
+  const { provider, defaultModel } = await resolveProvider(config.provider);
+
   // Create runtime options
   const runtimeOptions: AgentRuntimeOptions = {
     eventBus,
     enableCallStack: config.enableCallStack ?? false,
     defaultAgentId: config.defaultAgentId ?? 'crewx',
     validAgents: config.validAgents,  // Pass validAgents for mention parsing
+    provider,
+    defaultModel,
   };
 
   // Initialize runtime
@@ -122,3 +147,5 @@ export async function createCrewxAgent(
  * @see loadAgentConfigFromYaml in config/yaml-loader.ts for implementation
  */
 export { loadAgentConfigFromYaml, loadAgentConfigFromFile } from '../../config/yaml-loader';
+export { resolveProvider };
+export type { ProviderConfig } from '../../types/provider.types';

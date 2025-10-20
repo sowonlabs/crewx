@@ -13,7 +13,7 @@ layouts:
           {{#if agent.workingDirectory}}<working_directory>{{{agent.workingDirectory}}}</working_directory>{{/if}}
         </identity>
 
-        {{#if agent.specialties.[0]}}
+        {{#if agent.specialties.length}}
         <specialties>
           {{#each agent.specialties}}
           <item>{{{this}}}</item>
@@ -21,7 +21,7 @@ layouts:
         </specialties>
         {{/if}}
 
-        {{#if agent.capabilities.[0]}}
+        {{#if agent.capabilities.length}}
         <capabilities>
           {{#each agent.capabilities}}
           <item>{{{this}}}</item>
@@ -48,11 +48,7 @@ layouts:
         {{#if agent.optionsByMode.query}}
         <cli_options mode="query">
           {{#each agent.optionsByMode.query}}
-          {{#if @root.agent.optionsByMode.query.[0]}}
-          <item>{{{this}}}</item>
-          {{else}}
-          <item provider="{{@key}}">{{{this}}}</item>
-          {{/if}}
+          <item>{{#if @key}}provider="{{@key}}" {{/if}}{{{this}}}</item>
           {{/each}}
         </cli_options>
         {{/if}}
@@ -60,17 +56,13 @@ layouts:
         {{#if agent.optionsByMode.execute}}
         <cli_options mode="execute">
           {{#each agent.optionsByMode.execute}}
-          {{#if @root.agent.optionsByMode.execute.[0]}}
-          <item>{{{this}}}</item>
-          {{else}}
-          <item provider="{{@key}}">{{{this}}}</item>
-          {{/if}}
+          <item>{{#if @key}}provider="{{@key}}" {{/if}}{{{this}}}</item>
           {{/each}}
         </cli_options>
         {{/if}}
 
         <session mode="{{session.mode}}" platform="{{session.platform}}">
-          {{#if session.options.[0]}}
+          {{#if session.options.length}}
           <cli_options>
             {{#each session.options}}
             <item>{{{this}}}</item>
@@ -80,9 +72,9 @@ layouts:
         </session>
       </agent_profile>
 
-      {{#if documents.crewx-manual.content}}
+      {{#if documents.crewx_manual.content}}
       <document name="CrewX User Manual">
-      {{{documents.crewx-manual.content}}}
+      {{{documents.crewx_manual.content}}}
       </document>
       {{/if}}
     </crewx_system_prompt>
@@ -90,13 +82,29 @@ layouts:
     <system_prompt key="{{vars.security_key}}">
       {{{layout.system_prompt}}}
 
-      {{#if messages.[0]}}
+      {{#if messages.length}}
       <conversation_history platform="{{platform}}">
         {{{formatConversation messages platform}}}
       </conversation_history>
       {{/if}}
     </system_prompt>
 
+    {{#if user_input}}
+    <user_query key="{{vars.security_key}}">
+      {{{user_input}}}
+    </user_query>
+    {{/if}}
+
+  crewx_simple_layout: |
+    <system_prompt key="{{vars.security_key}}">
+      {{{agent.inline.prompt}}}
+    </system_prompt>
+
+    {{#if user_input}}
+    <user_query key="{{vars.security_key}}">
+      {{{user_input}}}
+    </user_query>
+    {{/if}}
 # Plugin Providers
 providers:
   # Crush with Z.AI GLM-4.6
@@ -251,7 +259,7 @@ agents:
       type: "agent"
       provider: "plugin/crush_zai"
       model: "glm-4.6"
-      layout: "crewx_dev_layout"
+      layout: "crewx_simple_layout"
       prompt: |
         You are a developer for the CrewX project.
 

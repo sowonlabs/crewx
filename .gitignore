@@ -3,6 +3,10 @@
 /packages/cli/templates/
 /node_modules
 **/package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+packages/**/pnpm-lock.yaml
+packages/**/pnpm-workspace.yaml
 sowonai-*.tgz
 credentials.json
 .env*

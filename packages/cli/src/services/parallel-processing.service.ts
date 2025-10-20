@@ -42,7 +42,7 @@ interface ParallelProcessingConfig {
   failFast?: boolean;
 }
 
-type ProviderName = 'claude' | 'gemini' | 'copilot' | 'codex';
+type ProviderName = 'cli/claude' | 'cli/gemini' | 'cli/copilot' | 'cli/codex' | string;
 
 type AgentExecutionMode = 'query' | 'execute';
 
@@ -412,7 +412,7 @@ export class ParallelProcessingService {
    */
   private getProviderForAgent(agentId: string): ProviderName {
     if (agentId === 'claude' || agentId === 'gemini' || agentId === 'copilot' || agentId === 'codex') {
-      return agentId;
+      return `cli/${agentId}`;
     }
 
     const agentConfig = this.configService.getAgentConfig(agentId);
@@ -421,8 +421,8 @@ export class ParallelProcessingService {
       return resolved;
     }
 
-    this.logger.warn(`No provider found for agent ${agentId}, defaulting to claude`);
-    return 'claude';
+    this.logger.warn(`No provider found for agent ${agentId}, defaulting to cli/claude`);
+    return 'cli/claude';
   }
 
   /**
@@ -432,7 +432,8 @@ export class ParallelProcessingService {
     const agentConfig = this.configService.getAgentConfig(agentId);
     if (agentConfig && agentConfig.options) {
       if (typeof agentConfig.options === 'object' && agentConfig.options[mode]) {
-        return agentConfig.options[mode] || [];
+        const modeOptions = agentConfig.options[mode];
+        return Array.isArray(modeOptions) ? modeOptions : [];
       }
     }
     return [];
@@ -468,9 +469,14 @@ export class ParallelProcessingService {
       return null;
     }
 
-    const candidate = trimmed.includes('/') ? trimmed.split('/')[1] : trimmed;
-    if (candidate === 'claude' || candidate === 'gemini' || candidate === 'copilot' || candidate === 'codex') {
-      return candidate;
+    // If already namespaced, return as-is
+    if (trimmed.includes('/')) {
+      return trimmed;
+    }
+
+    // Legacy support: convert bare names to namespaced format
+    if (trimmed === 'claude' || trimmed === 'gemini' || trimmed === 'copilot' || trimmed === 'codex') {
+      return `cli/${trimmed}`;
     }
 
     return null;

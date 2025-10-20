@@ -1,9 +1,11 @@
 /**
  * Template Context Types for CrewX SDK
- * 
+ *
  * These types define the structure for template processing context
  * across different platforms (CLI, Slack, MCP, etc.).
  */
+
+import type { BaseMessage } from '../conversation/conversation-history.interface';
 
 /**
  * Agent metadata for template context
@@ -18,60 +20,41 @@ export interface AgentMetadata {
 }
 
 /**
- * Template variables shared across layouts.
+ * Template variables for custom extensions.
  *
- * These keys are intentionally typed so security critical values
- * (like `security_key` and `user_input`) stay consistent across
- * CLI/SDK integrations while still allowing custom extensions.
+ * Use `vars` for security tokens and custom layout variables.
+ * Core data like `user_input` and `messages` should be at context top-level.
  */
 export interface TemplateVars {
-  /** Authentication token used to validate <user_query> containers */
+  /** Authentication token used to validate <user_query> and <system_prompt> containers */
   security_key?: string;
-  /**
-   * Current user input rendered into layouts.
-   * Always HTML-escaped by the renderer to guard against injection.
-   */
-  user_input?: string;
-  /** Original (unsanitised) user input – provided for audit/logging only. */
-  user_input_raw?: string;
-  /** Allow custom variables without losing backwards compatibility. */
+  /** Allow custom variables for layout extensions */
   [key: string]: unknown;
 }
 
 /**
- * Template context for document processing
- * Cross-platform compatible (CLI, Slack, MCP, etc.)
+ * Base context shared across all template rendering.
+ *
+ * Contains core fields that are common to both TemplateContext and RenderContext.
+ * Use this for functions that accept either context type.
  */
-export interface TemplateContext {
+export interface BaseContext {
+  /** Current user input (HTML-escaped by renderer for security) */
+  user_input?: string;
+
+  /** Conversation message history */
+  messages?: BaseMessage[];
+
+  /** Execution mode (query or execute) */
+  mode?: 'query' | 'execute';
+
+  /** Platform identifier (cli, slack, mcp, etc.) */
+  platform?: string;
+
   /** Environment variables */
   env?: Record<string, string | undefined>;
-  
-  /** Agent metadata and configuration */
-  agent?: {
-    id: string;
-    name: string;
-    provider: string;
-    model?: string;
-    workingDirectory?: string;
-  };
-  
-  /** Extended agent metadata (capabilities, specialties, etc.) */
-  agentMetadata?: AgentMetadata;
-  
-  /** Query/execution mode */
-  mode?: 'query' | 'execute';
-  
-  /** Conversation messages for history */
-  messages?: Array<{
-    text: string;
-    isAssistant: boolean;
-    metadata?: Record<string, any>; // Platform-specific metadata (e.g., Slack user info)
-  }>;
-  
-  /** Platform identifier (string for extensibility) */
-  platform?: string;
-  
-  /** Available tools */
+
+  /** Available tools metadata */
   tools?: {
     list: Array<{
       name: string;
@@ -82,10 +65,39 @@ export interface TemplateContext {
     json: string;
     count: number;
   };
-  
-  /**
-   * Additional variables passed to layouts.
-   * Includes security helpers and escaped user input for safe rendering.
-   */
+
+  /** Template variables (security_key, custom extensions) */
   vars?: TemplateVars;
+}
+
+/**
+ * Template context for general-purpose YAML/Handlebars template rendering.
+ *
+ * **Used by:**
+ * - `template-processor.ts` - Document template processing
+ * - YAML config file rendering (agents.yaml, etc.)
+ * - Handlebars-based template substitution
+ *
+ * **Characteristics:**
+ * - Agent is optional (can render documents without agent context)
+ * - Simpler agent structure (no inline/documents/props)
+ * - General-purpose template processing
+ *
+ * For layout-specific rendering, use `RenderContext` instead.
+ *
+ * @see RenderContext - Layout rendering context (agent required, more structured)
+ * @see BaseContext - Shared fields between TemplateContext and RenderContext
+ */
+export interface TemplateContext extends BaseContext {
+  /** Agent metadata and configuration (optional for document-only rendering) */
+  agent?: {
+    id: string;
+    name: string;
+    provider?: string; // Optional for flexibility
+    model?: string;
+    workingDirectory?: string;
+  };
+
+  /** Extended agent metadata (capabilities, specialties, etc.) */
+  agentMetadata?: AgentMetadata;
 }

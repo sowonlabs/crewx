@@ -110,6 +110,28 @@ function createCrewXTool(deps?: {
 
   const stub = <T extends object>(methods: Partial<T>): T => methods as T;
 
+  const providerStub = {
+    name: 'cli/claude',
+    query: vi.fn(),
+    execute: vi.fn(),
+    isAvailable: vi.fn(async () => true),
+    getToolPath: vi.fn(async () => null),
+  };
+
+  const providerBridgeStub = stub({
+    resolveProvider: vi.fn(async () => ({ provider: providerStub, defaultModel: undefined })),
+    listAvailableProviders: vi.fn(() => [] as string[]),
+    createAgentRuntime: vi.fn(async () => ({
+      runtime: {
+        agent: { query: vi.fn(), execute: vi.fn(), getCallStack: vi.fn() },
+        onEvent: vi.fn(),
+        eventBus: {},
+      },
+      resolution: { provider: providerStub },
+    })),
+    isProviderAvailable: vi.fn(async () => true),
+  });
+
   const toolInstance = new CrewXTool(
       stub({}) as any,
       stub({ log: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() }) as any, // Logger mock with all methods
@@ -122,6 +144,7 @@ function createCrewXTool(deps?: {
       stub({ list: () => [], setCrewXTool: vi.fn() }) as any,
       stub({}) as any,
       stub({}) as any,
+      providerBridgeStub as any,
       layoutLoader,
       layoutRenderer,
     );

@@ -117,10 +117,18 @@ export class AgentLoaderService {
    * Get configuration source info
    */
   getConfigSource(): { source: string; path?: string } {
-    const agentsConfigPath = process.env.AGENTS_CONFIG;
+    const envConfigPath = process.env.CREWX_CONFIG?.trim();
+    const configPath = this.configService?.getCurrentConfigPath() ?? (envConfigPath ? envConfigPath : undefined);
+
+    if (configPath) {
+      return {
+        source: 'External YAML file',
+        path: configPath,
+      };
+    }
+
     return {
-      source: agentsConfigPath ? 'External YAML file' : 'Default hardcoded values',
-      path: agentsConfigPath,
+      source: 'Default hardcoded values',
     };
   }
 
@@ -213,6 +221,7 @@ export class AgentLoaderService {
   private async loadBuiltInAgents(): Promise<AgentInfo[]> {
     try {
       let templateContent: string;
+      let templateDir: string | undefined;
 
       // Try local template first
       try {
@@ -220,6 +229,7 @@ export class AgentLoaderService {
         const fs = await import('fs/promises');
         const templatePath = path.join(__dirname, '..', '..', 'templates', 'agents', 'default.yaml');
         templateContent = await fs.readFile(templatePath, 'utf-8');
+        templateDir = path.dirname(templatePath);
         this.logger.log('Loaded built-in agents from local template');
       } catch (localError) {
         // Fallback to GitHub download
@@ -241,6 +251,7 @@ export class AgentLoaderService {
       if (this.documentLoaderService) {
         await this.documentLoaderService.initialize(
           config.documents as Record<string, string | { path: string; name?: string }>,
+          templateDir,
         );
       }
 
@@ -260,19 +271,26 @@ export class AgentLoaderService {
 
           const mergedSkills = this.mergeSkillsConfig(projectSkills, agent.skills);
 
+          const parsedProvider = this.parseProviderConfig(agent);
+          const providerValue = typeof parsedProvider === 'string' ? parsedProvider : parsedProvider[0];
+
           return {
             id: agent.id,
             name: agent.name || agent.id,
             role: agent.role || 'AI Agent',
             team: agent.team,
-            provider: this.parseProviderConfig(agent),
+            provider: parsedProvider,
             workingDirectory: agent.working_directory || './',
             capabilities: agent.capabilities || [],
             description: systemPrompt ? this.extractDescription(systemPrompt) : `${agent.name || agent.id} agent`,
             specialties: agent.specialties || [],
             systemPrompt: systemPrompt,
             options: agent.options || [],
-            inline: agent.inline,
+            inline: agent.inline ? {
+              ...agent.inline,
+              type: 'agent' as const,
+              provider: providerValue,
+            } : undefined,
             remote: this.parseRemoteConfig(agent),
             ...(mergedSkills ? { skills: mergedSkills } : {}),
           };
@@ -343,12 +361,15 @@ export class AgentLoaderService {
 
           const mergedSkills = this.mergeSkillsConfig(projectSkills, agent.skills);
 
+          const parsedProvider = this.parseProviderConfig(agent);
+          const providerValue = typeof parsedProvider === 'string' ? parsedProvider : parsedProvider[0];
+
           return {
             id: agent.id,
             name: agent.name || agent.id,
             role: agent.role || 'AI Agent',
             team: agent.team,
-            provider: this.parseProviderConfig(agent),
+            provider: parsedProvider,
             workingDirectory: agent.working_directory || './',
             capabilities: agent.capabilities || [],
             description: systemPrompt ? this.extractDescription(systemPrompt) : `${agent.name || agent.id} agent`,
@@ -357,7 +378,9 @@ export class AgentLoaderService {
             options: agent.options || [],
             inline: agent.inline ? {
               ...agent.inline,
+              type: 'agent' as const,
               system_prompt: systemPrompt, // Use the original (unprocessed) system_prompt
+              provider: providerValue,
             } : undefined,
             remote: this.parseRemoteConfig(agent),
             ...(mergedSkills ? { skills: mergedSkills } : {}),
@@ -402,23 +425,21 @@ export class AgentLoaderService {
 
     const layoutEntries: Record<string, string | CustomLayoutDefinition> = {};
     const seenLayoutIds = new Set<string>();
-    const normalizeLayoutId = (id: string) => (id.includes('/') ? id : `crewx/${id}`);
-    const shouldSkipLayout = (normalizedId: string) =>
-      source === 'built-in template' && normalizedId === 'crewx/minimal';
+    const shouldSkipLayout = (layoutId: string) =>
+      source === 'built-in template' && (layoutId === 'crewx/minimal' || layoutId === 'minimal');
 
     for (const [layoutId, layoutValue] of Object.entries(layouts)) {
       if (layoutValue === null || layoutValue === undefined) {
         continue;
       }
 
-      const normalizedId = normalizeLayoutId(layoutId);
-
+      // Use layout ID as-is, no forced namespace
       if (typeof layoutValue === 'string') {
-        if (shouldSkipLayout(normalizedId) || seenLayoutIds.has(normalizedId)) {
+        if (shouldSkipLayout(layoutId) || seenLayoutIds.has(layoutId)) {
           continue;
         }
-        seenLayoutIds.add(normalizedId);
-        layoutEntries[normalizedId] = layoutValue;
+        seenLayoutIds.add(layoutId);
+        layoutEntries[layoutId] = layoutValue;
         continue;
       }
 
@@ -436,11 +457,11 @@ export class AgentLoaderService {
             (layoutValue as any).default_props ??
             {};
 
-          if (shouldSkipLayout(normalizedId) || seenLayoutIds.has(normalizedId)) {
+          if (shouldSkipLayout(layoutId) || seenLayoutIds.has(layoutId)) {
             continue;
           }
-          seenLayoutIds.add(normalizedId);
-          layoutEntries[normalizedId] = {
+          seenLayoutIds.add(layoutId);
+          layoutEntries[layoutId] = {
             template,
             description: (layoutValue as any).description,
             version: (layoutValue as any).version,
@@ -455,13 +476,13 @@ export class AgentLoaderService {
             if (typeof nestedTemplate !== 'string') {
               continue;
             }
-            const resolvedId = normalizeLayoutId(
+            // Use nested ID as-is or combine with parent
+            const resolvedId =
               nestedId === 'default'
                 ? layoutId
                 : nestedId.includes('/')
                   ? nestedId
-                  : `${layoutId}/${nestedId}`
-            );
+                  : `${layoutId}/${nestedId}`;
 
             if (shouldSkipLayout(resolvedId) || seenLayoutIds.has(resolvedId)) {
               continue;
@@ -479,13 +500,13 @@ export class AgentLoaderService {
           if (typeof variantTemplate !== 'string') {
             continue;
           }
-          const resolvedId = normalizeLayoutId(
+          // Use variant ID as-is or combine with parent
+          const resolvedId =
             variantId === 'default'
               ? layoutId
               : variantId.includes('/')
                 ? variantId
-                : `${layoutId}/${variantId}`
-          );
+                : `${layoutId}/${variantId}`;
 
           if (shouldSkipLayout(resolvedId) || seenLayoutIds.has(resolvedId)) {
             continue;

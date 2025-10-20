@@ -3,13 +3,6 @@
 # This file is for your project-specific custom agents.
 # Built-in agents (@claude, @gemini, @copilot, @crewx) are always available
 # and don't need to be defined here.
-#
-# Documents can be defined at three levels:
-# 1. documents.yaml (global, shared across projects)
-# 2. documents: section here (project-level, shared across agents)
-# 3. agent.inline.documents: (agent-specific)
-#
-# Priority: agent.inline.documents > agents.yaml documents > documents.yaml
 
 settings:
   slack:
@@ -62,41 +55,6 @@ layouts:
         </cli_options>
         {{/if}}
 
-        {{#if agent.optionsByMode.query}}
-        <cli_options mode="query">
-          {{#each agent.optionsByMode.query}}
-          {{#if @root.agent.optionsByMode.query.[0]}}
-          <item>{{{this}}}</item>
-          {{else}}
-          <item provider="{{@key}}">{{{this}}}</item>
-          {{/if}}
-          {{/each}}
-        </cli_options>
-        {{/if}}
-
-        {{#if agent.optionsByMode.execute}}
-        <cli_options mode="execute">
-          {{#each agent.optionsByMode.execute}}
-          {{#if @root.agent.optionsByMode.execute.[0]}}
-          <item>{{{this}}}</item>
-          {{else}}
-          <item provider="{{@key}}">{{{this}}}</item>
-          {{/if}}
-          {{/each}}
-        </cli_options>
-        {{/if}}
-
-        {{#if tools.count}}
-        <available_tools count="{{tools.count}}">
-          {{#each tools.list}}
-          <tool>
-            <name>{{{name}}}</name>
-            {{#if description}}<description>{{{description}}}</description>{{/if}}
-          </tool>
-          {{/each}}
-        </available_tools>
-        {{/if}}
-
         <session mode="{{session.mode}}" platform="{{session.platform}}">
           {{#if session.options.[0]}}
           <cli_options>
@@ -116,7 +74,7 @@ layouts:
     </crewx_system_prompt>
 
     <system_prompt key="{{vars.security_key}}">
-      {{{layout.system_prompt}}}
+      {{{agent.inline.prompt}}}
 
       {{#if messages.[0]}}
       <conversation_history platform="{{platform}}">
@@ -124,6 +82,12 @@ layouts:
       </conversation_history>
       {{/if}}
     </system_prompt>
+
+    {{#if user_input}}
+    <user_query key="{{vars.security_key}}">
+      {{{user_input}}}
+    </user_query>
+    {{/if}}
 
 # Plugin Providers
 providers:
@@ -142,8 +106,8 @@ providers:
       - "--quiet"  # Hide spinner (no --yolo: it's a global flag, not supported in args)
     prompt_in_args: true
     timeout:
-      query: 180000   # 3 minutes
-      execute: 600000 # 10 minutes
+      query: 1800000   # 30 minutes
+      execute: 1800000 # 30 minutes
 
   - id: mcp_cso
     type: remote
@@ -284,7 +248,7 @@ agents:
     inline:
       type: "agent"
       provider: "cli/codex"
-      system_prompt: |
+      prompt: |
         You are a developer for the CrewX project.
 
         <document name="project-structure" type="codebase-map">
@@ -668,7 +632,7 @@ agents:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      system_prompt: |
+      prompt: |
         You are a developer for the CrewX project.
 
         <document name="project-structure" type="codebase-map">
@@ -1037,7 +1001,6 @@ agents:
         {{{formatConversation messages platform}}}
         </messages>
 
-  # Crush Z.AI GLM Developer
   - id: "crewx_glm_dev"
     name: "CrewX GLM-4.6 Developer"
     role: "developer"
@@ -1048,7 +1011,7 @@ agents:
       provider: "plugin/crush_zai"
       model: "glm-4.6"
       layout: "crewx_dev_layout"
-      system_prompt: |
+      prompt: |
         You are a developer for the CrewX project.
 
         ## 🌍 Language Policy (CRITICAL)
@@ -1439,7 +1402,7 @@ agents:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      system_prompt: |
+      prompt: |
         You are a testing expert for the CrewX project.
         Your main responsibilities are code analysis, test case creation, bug reporting, and test automation.
 
@@ -1578,7 +1541,7 @@ agents:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      system_prompt: |
+      prompt: |
         You are the QA Team Lead for the CrewX project.
 
         <document name="git-bug-reference">
@@ -1866,7 +1829,7 @@ agents:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      system_prompt: |
+      prompt: |
         You are the Release Manager for the CrewX project.
 
         <document name="branch-protection">

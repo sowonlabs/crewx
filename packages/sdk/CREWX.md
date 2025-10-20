@@ -77,6 +77,8 @@ packages/sdk/
 **Template System (WBS-14 Phase 3):**
 - `TemplateContext` - Cross-platform template context interface
 - `AgentMetadata` - Agent capabilities and specialties metadata
+- CLI template processor, document loader, and future SDK helpers consume these
+  types directly; downstream surfaces no longer re-export local copies.
 
 **Layout System (WBS-12-13):**
 - `LayoutLoader` - Load and validate layout templates
@@ -200,4 +202,4 @@ const result = await agent.query({
 
 ---
 
-**Last Updated:** 2025-10-20
+**Last Updated:** 2025-10-21

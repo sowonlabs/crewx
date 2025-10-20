@@ -12,8 +12,6 @@ export interface CliOptions {
   allowTool: string[]; // Support for --allow-tool=terminal,files,web
   raw: boolean; // Output only AI response (for piping)
   // Context enhancement options
-  loadProjectContext: boolean; // Load CLAUDE.md files
-  projectContextMaxLength: number; // Max length for project context
   enableIntelligentCompression: boolean; // Use intelligent compression
   // Conversation thread options
   thread?: string; // Thread ID for conversation continuity
@@ -24,6 +22,9 @@ export interface CliOptions {
   execute?: string | string[];
   doctor?: boolean;
   config?: string;
+  // Provider options (NEW)
+  provider?: string; // --provider cli/claude, cli/gemini, etc.
+  providerConfig?: string; // --provider-config path/to/config.yaml
   // Init options
   template?: string;
   templateVersion?: string;
@@ -176,16 +177,6 @@ export function parseCliOptions(): CliOptions {
       default: false,
       description: 'Output only AI response without formatting (useful for piping)'
     })
-    .option('load-project-context', {
-      type: 'boolean',
-      default: true,
-      description: 'Load project context from CLAUDE.md files'
-    })
-    .option('project-context-max-length', {
-      type: 'number',
-      default: 2000,
-      description: 'Maximum length for project context'
-    })
     .option('enable-intelligent-compression', {
       type: 'boolean',
       default: true,
@@ -195,6 +186,14 @@ export function parseCliOptions(): CliOptions {
       alias: 't',
       type: 'string',
       description: 'Thread ID for conversation continuity'
+    })
+    .option('provider', {
+      type: 'string',
+      description: 'AI provider to use (e.g., cli/claude, cli/gemini, cli/copilot, cli/codex)'
+    })
+    .option('provider-config', {
+      type: 'string',
+      description: 'Path to provider configuration file'
     })
     // API key options removed for security
     // Use environment variables or CLI tool authentication instead
@@ -221,11 +220,12 @@ export function parseCliOptions(): CliOptions {
     allowTool: parsed['allow-tool'] as string[] || [],
     raw: parsed.raw,
     // Context enhancement options
-    loadProjectContext: parsed['load-project-context'] as boolean,
-    projectContextMaxLength: parsed['project-context-max-length'] as number,
     enableIntelligentCompression: parsed['enable-intelligent-compression'] as boolean,
     // Conversation thread options
     thread: parsed.thread as string,
+    // Provider options
+    provider: parsed.provider as string || process.env.CREWX_PROVIDER,
+    providerConfig: parsed['provider-config'] as string,
     command: primaryCommand,
     subcommand: secondaryCommand,
     // Keep query as array for parallel processing support

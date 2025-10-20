@@ -17,6 +17,8 @@ shares configuration schemas with the SDK (WBS-16).
 - CLI commands (query, execute, chat, agent, doctor, init, templates, mcp)
 - Dynamic provider loading (plugin/remote) validated via JSON Schema (WBS-16)
 - Slack bot + MCP server surfaces with shared conversation history
+- File-backed document system (`templates/documents/*.md`) with per-document
+  render flags for literal Handlebars examples
 
 **Tech Stack:**
 - NestJS (Dependency Injection, Modular Architecture)
@@ -67,6 +69,7 @@ packages/cli/
 | `src/cli/chat.handler.ts` | Interactive chat entrypoint | 586 |
 | `src/services/config-validator.service.ts` | JSON Schema validation + config diagnostics | 580 |
 | `src/cli/init.handler.ts` | Project bootstrap + layout/template scaffolding | 491 |
+| `src/services/document-loader.service.ts` | Inline/file document loader with render controls | 220 |
 
 ---
 
@@ -79,6 +82,17 @@ packages/cli/
 - Secure `<user_query>` handling uses layout props plus `templates/agents/secure-wrapper.yaml`.
 - Fallback order: layout → `inline.system_prompt` → legacy `systemPrompt`/`description`.
 - Feature flag `CREWX_APPEND_LEGACY` keeps legacy appends available during rollout.
+
+## Document Loading & Template Processing
+
+- `DocumentLoaderService` now accepts strings or `{ path, render }` objects. Relative
+  paths resolve against the bundled template directory so docs such as
+  `templates/documents/crewx-manual.md` ship with the CLI.
+- `render` defaults to `false`, keeping literal `{{…}}` examples intact. Opt-in per
+  document when Handlebars evaluation is desired.
+- `processDocumentTemplate` imports `TemplateContext` types directly from the SDK and
+  only renders documents whose `render` flag is enabled. Requests for `{{{documents.*}}}`
+  that cannot be satisfied fall back to the original expression instead of blank strings.
 
 ## Configuration & Provider Schema (WBS-16)
 
@@ -106,4 +120,4 @@ packages/cli/
 
 ---
 
-**Last Updated:** 2025-10-20
+**Last Updated:** 2025-10-21

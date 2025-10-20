@@ -20,7 +20,6 @@ import { InitHandler } from './cli/init.handler';
 import { DoctorHandler } from './cli/doctor.handler';
 import { HelpService } from './services/help.service';
 import { ConfigService } from './services/config.service';
-import { ContextEnhancementService } from './services/context-enhancement.service';
 import { IntelligentCompressionService } from './services/intelligent-compression.service';
 import { ConfigValidatorService } from './services/config-validator.service';
 import { ConversationProviderFactory } from './conversation';
@@ -29,6 +28,7 @@ import { BearerAuthGuard } from './guards/bearer-auth.guard';
 import { HealthController } from './health.controller';
 import { McpClientService } from './services/mcp-client.service';
 import { RemoteAgentService } from './services/remote-agent.service';
+import { ProviderBridgeService } from './services/provider-bridge.service';
 // SDK Layout Services (WBS-13 Phase 1)
 import { LayoutLoader, LayoutRenderer, PropsValidator } from '@sowonai/crewx-sdk';
 import * as path from 'path';
@@ -100,7 +100,6 @@ export class AppModule {
         DocumentLoaderService,
         ConfigValidatorService,
         // Enhanced Context Services
-        ContextEnhancementService,
         IntelligentCompressionService,
         // Conversation System
         ConversationProviderFactory,
@@ -109,6 +108,7 @@ export class AppModule {
         AgentLoaderService,
         McpClientService,
         RemoteAgentService,
+        ProviderBridgeService,
         AuthService,
         BearerAuthGuard,
         // CLI Handlers
@@ -118,7 +118,7 @@ export class AppModule {
         ConfigService,
       ],
       controllers: [McpController, HealthController],
-      exports: [AIService, ProjectService, CrewXTool, AIProviderService],
+      exports: [AIService, ProjectService, CrewXTool, AIProviderService, ProviderBridgeService],
     };
   }
 }

@@ -8,7 +8,7 @@ export interface TaskLog {
   id: string;
   type: 'query' | 'execute' | 'init' | 'doctor';
   agentId?: string;
-  provider?: 'claude' | 'gemini' | 'copilot' | 'codex';
+  provider?: string;
   startTime: Date;
   endTime?: Date;
   status: 'running' | 'completed' | 'failed';
@@ -31,7 +31,7 @@ export interface TaskLog {
 // Task creation options
 export interface TaskCreationOptions {
   type: 'query' | 'execute' | 'init' | 'doctor';
-  provider?: 'claude' | 'gemini' | 'copilot' | 'codex';
+  provider?: string;
   prompt?: string;
   command?: string;
   options?: any;
@@ -157,7 +157,7 @@ export class TaskManagementService {
   /**
    * Get tasks by provider
    */
-  getTasksByProvider(provider: 'claude' | 'gemini' | 'copilot'): TaskLog[] {
+  getTasksByProvider(provider: string): TaskLog[] {
     return this.getAllTasks().filter(task => task.provider === provider);
   }
 

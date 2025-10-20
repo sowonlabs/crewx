@@ -19,10 +19,15 @@ export async function handleChat(app: any, args: CliOptions) {
   try {
     const crewXTool = app.get(CrewXTool);
     const providerFactory = app.get(ConversationProviderFactory);
-    const chatHandler = new ChatHandler(crewXTool, providerFactory);
+    const chatHandler = new ChatHandler(crewXTool, providerFactory, args);
 
     // Parse options from args
     const options: any = {};
+
+    // Add provider option from CLI args
+    if (args.provider) {
+      options.provider = args.provider;
+    }
 
     // Extract options from process.argv
     const argv = process.argv;
@@ -41,6 +46,8 @@ export async function handleChat(app: any, args: CliOptions) {
         options.cleanup = argv[i + 1] || '30';
       } else if (argv[i] === '--message' || argv[i] === '-m') {
         message = argv[i + 1] || '';
+      } else if (argv[i] === '--provider') {
+        options.provider = argv[i + 1];
       }
     }
 
@@ -65,14 +72,17 @@ export class ChatHandler {
   private readonly logger = new Logger(ChatHandler.name);
   private conversationProvider: CliConversationHistoryProvider;
   private currentThreadId?: string;
+  private cliOptions: CliOptions;
 
   constructor(
     private readonly crewXTool: CrewXTool,
     private readonly providerFactory: ConversationProviderFactory,
+    cliOptions: CliOptions,
   ) {
     this.conversationProvider = this.providerFactory.getProvider(
       'cli',
     ) as CliConversationHistoryProvider;
+    this.cliOptions = cliOptions;
   }
 
   /**
@@ -221,7 +231,8 @@ export class ChatHandler {
           context,
           model,
           messages: conversationMessages, // Pass messages for template context
-          platform: 'cli' // Indicate this is from CLI
+          platform: 'cli', // Indicate this is from CLI
+          provider: this.cliOptions.provider // NEW: Pass provider option
         });
 
         // Extract response
@@ -254,7 +265,8 @@ export class ChatHandler {
           context,
           model: pq.model,
           messages: conversationMessages, // Pass messages for template context
-          platform: 'cli' as const // Indicate this is from CLI
+          platform: 'cli' as const, // Indicate this is from CLI
+          provider: this.cliOptions.provider // NEW: Pass provider option
         }));
 
         const result = await this.crewXTool.queryAgentParallel({ queries });
@@ -420,7 +432,8 @@ export class ChatHandler {
               context,
               model,
               messages: conversationMessages, // Pass messages for template context
-              platform: 'cli' // Indicate this is from CLI
+              platform: 'cli', // Indicate this is from CLI
+              provider: this.cliOptions.provider // NEW: Pass provider option
             });
 
             // Extract response
@@ -454,7 +467,8 @@ export class ChatHandler {
               context,
               model: pq.model,
               messages: conversationMessages, // Pass messages for template context
-              platform: 'cli' as const // Indicate this is from CLI
+              platform: 'cli' as const, // Indicate this is from CLI
+              provider: this.cliOptions.provider // NEW: Pass provider option
             }));
 
             const result = await this.crewXTool.queryAgentParallel({ queries });

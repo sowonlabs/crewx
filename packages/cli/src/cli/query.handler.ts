@@ -258,7 +258,8 @@ export async function handleQuery(app: any, args: CliOptions) {
         context: combinedContext || undefined,
         model: model,
         messages: combinedMessages,
-        platform: 'cli'
+        platform: 'cli',
+        provider: args.provider // NEW: Pass provider option
       });
 
       // Check if query was successful before saving to history
@@ -309,7 +310,8 @@ export async function handleQuery(app: any, args: CliOptions) {
         context: combinedContext || undefined,
         model: pq.model,
         messages: combinedMessages,
-        platform: 'cli' as const
+        platform: 'cli' as const,
+        provider: args.provider // NEW: Pass provider option to all parallel queries
       }));
 
       result = await crewXTool.queryAgentParallel({ queries });

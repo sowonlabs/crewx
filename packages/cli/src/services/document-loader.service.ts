@@ -17,6 +17,14 @@ import remarkParse from 'remark-parse';
 import { visit } from 'unist-util-visit';
 import type { Heading } from 'mdast';
 
+type DocumentSource = string | { path?: string; name?: string; render?: boolean; content?: string };
+interface LoadedDocument {
+  content: string;
+  render: boolean;
+}
+
+const DEFAULT_RENDER_MODE = false;
+
 /**
  * DocumentLoaderService
  *
@@ -45,7 +53,7 @@ import type { Heading } from 'mdast';
 @Injectable()
 export class DocumentLoaderService {
   private readonly logger = new Logger(DocumentLoaderService.name);
-  private documents: Map<string, string> = new Map();
+  private documents: Map<string, LoadedDocument> = new Map();
   private initialized = false;
 
   /**
@@ -54,7 +62,7 @@ export class DocumentLoaderService {
    * @param projectPath - base path for resolving relative file paths (optional)
    */
   async initialize(
-    agentsYamlDocuments?: Record<string, string | { path: string; name?: string }>,
+    agentsYamlDocuments?: Record<string, DocumentSource>,
     projectPath?: string
   ): Promise<void> {
     // Allow re-initialization to merge documents from multiple sources
@@ -75,15 +83,24 @@ export class DocumentLoaderService {
     for (const [docName, config] of Object.entries(agentsYamlDocuments)) {
       // Case 1: Inline string content (key: value | multiline)
       if (typeof config === 'string') {
-        this.documents.set(docName, config);
-        this.logger.debug(`Loaded inline document: ${docName} (${config.length} chars)`);
+        const render = DEFAULT_RENDER_MODE;
+        this.documents.set(docName, { content: config, render });
+        this.logger.debug(`Loaded inline document: ${docName} (${config.length} chars) [render=${render}]`);
       }
       // Case 2: Object with path property
+      else if (config && typeof config === 'object' && 'content' in config) {
+        const content = String((config as any).content ?? '');
+        const render = typeof (config as any).render === 'boolean' ? (config as any).render : DEFAULT_RENDER_MODE;
+        this.documents.set(docName, { content, render });
+        this.logger.debug(`Loaded inline document object: ${docName} (${content.length} chars) [render=${render}]`);
+      }
       else if (config && typeof config === 'object' && 'path' in config) {
         try {
-          const content = await this.loadFileContent(config.path, projectPath);
-          this.documents.set(docName, content);
-          this.logger.debug(`Loaded file document: ${docName} from ${config.path} (${content.length} chars)`);
+          const resolvedPath = typeof (config as any).path === 'string' ? (config as any).path : '';
+          const content = await this.loadFileContent(resolvedPath, projectPath);
+          const render = typeof (config as any).render === 'boolean' ? (config as any).render : DEFAULT_RENDER_MODE;
+          this.documents.set(docName, { content, render });
+          this.logger.debug(`Loaded file document: ${docName} from ${config.path} (${content.length} chars) [render=${render}]`);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           this.logger.warn(`Failed to load document '${docName}' from ${config.path}: ${errorMessage}`);
@@ -136,15 +153,21 @@ export class DocumentLoaderService {
    * Get document content
    */
   async getDocumentContent(docName: string): Promise<string | undefined> {
-    return this.documents.get(docName);
+    const entry = this.documents.get(docName);
+    return entry?.content;
   }
 
   /**
    * Get document TOC (table of contents from markdown headings)
    */
   async getDocumentToc(docName: string): Promise<string | undefined> {
-    const content = this.documents.get(docName);
+    const entry = this.documents.get(docName);
+    const content = entry?.content;
     if (!content) {
+      return undefined;
+    }
+
+    if (entry && entry.render === false) {
       return undefined;
     }
 
@@ -210,6 +233,14 @@ export class DocumentLoaderService {
     return undefined;
   }
 
+
+  /**
+   * Determine whether a document should be processed as a Handlebars template
+   */
+  shouldRenderDocument(docName: string): boolean {
+    const entry = this.documents.get(docName);
+    return entry?.render ?? DEFAULT_RENDER_MODE;
+  }
   /**
    * Get all document names
    */

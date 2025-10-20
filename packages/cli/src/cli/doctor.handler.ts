@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
-import * as yaml from 'js-yaml';
+import { parseCrewxConfigFromFile } from '@sowonai/crewx-sdk';
 import { TaskManagementService } from '../services/task-management.service';
 import { ResultFormatterService } from '../services/result-formatter.service';
 import { ParallelProcessingService } from '../services/parallel-processing.service';
@@ -133,8 +133,7 @@ export class DoctorHandler {
         };
       }
 
-      const configContent = readFileSync(configPath, 'utf8');
-      const config = yaml.load(configContent) as any;
+      const config = parseCrewxConfigFromFile(configPath, { validationMode: 'lenient' });
 
       if (!config || !config.agents || !Array.isArray(config.agents)) {
         return {
@@ -224,16 +223,15 @@ export class DoctorHandler {
 
   private async testAIProviders(configPath: string, taskId: string): Promise<DiagnosticResult[]> {
     try {
-      this.taskManagementService.addTaskLog(taskId, { 
-        level: 'info', 
-        message: 'Testing AI providers with simple queries' 
+      this.taskManagementService.addTaskLog(taskId, {
+        level: 'info',
+        message: 'Testing AI providers with simple queries'
       });
 
-      const configContent = readFileSync(configPath, 'utf8');
-      const config = yaml.load(configContent) as any;
-      
+      const config = parseCrewxConfigFromFile(configPath, { validationMode: 'lenient' });
+
       // Create test queries for available agents
-      const testQueries = config.agents
+      const testQueries = (config.agents || [])
         .filter((agent: any) => agent.inline?.provider)
         .map((agent: any) => ({
           agentId: agent.id,
@@ -258,7 +256,9 @@ export class DoctorHandler {
       const diagnostics: DiagnosticResult[] = [];
 
       results.results.forEach((result, index) => {
-        const agentId = testQueries[index].agentId;
+        const query = testQueries[index];
+        if (!query) return;
+        const agentId = query.agentId;
         
         if (result.success) {
           diagnostics.push({
