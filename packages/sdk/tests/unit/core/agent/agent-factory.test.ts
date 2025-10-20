@@ -6,10 +6,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   createCrewxAgent,
   loadAgentConfigFromYaml,
+  resolveProvider,
 } from '../../../../src/core/agent/agent-factory';
 import type { LoggerLike } from '../../../../src/core/providers/base-ai.types';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import * as providerFactory from '../../../../src/core/providers/provider-factory';
+import { MockProvider } from '../../../../src/core/providers/mock.provider';
+import type { AIProvider, AIQueryOptions, AIResponse } from '../../../../src/core/providers/ai-provider.interface';
+
+beforeEach(() => {
+  vi.restoreAllMocks();
+});
+
+function stubProviderFactory(provider: AIProvider = new MockProvider()): AIProvider {
+  vi.spyOn(providerFactory, 'createProviderFromConfig').mockResolvedValue(provider);
+  return provider;
+}
 
 describe('createCrewxAgent', () => {
   it('should create agent with default configuration', async () => {
@@ -96,7 +109,7 @@ describe('createCrewxAgent', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.content).toContain('Query executed');
+    expect(result.content).toContain('Mock response');
     expect(result.metadata).toMatchObject({
       context: 'Project: CrewX',
       messageCount: 0,
@@ -112,7 +125,7 @@ describe('createCrewxAgent', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.content).toContain('Execute completed');
+    expect(result.content).toContain('Mock response');
   });
 
   it('should handle multiple listeners for same event', async () => {
@@ -203,6 +216,104 @@ describe('createCrewxAgent', () => {
     // Should have reached depth 1 at least
     expect(maxDepth).toBeGreaterThanOrEqual(1);
   });
+
+  it('should merge provider options from agent requests', async () => {
+    const querySpy = vi.fn<[
+      string,
+      AIQueryOptions | undefined,
+    ], Promise<AIResponse>>().mockResolvedValue({
+      content: 'Query handled',
+      provider: 'cli/claude',
+      command: 'query',
+      success: true,
+    });
+
+    const executeSpy = vi.fn<[
+      string,
+      AIQueryOptions | undefined,
+    ], Promise<AIResponse>>().mockResolvedValue({
+      content: 'Execute handled',
+      provider: 'cli/claude',
+      command: 'execute',
+      success: true,
+    });
+
+    const provider: AIProvider = {
+      name: 'cli/claude',
+      isAvailable: vi.fn().mockResolvedValue(true),
+      query: querySpy,
+      execute: executeSpy,
+      getToolPath: vi.fn().mockResolvedValue(null),
+    };
+
+    const { agent } = await createCrewxAgent({ provider });
+
+    const sharedMessages = [
+      {
+        id: 'msg-1',
+        userId: 'tester',
+        text: 'Hello',
+        timestamp: new Date(),
+        isAssistant: false,
+        metadata: { role: 'user' },
+      },
+    ];
+
+    await agent.query({
+      agentId: 'runtime-agent',
+      prompt: 'What is the status?',
+      context: 'ctx',
+      model: 'claude-3-sonnet',
+      messages: sharedMessages,
+      options: {
+        timeout: 42_000,
+        workingDirectory: '/tmp/project',
+        additionalArgs: ['--dry-run'],
+        pipedContext: 'structured-payload',
+      },
+    });
+
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const [, queryOptions] = querySpy.mock.calls[0];
+    expect(queryOptions).toMatchObject({
+      timeout: 42_000,
+      workingDirectory: '/tmp/project',
+      additionalArgs: ['--dry-run'],
+      pipedContext: 'structured-payload',
+      agentId: 'runtime-agent',
+      model: 'claude-3-sonnet',
+    });
+    expect(queryOptions?.messages?.[0]?.metadata).toMatchObject({
+      id: 'msg-1',
+      userId: 'tester',
+      role: 'user',
+    });
+
+    await agent.execute({
+      agentId: 'runtime-agent',
+      prompt: 'Implement feature',
+      context: 'ctx',
+      model: 'claude-3-sonnet',
+      messages: sharedMessages,
+      options: {
+        timeout: 84_000,
+        workingDirectory: '/tmp/project',
+        taskId: 'task-123',
+        pipedContext: 'structured-exec',
+      },
+    });
+
+    expect(executeSpy).toHaveBeenCalledTimes(1);
+    const [, executeOptions] = executeSpy.mock.calls[0];
+    expect(executeOptions).toMatchObject({
+      timeout: 84_000,
+      workingDirectory: '/tmp/project',
+      taskId: 'task-123',
+      pipedContext: 'structured-exec',
+      agentId: 'runtime-agent',
+      model: 'claude-3-sonnet',
+    });
+  });
 });
 
 describe('YAML Integration', () => {
@@ -215,6 +326,7 @@ describe('YAML Integration', () => {
       apiKey: test-key`;
 
     const config = loadAgentConfigFromYaml(yaml);
+    stubProviderFactory();
     const { agent } = await createCrewxAgent(config);
 
     expect(agent).toBeDefined();
@@ -228,6 +340,7 @@ describe('YAML Integration', () => {
     provider: cli/claude`;
 
     const config = loadAgentConfigFromYaml(yaml);
+    stubProviderFactory();
     const { agent } = await createCrewxAgent(config);
 
     const result = await agent.query({
@@ -237,7 +350,7 @@ describe('YAML Integration', () => {
 
     expect(result.success).toBe(true);
     expect(result.content).toBeTruthy();
-    expect(result.content).toContain('Query executed');
+    expect(result.content).toContain('Mock response');
   });
 
   it('should preserve YAML provider config in agent', async () => {
@@ -297,6 +410,7 @@ describe('YAML Integration', () => {
     provider: cli/codex`;
 
     const config = loadAgentConfigFromYaml(yaml);
+    stubProviderFactory();
     const { agent, onEvent } = await createCrewxAgent({
       ...config,
       enableCallStack: true,
@@ -375,6 +489,8 @@ describe('Runtime Model Override', () => {
       model: claude-3-sonnet`;
 
     const config = loadAgentConfigFromYaml(yaml);
+    // Mock provider to avoid needing real CLI tool
+    stubProviderFactory();
     const { agent } = await createCrewxAgent(config);
 
     // Runtime model should override YAML model
@@ -396,9 +512,9 @@ describe('Runtime Model Override', () => {
 
     const config = loadAgentConfigFromYaml(yaml);
 
-    // YAML model is in config, but AgentRuntime doesn't use it yet (Mock mode)
     expect(config.provider?.model).toBe('claude-3-sonnet');
 
+    stubProviderFactory();
     const { agent } = await createCrewxAgent(config);
 
     const result = await agent.query({
@@ -407,8 +523,7 @@ describe('Runtime Model Override', () => {
     });
 
     expect(result.success).toBe(true);
-    // In mock mode, no model in metadata when not specified
-    expect(result.metadata?.model).toBeUndefined();
+    expect(result.metadata?.model).toBe('claude-3-sonnet');
   });
 });
 
@@ -521,6 +636,151 @@ describe('Custom Logger Integration', () => {
   });
 });
 
+describe('Provider Resolution', () => {
+  class TestProvider implements AIProvider {
+    name = 'test/provider';
+
+    async isAvailable(): Promise<boolean> {
+      return true;
+    }
+
+    async query(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
+      return {
+        content: `test query: ${prompt}`,
+        provider: this.name,
+        command: 'query',
+        success: true,
+        taskId: options.taskId,
+      };
+    }
+
+    async execute(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
+      return {
+        content: `test execute: ${prompt}`,
+        provider: this.name,
+        command: 'execute',
+        success: true,
+        taskId: options.taskId,
+      };
+    }
+
+    async getToolPath(): Promise<string | null> {
+      return null;
+    }
+  }
+
+  it('should return MockProvider when no configuration is provided', async () => {
+    const result = await resolveProvider();
+    expect(result.provider).toBeInstanceOf(MockProvider);
+    expect(result.defaultModel).toBeUndefined();
+  });
+
+  it('should pass through existing AIProvider instances', async () => {
+    const provider = new TestProvider();
+    const result = await resolveProvider(provider);
+    expect(result.provider).toBe(provider);
+    expect(result.defaultModel).toBeUndefined();
+  });
+
+  it('should create provider from configuration via factory', async () => {
+    const provider = new TestProvider();
+    const spy = vi
+      .spyOn(providerFactory, 'createProviderFromConfig')
+      .mockResolvedValue(provider);
+
+    const result = await resolveProvider({ namespace: 'cli', id: 'claude', model: 'haiku' });
+
+    expect(spy).toHaveBeenCalledWith({ namespace: 'cli', id: 'claude', model: 'haiku' });
+    expect(result.provider).toBe(provider);
+    expect(result.defaultModel).toBe('haiku');
+  });
+});
+
+describe('Provider Injection Behavior', () => {
+  class RecordingProvider implements AIProvider {
+    name = 'test/recording';
+    lastQueryPrompt?: string;
+    lastQueryOptions?: AIQueryOptions;
+    lastExecutePrompt?: string;
+    lastExecuteOptions?: AIQueryOptions;
+
+    async isAvailable(): Promise<boolean> {
+      return true;
+    }
+
+    async query(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
+      this.lastQueryPrompt = prompt;
+      this.lastQueryOptions = options;
+      return {
+        content: `recorded query: ${prompt}`,
+        provider: this.name,
+        command: 'query',
+        success: true,
+      };
+    }
+
+    async execute(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
+      this.lastExecutePrompt = prompt;
+      this.lastExecuteOptions = options;
+      return {
+        content: `recorded execute: ${prompt}`,
+        provider: this.name,
+        command: 'execute',
+        success: true,
+      };
+    }
+
+    async getToolPath(): Promise<string | null> {
+      return null;
+    }
+  }
+
+  it('should forward query requests to injected provider with runtime options', async () => {
+    const provider = new RecordingProvider();
+    const { agent } = await createCrewxAgent({ provider });
+
+    const result = await agent.query({
+      prompt: 'check integration',
+      context: 'test-context',
+      model: 'test-model',
+    });
+
+    expect(result.content).toBe('recorded query: check integration');
+    expect(result.metadata?.provider).toBe(provider.name);
+    expect(provider.lastQueryPrompt).toBe('check integration');
+    expect(provider.lastQueryOptions).toMatchObject({
+      pipedContext: 'test-context',
+      model: 'test-model',
+      agentId: 'crewx',
+    });
+  });
+
+  it('should apply provider configuration model when runtime model is omitted', async () => {
+    const provider = new RecordingProvider();
+    stubProviderFactory(provider);
+
+    const { agent } = await createCrewxAgent({
+      provider: { namespace: 'cli', id: 'claude', model: 'claude-3-sonnet' },
+    });
+
+    const result = await agent.query({ prompt: 'use default model' });
+
+    expect(provider.lastQueryOptions?.model).toBe('claude-3-sonnet');
+    expect(result.metadata?.model).toBe('claude-3-sonnet');
+  });
+
+  it('should forward execute requests to injected provider', async () => {
+    const provider = new RecordingProvider();
+    const { agent } = await createCrewxAgent({ provider });
+
+    const result = await agent.execute({ prompt: 'run action', model: 'exec-model' });
+
+    expect(result.content).toBe('recorded execute: run action');
+    expect(provider.lastExecutePrompt).toBe('run action');
+    expect(provider.lastExecuteOptions?.model).toBe('exec-model');
+  });
+});
+
 describe('String-based Query/Execute API (Mention Parsing)', () => {
   it('should execute query with mention string (@agent task)', async () => {
     const { agent } = await createCrewxAgent({
@@ -624,6 +884,8 @@ describe('String-based Query/Execute API (Mention Parsing)', () => {
     provider: cli/copilot`;
 
     const config = loadAgentConfigFromYaml(yaml);
+    // Mock provider to avoid needing real CLI tool
+    stubProviderFactory();
 
     // Extract agent IDs from YAML config for validAgents
     const { agent } = await createCrewxAgent({

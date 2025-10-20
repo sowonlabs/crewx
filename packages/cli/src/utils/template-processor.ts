@@ -11,11 +11,11 @@
 import * as Handlebars from 'handlebars';
 import { DocumentLoaderService } from '../services/document-loader.service';
 
-// Import TemplateContext from SDK and re-export for CLI internal use
-import type { TemplateContext } from '@sowonai/crewx-sdk';
+// Import context types from SDK and re-export for CLI internal use
+import type { RenderContext, TemplateContext } from '@sowonai/crewx-sdk';
 
 // Re-export for other CLI modules
-export type { TemplateContext } from '@sowonai/crewx-sdk';
+export type { RenderContext, TemplateContext } from '@sowonai/crewx-sdk';
 
 /**
  * Process Handlebars template with document variables and context

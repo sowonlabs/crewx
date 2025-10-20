@@ -242,6 +242,7 @@ export async function handleExecute(app: any, args: CliOptions) {
         context: combinedContextPieces || undefined,
         model: model,
         messages: combinedMessages,
+        provider: args.provider // NEW: Pass provider option
       });
 
       // Extract response from MCP format: content[0].text or implementation
@@ -307,6 +308,7 @@ export async function handleExecute(app: any, args: CliOptions) {
         context: combinedContextPieces || undefined,
         model: pt.model,
         messages: combinedMessages,
+        provider: args.provider // NEW: Pass provider option to all parallel tasks
       }));
 
       // Save user tasks to conversation history if thread is specified

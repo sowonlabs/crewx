@@ -56,7 +56,7 @@ export class LayoutLoader {
   /**
    * Load a layout by ID with optional props override
    *
-   * @param layoutId - Layout ID (e.g., "crewx/dashboard", "dashboard")
+   * @param layoutId - Layout ID (e.g., "crewx/dashboard", "dashboard", "my_custom_layout")
    * @param propsOverride - Props to override default values
    * @returns Layout definition with merged props
    *
@@ -70,14 +70,16 @@ export class LayoutLoader {
    * ```
    */
   load(layoutId: string, propsOverride?: Record<string, any>): LayoutDefinition {
-    // Normalize ID: "dashboard" → "crewx/dashboard"
-    const normalizedId = this.normalizeLayoutId(layoutId);
-
-    // Get layout or fallback
-    let layout = this.layouts.get(normalizedId);
+    // Try exact match first, then try normalized ID for backward compatibility
+    let layout = this.layouts.get(layoutId);
 
     if (!layout) {
-      console.warn(`Layout not found: ${normalizedId}, falling back to ${this.options.fallbackLayoutId}`);
+      const normalizedId = this.normalizeLayoutId(layoutId);
+      layout = this.layouts.get(normalizedId);
+    }
+
+    if (!layout) {
+      console.warn(`Layout not found: ${layoutId}, falling back to ${this.options.fallbackLayoutId}`);
       layout = this.layouts.get(this.options.fallbackLayoutId);
 
       if (!layout) {
@@ -115,6 +117,10 @@ export class LayoutLoader {
    * @returns true if layout exists
    */
   hasLayout(layoutId: string): boolean {
+    // Try exact match first, then try normalized ID for backward compatibility
+    if (this.layouts.has(layoutId)) {
+      return true;
+    }
     const normalizedId = this.normalizeLayoutId(layoutId);
     return this.layouts.has(normalizedId);
   }
@@ -312,7 +318,7 @@ export class LayoutLoader {
   /**
    * Register or override a layout at runtime (e.g., from project configuration)
    *
-   * @param layoutId Layout identifier (with or without namespace)
+   * @param layoutId Layout identifier (used as-is, without forced namespace)
    * @param layoutConfig Template string or configuration object
    */
   registerLayout(layoutId: string, layoutConfig: string | CustomLayoutDefinition): void {
@@ -320,7 +326,7 @@ export class LayoutLoader {
       throw new LayoutLoadError('Layout ID must be a non-empty string', layoutId);
     }
 
-    const normalizedId = this.normalizeLayoutId(layoutId);
+    // Use the layoutId as-is (no forced namespace)
     const config: CustomLayoutDefinition =
       typeof layoutConfig === 'string'
         ? { template: layoutConfig }
@@ -329,7 +335,7 @@ export class LayoutLoader {
     const template = typeof config.template === 'string' ? config.template : '';
 
     if (!template || template.trim().length === 0) {
-      throw new LayoutLoadError(`Custom layout template is empty for ${layoutId}`, normalizedId);
+      throw new LayoutLoadError(`Custom layout template is empty for ${layoutId}`, layoutId);
     }
 
     const propsSchemaRaw = config.propsSchema || {};
@@ -337,27 +343,27 @@ export class LayoutLoader {
     const explicitDefaults = config.defaultProps || {};
 
     const layoutDefinition: LayoutDefinition = {
-      id: normalizedId,
+      id: layoutId,
       version: config.version || '1.0.0',
-      description: config.description || `Custom layout ${normalizedId}`,
+      description: config.description || `Custom layout ${layoutId}`,
       template,
       propsSchema: this.parsePropsSchema(propsSchemaRaw),
       defaultProps: { ...defaultPropsFromSchema, ...explicitDefaults },
     };
 
-    const existingLayout = this.layouts.get(normalizedId);
+    const existingLayout = this.layouts.get(layoutId);
 
     const templatesEqual =
       existingLayout?.template === template &&
       JSON.stringify(existingLayout?.defaultProps ?? {}) === JSON.stringify(layoutDefinition.defaultProps ?? {}) &&
       JSON.stringify(existingLayout?.propsSchema ?? {}) === JSON.stringify(layoutDefinition.propsSchema ?? {});
 
-    this.layouts.set(normalizedId, layoutDefinition);
+    this.layouts.set(layoutId, layoutDefinition);
 
     if (!existingLayout) {
-      console.log(`Registered custom layout: ${normalizedId}`);
+      console.log(`Registered custom layout: ${layoutId}`);
     } else if (!templatesEqual) {
-      console.log(`Updated custom layout: ${normalizedId}`);
+      console.log(`Updated custom layout: ${layoutId}`);
     }
   }
 

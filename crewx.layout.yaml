@@ -97,6 +97,22 @@ layouts:
       {{/if}}
     </system_prompt>
 
+    {{#if user_input}}
+    <user_query key="{{vars.security_key}}">
+      {{{user_input}}}
+    </user_query>
+    {{/if}}
+
+  crewx_simple_layout: |
+    <system_prompt key="{{vars.security_key}}">
+      {{{agent.inline.prompt}}}
+    </system_prompt>
+
+    {{#if user_input}}
+    <user_query key="{{vars.security_key}}">
+      {{{user_input}}}
+    </user_query>
+    {{/if}}
 # Plugin Providers
 providers:
   # Crush with Z.AI GLM-4.6
@@ -251,7 +267,7 @@ agents:
       type: "agent"
       provider: "plugin/crush_zai"
       model: "glm-4.6"
-      layout: "crewx_dev_layout"
+      layout: "crewx_simple_layout"
       prompt: |
         You are a developer for the CrewX project.
 

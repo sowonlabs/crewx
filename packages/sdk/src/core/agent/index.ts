@@ -6,6 +6,7 @@ export {
   createCrewxAgent,
   loadAgentConfigFromYaml,
   loadAgentConfigFromFile,
+  resolveProvider,
   type CrewxAgent,
   type CrewxAgentConfig,
   type CrewxAgentResult,

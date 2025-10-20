@@ -94,7 +94,133 @@ describe('LayoutLoader', () => {
     });
   });
 
-  describe('load() - ID Normalization', () => {
+  describe('normalizeLayoutId() - Layout Name Without Namespace', () => {
+    it('should normalize layout name without namespace to crewx namespace', () => {
+      const layout1 = loader.load('default');
+      const layout2 = loader.load('crewx/default');
+
+      expect(layout1.id).toBe('crewx/default');
+      expect(layout2.id).toBe('crewx/default');
+      expect(layout1.id).toBe(layout2.id);
+      expect(layout1.template).toBe(layout2.template);
+    });
+
+    it('should normalize all available layouts without namespace', () => {
+      // Test all available layouts can be loaded without namespace
+      const layouts = ['default', 'dashboard', 'minimal'];
+      
+      layouts.forEach(layoutName => {
+        const layoutWithoutNamespace = loader.load(layoutName);
+        const layoutWithNamespace = loader.load(`crewx/${layoutName}`);
+        
+        expect(layoutWithoutNamespace.id).toBe(`crewx/${layoutName}`);
+        expect(layoutWithNamespace.id).toBe(`crewx/${layoutName}`);
+        expect(layoutWithoutNamespace.template).toBe(layoutWithNamespace.template);
+      });
+    });
+
+    it('should handle non-existent layout names without namespace', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      const layout = loader.load('nonexistent');
+      
+      expect(layout.id).toBe('crewx/default'); // Should fallback to default
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Layout not found: crewx/nonexistent')
+      );
+      
+      warnSpy.mockRestore();
+    });
+
+    it('should preserve existing namespace when provided', () => {
+      const layout = loader.load('crewx/dashboard');
+      
+      expect(layout.id).toBe('crewx/dashboard'); // Should not add another crewx/
+      expect(layout.template).toContain('Dashboard Configuration:');
+    });
+
+    it('should handle empty string layout ID', () => {
+      const layout = loader.load('');
+      
+      expect(layout.id).toBe('crewx/default'); // Should fallback to default
+    });
+
+    it('should handle null/undefined layout ID', () => {
+      const layout1 = loader.load(null as any);
+      const layout2 = loader.load(undefined as any);
+      
+      expect(layout1.id).toBe('crewx/default');
+      expect(layout2.id).toBe('crewx/default');
+    });
+  });
+
+  describe('hasLayout() - Layout Name Without Namespace', () => {
+    it('should return true for existing layouts without namespace', () => {
+      expect(loader.hasLayout('default')).toBe(true);
+      expect(loader.hasLayout('dashboard')).toBe(true);
+      expect(loader.hasLayout('minimal')).toBe(true);
+    });
+
+    it('should return true for existing layouts with namespace', () => {
+      expect(loader.hasLayout('crewx/default')).toBe(true);
+      expect(loader.hasLayout('crewx/dashboard')).toBe(true);
+      expect(loader.hasLayout('crewx/minimal')).toBe(true);
+    });
+
+    it('should return false for non-existent layouts without namespace', () => {
+      expect(loader.hasLayout('nonexistent')).toBe(false);
+      expect(loader.hasLayout('invalid')).toBe(false);
+    });
+  });
+
+  describe('Template Content - Layout Name Without Namespace', () => {
+    it('should load same template content regardless of namespace', () => {
+      const layoutWithoutNamespace = loader.load('default');
+      const layoutWithNamespace = loader.load('crewx/default');
+      
+      expect(layoutWithoutNamespace.template).toContain('<crewx_system_prompt>');
+      expect(layoutWithoutNamespace.template).toContain('{{{agent.inline.prompt}}}');
+      expect(layoutWithoutNamespace.template).toBe(layoutWithNamespace.template);
+    });
+
+    it('should load dashboard template with and without namespace', () => {
+      const layoutWithoutNamespace = loader.load('dashboard');
+      const layoutWithNamespace = loader.load('crewx/dashboard');
+      
+      expect(layoutWithoutNamespace.template).toContain('Dashboard Configuration:');
+      expect(layoutWithoutNamespace.template).toContain('{{props.theme}}');
+      expect(layoutWithoutNamespace.template).toBe(layoutWithNamespace.template);
+    });
+  });
+
+  describe('Props Override - Layout Name Without Namespace', () => {
+    it('should apply props override correctly when loading without namespace', () => {
+      const layout = loader.load('dashboard', {
+        theme: 'dark',
+        maxContextDocs: 20,
+      });
+
+      expect(layout.id).toBe('crewx/dashboard');
+      expect(layout.defaultProps).toEqual({
+        theme: 'dark',
+        enableTimeline: true,
+        maxContextDocs: 20,
+        sections: ['overview', 'tasks'],
+      });
+    });
+
+    it('should handle props override consistently with and without namespace', () => {
+      const props = { theme: 'light', enableTimeline: false };
+      
+      const layoutWithoutNamespace = loader.load('dashboard', props);
+      const layoutWithNamespace = loader.load('crewx/dashboard', props);
+      
+      expect(layoutWithoutNamespace.defaultProps).toEqual(layoutWithNamespace.defaultProps);
+      expect(layoutWithoutNamespace.id).toBe(layoutWithNamespace.id);
+    });
+  });
+
+  describe('ID Normalization', () => {
     it('should normalize layout ID without namespace', () => {
       const layout1 = loader.load('default');
       const layout2 = loader.load('crewx/default');

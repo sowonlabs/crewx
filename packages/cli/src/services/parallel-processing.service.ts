@@ -432,7 +432,8 @@ export class ParallelProcessingService {
     const agentConfig = this.configService.getAgentConfig(agentId);
     if (agentConfig && agentConfig.options) {
       if (typeof agentConfig.options === 'object' && agentConfig.options[mode]) {
-        return agentConfig.options[mode] || [];
+        const modeOptions = agentConfig.options[mode];
+        return Array.isArray(modeOptions) ? modeOptions : [];
       }
     }
     return [];

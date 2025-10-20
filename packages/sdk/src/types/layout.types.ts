@@ -98,39 +98,81 @@ export interface LoaderOptions {
 }
 
 /**
- * Render context for template rendering
+ * Render context for layout-specific template rendering.
+ *
+ * **Used by:**
+ * - `LayoutRenderer.render()` - Layout rendering with validation
+ * - `crewx.tool.ts` - MCP tool server prompt assembly
+ * - Layout-aware prompt orchestration
+ *
+ * **Characteristics:**
+ * - Agent is required (layouts always need agent context)
+ * - Rich agent structure (inline prompt, capabilities, specialties)
+ * - Documents and props for layout rendering
+ * - Strict typing for layout validation
+ *
+ * For general template processing, use `TemplateContext` instead.
+ *
+ * @see TemplateContext - General-purpose template rendering (agent optional)
+ * @see BaseContext - Shared fields (defined in template.types.ts)
  */
 export interface RenderContext {
-  agent: {
-    id: string;
-    name: string;
-    inline: {
-      prompt: string;
-      [key: string]: any;
-    };
-    [key: string]: any;
-  };
-  documents: Record<string, { content: string; toc?: string; summary?: string }>;
-  vars: TemplateVars;  // security_key, escaped user_input, etc.
-  props: Record<string, any>; // Validated props
+  // Core data: shared with BaseContext (inline for layout.types.ts isolation)
+  /** Current user input (HTML-escaped by renderer for security) */
+  user_input?: string;
+  /** Conversation message history */
+  messages?: Array<{
+    text: string;
+    isAssistant: boolean;
+    metadata?: Record<string, any>;
+  }>;
+  /** Execution mode (query or execute) */
+  mode?: 'query' | 'execute';
+  /** Platform identifier (cli, slack, mcp, etc.) */
   platform?: string;
-  messages?: Array<Record<string, any>>;
+  /** Environment variables */
+  env?: Record<string, any>;
+  /** Available tools metadata */
   tools?: {
     list?: Array<Record<string, any>>;
     json?: string;
     count?: number;
     [key: string]: any;
   } | null;
-  session?: {
-    mode?: string;
-    platform?: string;
-    options?: string[];
-    env?: Record<string, any>;
-    vars?: TemplateVars;
-    tools?: any;
+  /** Template variables (security_key, custom extensions) */
+  vars: TemplateVars;
+
+  // Layout-specific required fields
+  /** Agent configuration and metadata (required for layout rendering) */
+  agent: {
+    id: string;
+    name: string;
+    provider?: string; // Optional for backward compatibility
+    model?: string;
+    workingDirectory?: string;
+    inline: {
+      prompt: string;
+      [key: string]: any;
+    };
+    specialties?: string[];
+    capabilities?: string[];
+    description?: string;
     [key: string]: any;
   };
-  env?: Record<string, any>;
+
+  /** Project documents (e.g., CREWX.md, manuals) */
+  documents: Record<string, { content: string; toc?: string; summary?: string }>;
+
+  /** Validated layout props */
+  props: Record<string, any>;
+
+  // Additional metadata fields
+  /** Session-specific options (CLI flags, etc.) */
+  session?: {
+    options?: string[];
+    [key: string]: any;
+  };
+  /** Additional context data */
   context?: Record<string, any>;
 }
 

@@ -193,7 +193,7 @@ export class SkillRuntime extends EventEmitter implements ISkillRuntime {
         skillName,
         skillVersion: metadata.version,
         workingDirectory: options?.workingDirectory || process.cwd(),
-        environment: options?.environment || process.env,
+        environment: options?.environment || (process.env as Record<string, string>),
         timeout: options?.timeout || 30000, // 30 seconds default
         runtimeRequirements: metadata.runtime || {},
         configuration: {

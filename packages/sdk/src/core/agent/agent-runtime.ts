@@ -8,6 +8,8 @@ import type { ConversationMessage } from '../../conversation/conversation-histor
 import type { LoggerLike } from '../providers/base-ai.types';
 import { ConsoleLogger } from '../providers/base-ai.provider';
 import { MentionParser } from '../../utils/mention-parser';
+import type { AIProvider, AIQueryOptions, AIResponse } from '../providers/ai-provider.interface';
+import { MockProvider } from '../providers/mock.provider';
 
 export interface AgentQueryRequest {
   agentId?: string;
@@ -15,6 +17,7 @@ export interface AgentQueryRequest {
   context?: string;
   messages?: ConversationMessage[];
   model?: string;  // Runtime model override
+  options?: AIQueryOptions;
 }
 
 export interface AgentExecuteRequest {
@@ -23,6 +26,7 @@ export interface AgentExecuteRequest {
   context?: string;
   messages?: ConversationMessage[];
   model?: string;  // Runtime model override
+  options?: AIQueryOptions;
 }
 
 export interface AgentResult {
@@ -38,6 +42,8 @@ export interface AgentRuntimeOptions {
   defaultAgentId?: string;
   logger?: LoggerLike;  // Custom logger (defaults to ConsoleLogger)
   validAgents?: string[];  // List of valid agent IDs for mention parsing
+  provider?: AIProvider;
+  defaultModel?: string;
 }
 
 /**
@@ -51,6 +57,8 @@ export class AgentRuntime {
   private defaultAgentId: string;
   private logger: LoggerLike;
   private mentionParser: MentionParser;
+  private provider: AIProvider;
+  private defaultModel?: string;
 
   constructor(options: AgentRuntimeOptions = {}) {
     this.eventBus = options.eventBus ?? new EventBus();
@@ -58,6 +66,8 @@ export class AgentRuntime {
     this.defaultAgentId = options.defaultAgentId ?? 'default';
     this.logger = options.logger ?? new ConsoleLogger('AgentRuntime');
     this.mentionParser = new MentionParser(options.validAgents ?? [this.defaultAgentId]);
+    this.provider = options.provider ?? new MockProvider();
+    this.defaultModel = options.defaultModel;
   }
 
   /**
@@ -129,7 +139,7 @@ export class AgentRuntime {
         const frame: CallStackFrame = {
           depth: this.callStack.length,
           agentId,
-          provider: 'sdk', // Will be overridden by actual provider
+          provider: this.provider.name,
           mode: 'query',
           enteredAt: new Date().toISOString(),
         };
@@ -137,23 +147,15 @@ export class AgentRuntime {
         await this.eventBus.emit('callStackUpdated', [...this.callStack]);
       }
 
-      // Simulate execution (actual implementation would use AIProvider)
-      // TODO: Pass request.model to provider.query(prompt, { model: request.model })
-      const result: AgentResult = {
-        content: `Query executed: ${request.prompt}`,
-        success: true,
-        agentId,
-        metadata: {
-          context: request.context,
-          messageCount: request.messages?.length ?? 0,
-          model: request.model,  // Include model in metadata
-        },
-      };
+      const providerOptions = this.createProviderOptions(request, agentId);
+      const aiResponse = await this.provider.query(request.prompt, providerOptions);
+      const result = this.convertAIResponse(aiResponse, agentId, request);
 
-      // Emit completion event
-      await this.eventBus.emit('agentCompleted', { agentId, success: true });
+      await this.eventBus.emit('agentCompleted', { agentId, success: result.success });
 
-      this.logger.log(`Query completed successfully for agent: ${agentId}`);
+      this.logger.log(
+        `Query completed for agent: ${agentId} (provider: ${this.provider.name}, success: ${result.success})`,
+      );
 
       return result;
     } catch (error) {
@@ -238,7 +240,7 @@ export class AgentRuntime {
         const frame: CallStackFrame = {
           depth: this.callStack.length,
           agentId,
-          provider: 'sdk',
+          provider: this.provider.name,
           mode: 'execute',
           enteredAt: new Date().toISOString(),
         };
@@ -246,22 +248,15 @@ export class AgentRuntime {
         await this.eventBus.emit('callStackUpdated', [...this.callStack]);
       }
 
-      // Simulate execution
-      // TODO: Pass request.model to provider.execute(prompt, { model: request.model })
-      const result: AgentResult = {
-        content: `Execute completed: ${request.prompt}`,
-        success: true,
-        agentId,
-        metadata: {
-          context: request.context,
-          messageCount: request.messages?.length ?? 0,
-          model: request.model,  // Include model in metadata
-        },
-      };
+      const providerOptions = this.createProviderOptions(request, agentId);
+      const aiResponse = await this.provider.execute(request.prompt, providerOptions);
+      const result = this.convertAIResponse(aiResponse, agentId, request);
 
-      await this.eventBus.emit('agentCompleted', { agentId, success: true });
+      await this.eventBus.emit('agentCompleted', { agentId, success: result.success });
 
-      this.logger.log(`Execute completed successfully for agent: ${agentId}`);
+      this.logger.log(
+        `Execute completed for agent: ${agentId} (provider: ${this.provider.name}, success: ${result.success})`,
+      );
 
       return result;
     } catch (error) {
@@ -274,6 +269,60 @@ export class AgentRuntime {
         await this.eventBus.emit('callStackUpdated', [...this.callStack]);
       }
     }
+  }
+
+  private createProviderOptions(
+    request: AgentQueryRequest | AgentExecuteRequest,
+    agentId: string,
+  ): AIQueryOptions {
+    const model = request.model ?? this.defaultModel;
+
+    const overrideOptions = request.options ?? {};
+    const normalizedMessages = request.messages?.map((message) => ({
+      text: message.text,
+      isAssistant: message.isAssistant,
+      metadata: {
+        ...message.metadata,
+        id: message.id,
+        userId: message.userId,
+        timestamp:
+          message.timestamp instanceof Date
+            ? message.timestamp.toISOString()
+            : message.timestamp,
+      },
+    }));
+
+    return {
+      ...overrideOptions,
+      agentId,
+      model,
+      pipedContext: overrideOptions.pipedContext ?? request.context,
+      messages: normalizedMessages ?? overrideOptions.messages,
+    } satisfies AIQueryOptions;
+  }
+
+  private convertAIResponse(
+    aiResponse: AIResponse,
+    agentId: string,
+    request: AgentQueryRequest | AgentExecuteRequest,
+  ): AgentResult {
+    const model = request.model ?? this.defaultModel;
+
+    return {
+      content: aiResponse.content,
+      success: aiResponse.success,
+      agentId,
+      metadata: {
+        provider: aiResponse.provider,
+        command: aiResponse.command,
+        taskId: aiResponse.taskId,
+        error: aiResponse.error,
+        toolCall: aiResponse.toolCall,
+        context: request.context,
+        messageCount: request.messages?.length ?? 0,
+        model,
+      },
+    };
   }
 
   /**

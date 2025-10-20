@@ -174,6 +174,17 @@ export class ConfigService implements OnModuleInit {
         : path.join(process.cwd(), this.customConfigPath);
     }
 
+    const envConfigPath = process.env.CREWX_CONFIG?.trim();
+    if (envConfigPath) {
+      const resolvedEnvPath = path.isAbsolute(envConfigPath)
+        ? envConfigPath
+        : path.join(process.cwd(), envConfigPath);
+
+      if (existsSync(resolvedEnvPath)) {
+        return resolvedEnvPath;
+      }
+    }
+
     // Default paths
     const crewxPath = path.join(process.cwd(), 'crewx.yaml');
     const agentsPath = path.join(process.cwd(), 'agents.yaml');
@@ -201,6 +212,19 @@ export class ConfigService implements OnModuleInit {
       return { path: null, name: null };
     }
 
+    const envConfigPath = process.env.CREWX_CONFIG?.trim();
+    if (envConfigPath) {
+      const resolvedEnvPath = path.isAbsolute(envConfigPath)
+        ? envConfigPath
+        : path.join(process.cwd(), envConfigPath);
+
+      if (existsSync(resolvedEnvPath)) {
+        return { path: resolvedEnvPath, name: path.basename(resolvedEnvPath) };
+      }
+
+      this.logger.warn(`CREWX_CONFIG file not found: ${resolvedEnvPath}`);
+    }
+
     const defaultCandidates = [
       { path: path.join(process.cwd(), 'crewx.yaml'), name: 'crewx.yaml' },
       { path: path.join(process.cwd(), 'agents.yaml'), name: 'agents.yaml' },
@@ -215,4 +239,3 @@ export class ConfigService implements OnModuleInit {
     return { path: null, name: null };
   }
 }
-
