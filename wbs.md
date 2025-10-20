@@ -2,6 +2,16 @@
 
 > 상태 표시는 `⬜️ 대기`, `🟡 진행중`, `✅ 완료`, `⚠️ 위험` 등으로 업데이트해 주세요.
 
+## WBS 작성요령
+### (⬜️ 대기) WBS-00 타이틀
+> 📄 상세 계획: wbs 디렉토리에 wbs-00-title.md로 상세계획을 작성 후 링크
+- (⬜️ 대기) Phase 1: 페이즈별로 제목1
+- (⬜️ 대기)Phase 2: 페이즈별로 제목2
+	- 디펜던시: Phase1 (이렇게 명시함으로써 phase1이 끝나야 작업이 진행될 수 있음을 알림)
+- (⬜️ 대기)Phase 3: 페이즈별로 제목3
+	- 디펜던시: Phase2
+**주의**: 현재 파일에는 coordinator가 판별하기 편하도록 phase에는 제목과 작업 상태만 남기고 상세 계획에 자세한 내용 추가할 것 (작업자들이 확인 가능하도록)
+
 ## 현황
 
 | 상태     | ID     | 작업명                                            | 주요 산출물 및 범위                                                                       | 선행 디펜던시 | 병행 가능성/메모                                                                                                                         |
@@ -13,6 +23,7 @@
 | ✅ 완료   | WBS-15 | 하드코딩 프롬프트 레이아웃 시스템 통합                          | `<user_query>` 보안 래핑을 레이아웃 계층으로 이관, Legacy 플래그로 안전한 전환 기반 확보                           | WBS-14  | Phase 1-2 완료 (2025-10-19~20), 잔여 하드코딩 정리는 WBS-16~18에서 Claude 스킬 통합과 함께 진행                                                       |
 | ✅ 완료   | WBS-16 | SDK Config & Skills Schema                             | Claude `skills.md` 스키마 흡수, CrewX YAML/JSON Schema 정규화, CLI 파서 재사용 구조                              | WBS-14  | **Phase 1-2 완료 (2025-10-20)**: 타입 시스템, JSON Schema, 파서/검증기 구현 완료. 40+ 단위 테스트 통과. Phase 3 대기중                                                               |
 | ✅ 완료   | WBS-17 | Skill Runtime & Package                                 | 스킬 실행 수명주기, AppManifest/번들 포맷, progressive disclosure 러닝타임                                       | WBS-16  | **Phase 1 완료 (2025-10-20)**: SkillRuntime 설계, 라이프사이클 정의, Claude 스킬 어댑터, ExecutionContext 구조, 타입 정의 완료. Phase 2-3 대기중                                                             |
+| ⬜️ 대기   | WBS-18 | SDK AgentRuntime Provider 통합                          | AgentRuntime에 AIProvider 주입 구조 설계 및 구현, Mock Provider 제거, 실제 Provider 연동                  | WBS-17  | AgentRuntime이 Provider를 주입받아 실제 AI 호출 수행하도록 리팩토링. createCrewxAgent의 provider config를 AgentRuntime에 연결                                                             |
 
 ## 상세 작업 계획
 
@@ -358,3 +369,20 @@
 - ✅ `packages/sdk/src/skills/index.ts` - 모듈 export
 - ✅ `wbs/wbs-17-phase-1-skill-runtime-design.md` - 상세 설계 문서
 - ⬜ Registry Mock 스크립트, API 계약서(RFC), CLI 통합 PoC (Phase 2-3)
+
+---
+
+### (⬜️ 대기) WBS-18 SDK AgentRuntime Provider 통합 + CLI 통합
+> 📄 상세 계획: [wbs/wbs-18-agent-provider-integration.md](wbs/wbs-18-agent-provider-integration.md)
+
+- (⬜️ 대기) Phase 1: SDK Provider 주입 구조 설계
+- (⬜️ 대기) Phase 2: AgentRuntime Provider 통합
+	- 디펜던시: Phase 1
+- (⬜️ 대기) Phase 3: SDK 테스트 업데이트
+	- 디펜던시: Phase 1, 2
+- (⬜️ 대기) Phase 4: CLI Provider Bridge 구현
+	- 디펜던시: Phase 1
+- (⬜️ 대기) Phase 5: CLI 명령어 SDK 사용 통합
+	- 디펜던시: Phase 4
+
+**주의**: CLI가 SDK를 실제로 사용하는 레퍼런스 구현
