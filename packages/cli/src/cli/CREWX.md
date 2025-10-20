@@ -23,18 +23,18 @@ Handles application lifecycle (startup, shutdown) and error handling.
 
 ### **query.handler.ts**
 Read-only query command handler (`crewx query`).
-Supports single/multiple agents, stdin piping, thread-based conversations, and parallel queries.
-No file modifications allowed - pure analysis and response.
+Supports multi-agent fan-out, stdin piping, thread-based conversations, and TemplateContext hydration.
+No file modifications allowed — layout-rendered prompts keep responses read-only.
 
 ### **execute.handler.ts**
 File modification command handler (`crewx execute`).
 Allows agents to create/modify files, run commands, and perform actions.
-Supports thread continuity, stdin context, and parallel task execution.
+Streams layout-rendered instructions, tracks tool invocations, and supports parallel execution with rollback safeguards.
 
 ### **chat.handler.ts**
 Interactive chat mode handler (`crewx chat`).
 Provides REPL-like interface with conversation history and multi-turn interactions.
-Supports thread persistence, context loading, and session management.
+Supports thread persistence, TemplateContext refresh per turn, and session management across CLI restarts.
 
 ### **mcp.handler.ts**
 MCP (Model Context Protocol) command handler (`crewx mcp`).
@@ -53,13 +53,13 @@ Supports multiple template types (default, minimal, development, production).
 
 ### **doctor.handler.ts**
 System diagnostics handler (`crewx doctor`).
-Checks configuration validity, AI provider availability, and system health.
-Runs parallel diagnostics and provides actionable error messages.
+Checks configuration validity, layout/template availability, provider health, and TemplateContext readiness.
+Runs parallel diagnostics (WBS-16 schema checks, provider tool-call probes) and surfaces actionable remediation steps.
 
 ### **templates.handler.ts**
 Template management handler (`crewx templates`).
-Lists available agent templates and updates from GitHub repository.
-Manages template versions and installation.
+Lists layout templates (local/CDN), fetches updates, and validates compatibility via `TemplateService` version gating.
+Supports installation, cache inspection, and migration hints for layout/append feature flags.
 
 ### **help.handler.ts**
 Help command handler (`crewx help`).
@@ -68,4 +68,4 @@ Delegates to HelpService for content rendering.
 
 ---
 
-**Last Updated**: 2025-10-13
+**Last Updated**: 2025-10-20

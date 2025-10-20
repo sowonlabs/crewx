@@ -7,20 +7,26 @@
 ## 📦 Packages
 
 ### [@sowonai/crewx-cli](packages/cli/CREWX.md)
-Main CLI application (NestJS-based)
-- CLI commands (query, execute, chat, agent, doctor, init, mcp)
-- Slack Bot integration
-- MCP server (VS Code, Claude Desktop, etc.)
-- AI orchestration & multi-provider support
-- Plugin system
+NestJS-based CLI & MCP application
+- CLI commands (query, execute, chat, agent, doctor, init, templates, mcp)
+- Layout-driven prompt pipeline (WBS-13~15) with secure `<user_query>` wrappers
+- TemplateContext + AgentMetadata integration, feature flag `CREWX_APPEND_LEGACY`
+- Slack bot + MCP server surfaces (VS Code, Claude Desktop, Cursor)
+- Dynamic provider loading (plugin/remote namespaces) with JSON Schema validation (WBS-16)
 
 ### [@sowonai/crewx-sdk](packages/sdk/CREWX.md)
-Shared SDK & type definitions
-- Configuration management (Timeout, Conversation)
-- Conversation system (History Provider, Message Formatting)
-- Knowledge base (Document Manager)
-- Agent utilities (MentionParser, Agent Factory)
-- Type system (AIProvider, AgentConfig, etc.)
+Shared SDK & type system
+- TemplateContext & AgentMetadata exports (WBS-14)
+- LayoutLoader/LayoutRenderer/PropsValidator for prompt layouts (WBS-11~13)
+- SkillRuntime architecture + progressive disclosure loader (WBS-17 Phase 1)
+- Configuration + conversation management utilities
+- Provider interfaces, dynamic provider schema, remote agent helpers (WBS-16)
+
+## 🚀 Recent Highlights
+
+- **WBS-13/14/15**: CLI now renders prompts through SDK layouts, with TemplateContext + secure `<user_query>` handling documented in `packages/cli/src/CREWX.md`.
+- **WBS-16**: crewx.yaml/skills schema consolidated; config validator enforces JSON Schema in CLI.
+- **WBS-17 Phase 1**: SkillRuntime + progressive loader landed in the SDK; CLI wiring pending future phases.
 
 ---
 
@@ -68,4 +74,4 @@ npm run dev:cli            # CLI dev mode
 
 ---
 
-**Last Updated**: 2025-10-18
+**Last Updated**: 2025-10-20

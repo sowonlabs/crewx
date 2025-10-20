@@ -16,81 +16,86 @@
 
 ## 📋 Files Overview
 
-### **mcp-client.service.ts**
-MCP (Model Context Protocol) client implementation for remote agent connections.
-Manages MCP server communications, tool discovery, and remote agent execution.
-Handles connection lifecycle, protocol message routing, and bearer authentication.
-
-### **remote-agent.service.ts**
-Remote agent management and execution service.
-Connects to remote MCP agents, manages agent registry, and handles remote task execution.
-Provides discovery and capabilities introspection for remote agents with distributed collaboration.
-
-### **auth.service.ts**
-Authentication and authorization service for secure agent access.
-Manages API keys, tokens, and credential validation for remote services.
-Provides bearer token authentication for MCP endpoints and secure remote agent connections.
-
 ### **tool-call.service.ts**
-Tool execution engine for MCP tools and external commands.
-Discovers, loads, validates, and executes tools with security sandboxing.
-Handles tool input/output schemas and result formatting.
-
-### **config.service.ts**
-Configuration management service for loading YAML settings.
-Reads crewx.yaml from multiple locations with precedence rules.
-Provides typed configuration access throughout the application.
-
-### **config-validator.service.ts**
-YAML schema validation using JSON Schema (AJV).
-Validates agent definitions, provider configs, and tool settings.
-Provides detailed error messages for configuration issues.
+Layout-aware tool execution pipeline (WBS-13~15).
+- Renders layouts via SDK (`LayoutLoader`/`LayoutRenderer`) and injects secure `<user_query>` wrappers.
+- Routes tool invocations, handles streaming/cancellation, and records append telemetry.
+- Normalises responses for CLI, Slack, and MCP surfaces.
 
 ### **agent-loader.service.ts**
-Agent definition loading and management service.
-Parses agent configurations, resolves dependencies, and caches instances.
-Supports both built-in and custom agent definitions.
-
-### **parallel-processing.service.ts**
-Concurrent task execution and result aggregation.
-Manages multiple agent queries/executes running simultaneously.
-Handles timeouts, errors, and result collection for parallel operations.
-
-### **task-management.service.ts**
-Todo tracking and progress reporting system.
-Creates, updates, and manages task states (pending/in_progress/completed).
-Provides task history and status queries for CLI/MCP tools.
-
-### **template.service.ts**
-Handlebars template rendering and management.
-Loads templates from GitHub, local files, and inline definitions.
-Supports variable interpolation and helper functions.
-
-### **result-formatter.service.ts**
-Output formatting for CLI and MCP responses.
-Formats agent results, errors, and metadata for display.
-Supports multiple output formats (text, JSON, markdown).
+Agent resolution + layout selection.
+- Merges `crewx.yaml`, inline definitions, and layout props.
+- Applies TemplateContext defaults (mode, platform, agent metadata) before execution.
+- Caches resolved agents and supports feature flag `CREWX_APPEND_LEGACY`.
 
 ### **context-enhancement.service.ts**
-Project context loading from CLAUDE.md and similar files.
-Automatically detects and loads project-specific instructions.
-Enhances agent prompts with relevant project context.
+TemplateContext enrichment.
+- Aggregates CLAUDE.md, README snippets, and Layout overrides.
+- Produces `TemplateContext` / `AgentMetadata` for layout rendering (WBS-14).
+- Exposes metrics used by append safety dashboards.
+
+### **template.service.ts**
+Remote/local template management.
+- Prefers local repo templates, falls back to CDN/GitHub with cache + version gating.
+- Supports `.crewx/cache/templates` storage and `CREWX_ENABLE_REMOTE_TEMPLATES` flag.
+- Shared across CLI + SDK for consistent layout delivery.
+
+### **config.service.ts**
+Configuration aggregation.
+- Resolves crewx.yaml/crewX.layout.yaml precedence and dynamic provider configs.
+- Surfaces skills schema data (`skillsPaths`, include/exclude) for WBS-16 workflows.
+- Provides reload hooks used by `--config` option.
+
+### **config-validator.service.ts**
+AJV-based JSON Schema validation (WBS-16).
+- Validates providers, agents, layouts, and skills definitions.
+- Returns actionable diagnostics tied to source paths for CLI error reporting.
+
+### **parallel-processing.service.ts**
+Concurrent agent execution orchestrator.
+- Manages worker pools, timeout budgets, and cancellation hooks.
+- Integrates with compression service to keep transcripts bounded.
 
 ### **intelligent-compression.service.ts**
-Conversation history compression using importance detection.
-Reduces token usage while preserving key information.
-Applies summarization and filtering strategies.
+Conversation summarisation & token budgeting.
+- Uses importance heuristics to trim transcripts before sending to providers.
+- Maintains audit trail so results remain explainable.
+
+### **task-management.service.ts**
+Todo tracking + progress reporting.
+- Emits status updates used by CLI progress UI and MCP telemetry.
+- Persists history for retrospective reporting.
+
+### **result-formatter.service.ts**
+Output shaping for CLI/Slack/MCP.
+- Applies layout-aware formatting, diff highlighting, and structured JSON packaging.
+- Handles error surfaces and safety warnings consistently.
 
 ### **document-loader.service.ts**
-Document loading and parsing utilities.
-Reads markdown, text, and structured documents for context.
-Supports multiple file formats and encodings.
+Project document ingestion.
+- Reads markdown, code, and config files with encoding fallbacks.
+- Feeds context into TemplateContext builder and conversation cache.
+
+### **mcp-client.service.ts**
+MCP client utilities for remote agents.
+- Manages websocket lifecycle, tool discovery, and request/response routing.
+- Shares auth tokens with `AuthService` for secure connections.
+
+### **remote-agent.service.ts**
+Remote agent registry + orchestration.
+- Tracks available MCP agents, syncs capabilities, and proxies execution requests.
+- Supplies status data to CLI commands (e.g. `crewx agent ls`).
+
+### **auth.service.ts**
+Authentication helper for remote services.
+- Stores bearer tokens/secrets, injects them into MCP requests when required.
+- Validates credentials against allowed provider namespaces.
 
 ### **help.service.ts**
-Help content generation and display service.
-Provides command usage, examples, and documentation links.
-Renders formatted help text for CLI commands.
+Help and documentation surface.
+- Renders command usage, layout docs, and feature flag references.
+- Pulls pointers to WBS documents for deeper investigation.
 
 ---
 
-**Last Updated**: 2025-10-13
+**Last Updated**: 2025-10-20
