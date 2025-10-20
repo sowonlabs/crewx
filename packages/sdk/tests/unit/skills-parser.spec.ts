@@ -110,8 +110,7 @@ agents:
 
   it('should throw error for invalid YAML', () => {
     const yaml = `
-invalid yaml:
-  - unbalanced [ bracket
+invalid yaml: [1, 2
 `;
 
     expect(() => parseCrewxConfig(yaml)).toThrow(SkillLoadError);

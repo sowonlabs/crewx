@@ -13,11 +13,16 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } fr
 process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'error';
 
-// Mock external dependencies
-vi.mock('js-yaml', () => ({
-  load: vi.fn(),
-  dump: vi.fn(),
-}));
+// Mock external dependencies (wrap real js-yaml so parsing still works in tests)
+vi.mock('js-yaml', async () => {
+  const actual = await vi.importActual<typeof import('js-yaml')>('js-yaml');
+
+  return {
+    ...actual,
+    load: vi.fn((...args: Parameters<typeof actual.load>) => actual.load(...args)),
+    dump: vi.fn((...args: Parameters<typeof actual.dump>) => actual.dump(...args)),
+  };
+});
 
 // Mock fs with all required methods
 vi.mock('fs', () => ({
