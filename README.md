@@ -1,4 +1,4 @@
-# CrewX
+# SowonAI CrewX
 
 > Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions
 
