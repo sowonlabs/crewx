@@ -180,8 +180,10 @@ export class TaskManagementService {
         if (logFiles.length === 0) {
           return 'No task logs found';
         }
-        
-        return `Found ${logFiles.length} task logs:\n${logFiles.map(file => `- ${file}`).join('\n')}`;
+
+        // Remove .log extension from file names
+        const taskIds = logFiles.map(file => file.replace('.log', ''));
+        return `Found ${taskIds.length} task logs:\n${taskIds.map(id => `- ${id}`).join('\n')}`;
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

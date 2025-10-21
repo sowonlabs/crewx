@@ -302,14 +302,14 @@ documents:
     
     ### View Task Logs
     ```bash
-    crewx logs
-    crewx logs task_1234567890_abcdef
+    crewx log
+    crewx log task_1234567890_abcdef
     ```
     
     ### Common Issues
     
     **Agent not found:**
-    - Check `agents.yaml` exists
+    - Check `crewx.yaml` exists
     - Verify agent ID is correct
     
     **AI provider unavailable:**

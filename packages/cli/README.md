@@ -87,11 +87,12 @@ crewx chat --thread "my-session"
 Manage agents:
 
 ```bash
-# List all agents
-crewx agent list
+# List all agents (default behavior)
+crewx agent
 
-# Get agent details
-crewx agent info <agent-id>
+# List all agents (explicit)
+crewx agent ls
+crewx agent list
 ```
 
 ### init
@@ -118,6 +119,27 @@ Verifies:
 - Configuration file
 - Agent availability
 - API keys setup
+
+### log
+
+View task execution logs:
+
+```bash
+# List all task logs (default behavior)
+crewx log
+
+# List all task logs (explicit)
+crewx log ls
+
+# View specific task log
+crewx log task_1234567890_abcdef
+```
+
+Task logs include:
+- Execution status and duration
+- Provider and agent information
+- Full command output
+- Error messages (if any)
 
 ### mcp
 

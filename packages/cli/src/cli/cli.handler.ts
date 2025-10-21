@@ -50,6 +50,11 @@ export class CLIHandler {
           await handleChat(app, args);
           break;
 
+        case 'log':
+          const { handleLog } = await import('./log.handler');
+          await handleLog(app, args);
+          break;
+
         case 'help':
           const { handleHelp } = await import('./help.handler');
           await handleHelp(app);

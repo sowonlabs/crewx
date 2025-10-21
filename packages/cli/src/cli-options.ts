@@ -21,6 +21,8 @@ export interface CliOptions {
   query?: string | string[];
   execute?: string | string[];
   doctor?: boolean;
+  logCommand?: boolean;
+  logAction?: string; // Action or task ID for log command
   config?: string;
   // Provider options (NEW)
   provider?: string; // --provider cli/claude, cli/gemini, etc.
@@ -115,6 +117,13 @@ export function parseCliOptions(): CliOptions {
         choices: ['query', 'execute'] as const,
         default: 'query' as const,
         description: 'Slack bot mode: query (read-only) or execute (allow file changes)',
+      });
+    })
+    .command('log [action]', 'Manage task logs', (yargs) => {
+      yargs.command(['ls', 'list'], 'List all task logs');
+      yargs.positional('action', {
+        description: 'Action or task ID (ls/list or task_id)',
+        type: 'string'
       });
     })
     .command('help', 'Show help', () => {})
@@ -233,6 +242,8 @@ export function parseCliOptions(): CliOptions {
     // Keep execute as array for parallel processing support
     execute: Array.isArray(parsed.task) ? parsed.task : (parsed.task ? [parsed.task as string] : undefined),
     doctor: primaryCommand === 'doctor',
+    logCommand: primaryCommand === 'log',
+    logAction: parsed.action as string,
     config: parsed.config,
     // Init options
     template: parsed.template as string,
