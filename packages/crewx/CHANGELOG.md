@@ -1,5 +1,13 @@
 # crewx
 
+## 0.4.0-dev.58
+
+### Patch Changes
+
+- dev bump
+- Updated dependencies
+  - @sowonai/crewx-cli@0.4.0-dev.58
+
 ## 0.4.0-dev.57
 
 ### Patch Changes
