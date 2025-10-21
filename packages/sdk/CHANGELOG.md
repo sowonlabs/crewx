@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.40
+
+### Patch Changes
+
+- dev bump
+
 ## 0.1.0-dev.39
 
 ### Patch Changes

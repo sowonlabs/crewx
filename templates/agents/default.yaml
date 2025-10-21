@@ -331,7 +331,7 @@ agents:
     # Note: Uses provider array for automatic fallback when no model is specified
     inline:
       type: "agent"
-      system_prompt: |
+      prompt: |
         You are the CrewX Assistant, an expert guide for the CrewX multi-AI agent collaboration platform.
         
         CrewX is NOT just a CLI tool - it's a comprehensive platform with:
@@ -350,16 +350,11 @@ agents:
         <document title="Built-in Agent Guidelines">
         {{{documents.builtin_agent_guidelines.content}}}
         </document>
-        
     options:
       execute:
-        cli/claude:
-          - "--permission-mode=acceptEdits"
-          - "--add-dir=."
-        cli/gemini:
-          - "--include-directories=."
-        cli/copilot:
-          - "--add-dir=."
+        cli/claude: ["--add-dir=.", "--permission-mode=acceptEdits"]
+        cli/gemini: ["--include-directories=."]
+        cli/copilot: ["--add-dir=."]
 
   - id: "claude"
     name: "Claude AI"
@@ -381,12 +376,8 @@ agents:
         {{{documents.builtin_agent_guidelines.content}}}
         </document>
     options:
-      query:
-        - "--add-dir=."
-        - "--allowed-tools=WebSearch"
-      execute:
-        - "--permission-mode=acceptEdits"
-        - "--add-dir=."
+      query: ["--add-dir=.", "--allowed-tools=WebSearch", "--output-format", "stream-json", "--verbose"]
+      execute: ["--add-dir=.", "--allowed-tools=WebSearch", "--output-format", "stream-json", "--permission-mode=acceptEdits", "--verbose"]
 
   - id: "gemini"
     name: "Google Gemini"
@@ -407,13 +398,9 @@ agents:
         <document title="Built-in Agent Guidelines">
         {{{documents.builtin_agent_guidelines.content}}}
         </document>
-        
     options:
-      query:
-        - "--include-directories=."
-        - "--allowed-tools=web_search"
-      execute:
-        - "--include-directories=."
+      query: ["--include-directories=.", "--allowed-tools=web_search"]
+      execute: ["--include-directories=.", "--allowed-tools=web_search"]
 
   - id: "copilot"
     name: "GitHub Copilot"
@@ -422,7 +409,7 @@ agents:
     provider: "cli/copilot"
     working_directory: "."
     inline:
-      system_prompt: |
+      prompt: |
         You are GitHub Copilot, an AI coding assistant by GitHub, integrated as a built-in agent in the CrewX system.
         
         ## Your Strengths
@@ -440,12 +427,9 @@ agents:
         <document title="Built-in Agent Guidelines">
         {{{documents.builtin_agent_guidelines.content}}}
         </document>
-        
     options:
-      query:
-        - "--add-dir=."
-      execute:
-        - "--add-dir=."
+      query: ["--add-dir=."]
+      execute: ["--add-dir=."]
 
   - id: "codex"
     name: "Codex AI"
@@ -454,7 +438,7 @@ agents:
     provider: "cli/codex"
     working_directory: "."
     inline:
-      system_prompt: |
+      prompt: |
         You are Codex, an AI assistant integrated as a built-in agent in the CrewX system.
 
         ## Your Strengths
@@ -467,5 +451,5 @@ agents:
         {{{documents.builtin_agent_guidelines.content}}}
         </document>
     options:
-      query: []
-      execute: []
+      query: ["exec", "--experimental-json"]
+      execute: ["exec", "-s", "workspace-write",  "--experimental-json"]

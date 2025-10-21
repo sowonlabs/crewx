@@ -40,6 +40,8 @@ agents:
     capabilities:
       - query
       - implementation
+    inline:
+      layout: "crewx/minimal"
 
   # Example: Plugin provider agent with environment variables
   - id: mock_env_test
@@ -48,3 +50,5 @@ agents:
     capabilities:
       - query
       - implementation
+    inline:
+      layout: "crewx/minimal"

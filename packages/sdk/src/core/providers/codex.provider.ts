@@ -1,5 +1,6 @@
 import { BaseAIProvider } from './base-ai.provider';
 import type { BaseAIProviderOptions } from './base-ai.types';
+import type { AIQueryOptions, AIResponse } from './ai-provider.interface';
 
 export class CodexProvider extends BaseAIProvider {
   readonly name = 'cli/codex';
@@ -13,15 +14,11 @@ export class CodexProvider extends BaseAIProvider {
   }
 
   protected getDefaultArgs(): string[] {
-    // Query mode: use non-interactive execution with JSON output
-    // Default to read-only sandbox for safety
-    return ['exec', '--experimental-json'];
+    return [];
   }
 
   protected getExecuteArgs(): string[] {
-    // Execute mode: use workspace-write to allow file operations
-    // This is safe as codex still sandboxes operations within the workspace
-    return ['exec', '-s', 'workspace-write', '--experimental-json'];
+    return [];
   }
 
   protected getNotInstalledMessage(): string {
@@ -37,6 +34,14 @@ export class CodexProvider extends BaseAIProvider {
 
   protected shouldPipeContext(): boolean {
     return false;
+  }
+
+  /**
+   * Check if experimental-json output format is enabled in options
+   */
+  private isExperimentalJsonEnabled(options: AIQueryOptions = {}): boolean {
+    const args = options.additionalArgs || [];
+    return args.includes('--experimental-json');
   }
 
   /**
@@ -77,21 +82,37 @@ export class CodexProvider extends BaseAIProvider {
   }
 
   /**
-   * Extract assistant message from Codex JSONL output
+   * Parse JSONL output and extract assistant message
+   * Codex CLI with --experimental-json returns JSONL format:
+   * {"type":"session.created","session_id":"..."}
+   * {"type":"item.completed","item":{"item_type":"reasoning","text":"..."}}
+   * {"type":"item.completed","item":{"item_type":"assistant_message","text":"final response"}}
    */
-  private extractAssistantMessage(content: string): string | null {
+  private parseJsonlResponse(content: string): string {
     const lines = content.split('\n').map(line => line.trim()).filter(Boolean);
     let assistantMessage: string | null = null;
 
     for (const line of lines) {
       try {
         const parsed = JSON.parse(line);
+
+        // Look for item.completed with assistant_message
         if (
+          parsed?.type === 'item.completed' &&
           parsed?.item?.item_type === 'assistant_message' &&
           typeof parsed.item.text === 'string'
         ) {
           assistantMessage = parsed.item.text.trim();
-        } else if (
+        }
+        // Also check legacy format
+        else if (
+          parsed?.item?.item_type === 'assistant_message' &&
+          typeof parsed.item.text === 'string'
+        ) {
+          assistantMessage = parsed.item.text.trim();
+        }
+        // Check response.output array format
+        else if (
           parsed?.response?.output &&
           Array.isArray(parsed.response.output)
         ) {
@@ -111,18 +132,50 @@ export class CodexProvider extends BaseAIProvider {
       }
     }
 
-    return assistantMessage;
+    if (assistantMessage) {
+      this.logger.log('✅ Extracted assistant message from Codex JSONL stream');
+      return assistantMessage;
+    }
+
+    // If no assistant message found, return original content
+    this.logger.warn('⚠️ Could not parse Codex JSONL, returning original content');
+    return content;
   }
 
   /**
-   * Filter Codex response to extract clean assistant message
+   * Override query to handle JSONL experimental-json output
    */
-  protected filterToolUseFromResponse(content: string): string {
-    const assistantMessage = this.extractAssistantMessage(content);
-    if (assistantMessage) {
-      return assistantMessage;
+  async query(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
+    const response = await super.query(prompt, options);
+
+    if (response.success && response.content && this.isExperimentalJsonEnabled(options)) {
+      // Only parse JSONL if experimental-json format is enabled
+      const parsedContent = this.parseJsonlResponse(response.content);
+      return {
+        ...response,
+        content: parsedContent,
+      };
     }
-    return super.filterToolUseFromResponse(content);
+
+    return response;
+  }
+
+  /**
+   * Override execute to handle JSONL experimental-json output
+   */
+  async execute(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
+    const response = await super.execute(prompt, options);
+
+    if (response.success && response.content && this.isExperimentalJsonEnabled(options)) {
+      // Only parse JSONL if experimental-json format is enabled
+      const parsedContent = this.parseJsonlResponse(response.content);
+      return {
+        ...response,
+        content: parsedContent,
+      };
+    }
+
+    return response;
   }
 
 }

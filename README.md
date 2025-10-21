@@ -16,7 +16,7 @@ Bring AI agents directly into your team's workspace:
 - **Natural integration** - Works like chatting with team members
 - **Shared knowledge** - Team learns from AI interactions, not isolated sessions
 
-### **Remote Agents** - Distributed AI Teams
+### **Remote Agents** - Distributed AI Teams (Experimental)
 Connect and orchestrate CrewX instances across projects and servers:
 - **Cross-project experts** - Frontend dev asks backend team's API specialist agent
 - **Team collaboration** - Each team builds their own agents, entire org can use them
@@ -180,7 +180,7 @@ agents:
 
 > **Note:** `crewx.yaml` is the preferred configuration file name. The legacy `agents.yaml` is still supported for backward compatibility. If both files exist, `crewx.yaml` takes priority.
 
-## Remote Agents
+## Remote Agents (Experimental)
 
 Connect to other CrewX instances and delegate tasks across projects or servers.
 
