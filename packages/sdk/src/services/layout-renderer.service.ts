@@ -68,7 +68,6 @@ export class LayoutRenderer {
       const template = this.handlebars.compile(layout.template);
       const result = template(preparedContext);
 
-      this.validateSecurityConstraints(result);
       return result;
     } catch (error) {
       if (error instanceof Error) {
@@ -235,29 +234,6 @@ Previous conversation ({{messagesCount}} messages):
     });
   }
 
-  /**
-   * 보안 제약 조건 검증
-   */
-  private validateSecurityConstraints(content: string): void {
-    const dangerousPatterns = [
-      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-      /javascript:/gi,
-      /on\w+\s*=/gi,
-      /<iframe\b[^>]*>/gi,
-      /<object\b[^>]*>/gi,
-      /<embed\b[^>]*>/gi,
-    ];
-
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(content)) {
-        throw new Error('Security constraint violation: Potentially dangerous content detected');
-      }
-    }
-
-    if (!content.includes('<crewx_system_prompt>') && !content.includes('<system_prompt')) {
-      console.warn('Warning: Layout does not contain required security containers');
-    }
-  }
 
   private executeValidation(
     props: Record<string, any> | undefined,
