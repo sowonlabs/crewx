@@ -1,0 +1,58 @@
+{
+  "name": "@sowonai/crewx-sdk",
+  "version": "0.1.0-rc.1",
+  "license": "Apache-2.0",
+  "description": "SowonAI CrewX SDK",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --config ./vitest.config.ts",
+    "test:watch": "vitest --config ./vitest.config.ts",
+    "test:ui": "vitest --ui --config ./vitest.config.ts",
+    "test:unit": "vitest run --config ./vitest.config.ts tests/unit/**/*.test.ts",
+    "test:integration": "vitest run --config ./vitest.config.ts tests/integration/**/*.test.ts --passWithNoTests",
+    "test:coverage": "vitest run --config ./vitest.config.ts --coverage",
+    "lint": "echo \"SDK lint pending\" && exit 0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./internal": {
+      "types": "./dist/internal/index.d.ts",
+      "import": "./dist/internal/index.js",
+      "require": "./dist/internal/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "typescript": "^5.0.0"
+  }
+}

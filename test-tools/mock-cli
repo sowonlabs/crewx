@@ -30,8 +30,8 @@ for (const arg of args) {
 console.log('🤖 Mock CLI - Test Provider');
 console.log('================================');
 console.log('');
-console.log('📝 Received Arguments:');
-console.log(JSON.stringify(parsedArgs, null, 2));
+// console.log('📝 Received Arguments:');
+// console.log(JSON.stringify(parsedArgs, null, 2));
 console.log('');
 
 // Show relevant environment variables for testing

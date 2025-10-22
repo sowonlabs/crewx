@@ -1,0 +1,9 @@
+# Test fixture: default layout
+layouts:
+  default: |
+    <crewx_system_prompt>
+    You are a built-in AI agent of the CrewX system.
+    </crewx_system_prompt>
+    <system_prompt key="{{vars.security_key}}">
+    {{{agent.inline.prompt}}}
+    </system_prompt>

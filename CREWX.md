@@ -4,13 +4,29 @@
 
 ---
 
-> **⚠️ Document Maintenance**
->
-> When making significant changes to the project structure:
-> 1. Update the directory structure section below
-> 2. Update [src/CREWX.md](src/CREWX.md) if source code structure changes
-> 3. Update [docs/INDEX.md](docs/INDEX.md) if documentation changes
-> 4. Keep Key Components and Technologies sections current
+## 📦 Packages
+
+### [@sowonai/crewx-cli](packages/cli/CREWX.md)
+NestJS-based CLI & MCP application
+- CLI commands (query, execute, chat, agent, doctor, init, templates, mcp)
+- Layout-driven prompt pipeline (WBS-13~15) with secure `<user_query>` wrappers
+- TemplateContext + AgentMetadata integration, feature flag `CREWX_APPEND_LEGACY`
+- Slack bot + MCP server surfaces (VS Code, Claude Desktop, Cursor)
+- Dynamic provider loading (plugin/remote namespaces) with JSON Schema validation (WBS-16)
+
+### [@sowonai/crewx-sdk](packages/sdk/CREWX.md)
+Shared SDK & type system
+- TemplateContext & AgentMetadata exports (WBS-14)
+- LayoutLoader/LayoutRenderer/PropsValidator for prompt layouts (WBS-11~13)
+- SkillRuntime architecture + progressive disclosure loader (WBS-17 Phase 1)
+- Configuration + conversation management utilities
+- Provider interfaces, dynamic provider schema, remote agent helpers (WBS-16)
+
+## 🚀 Recent Highlights
+
+- **WBS-13/14/15**: CLI now renders prompts through SDK layouts, with TemplateContext + secure `<user_query>` handling documented in `packages/cli/src/CREWX.md`.
+- **WBS-16**: crewx.yaml/skills schema consolidated; config validator enforces JSON Schema in CLI.
+- **WBS-17 Phase 1**: SkillRuntime + progressive loader landed in the SDK; CLI wiring pending future phases.
 
 ---
 
@@ -18,87 +34,44 @@
 
 ```
 crewx/
-├── src/                          # Source code
-│   ├── cli/                      # CLI command handlers
-│   ├── providers/                # AI provider implementations
-│   ├── services/                 # Business logic services
-│   ├── conversation/             # Conversation history management
-│   ├── slack/                    # Slack bot integration
-│   ├── utils/                    # Utility functions
-│   ├── config/                   # Configuration
-│   ├── guards/                   # Security guards
-│   └── knowledge/                # Knowledge management
-│
-├── tests/                        # Test files
-│
-├── docs/                         # Documentation
-│   ├── guides/                   # How-to guides
-│   ├── standards/                # Standards & conventions
-│   ├── process/                  # Process documentation
-│   └── rules/                    # Rules & policies
-│
-├── templates/                    # Template files
-├── worktree/                     # Git worktrees (bugfix/release branches)
-├── scripts/                      # Build & automation scripts
-│
-├── crewx.yaml                   # Main configuration
-├── package.json                 # NPM package
-└── README.md                    # User documentation
+├── packages/
+│   ├── cli/                # @sowonai/crewx-cli
+│   ├── sdk/                # @sowonai/crewx-sdk
+│   └── crewx/              # npm distribution package (wrapper)
+├── docs/                   # Documentation
+├── templates/              # Project templates
+├── scripts/                # Build & automation
+├── wbs/                    # Work breakdown schedules
+└── worktree/               # Git worktrees (parallel development)
 ```
 
 ---
 
-## 🏗️ Architecture Layers
+## 🧪 Development
 
-1. **Entry Points** - Bootstrap & module setup
-2. **Interface Layer** - CLI, MCP, Slack
-3. **Core Services** - AI orchestration, providers (including new Codex provider), tools, conversation
-4. **Support Services** - Config, tasks, parallel processing, templates, log formatting
-5. **Utilities** - Helpers, security, configuration
+```bash
+# Build
+npm run build              # All packages
+npm run build:cli          # CLI only
+npm run build:sdk          # SDK only
 
----
+# Test
+npm test                   # All packages
+npm run test:cli           # CLI only
+npm run test:sdk           # SDK only
+npm run test:coverage      # Coverage report
 
-## 🔑 Key Components
-
-| Component | File | LOC | Description |
-|-----------|------|-----|-------------|
-| **MCP Tool** | `crewx.tool.ts` | 1,399 | MCP tool implementation (⚠️ large) |
-| **Tool Executor** | `services/tool-call.service.ts` | 970 | Tool execution engine (⚠️ large) |
-| **Base Provider** | `providers/base-ai.provider.ts` | 716 | AI provider base class with env var support |
-| **AI Service** | `ai.service.ts` | 715 | Core AI orchestration |
-| **Chat Handler** | `cli/chat.handler.ts` | 575 | Interactive chat mode |
-| **Slack Bot** | `slack/slack-bot.ts` | 566 | Slack integration with CrewX branding |
-| **Config Validator** | `services/config-validator.service.ts` | 536 | YAML validation |
-| **Claude Provider** | `providers/claude.provider.ts` | 494 | Claude Code integration |
-| **Remote Agent Service** | `services/remote-agent.service.ts` | NEW | Remote MCP agent management |
-| **Codex Provider** | `providers/codex.provider.ts` | NEW | Codex CLI integration |
+# Run
+npm run dev:cli            # CLI dev mode
+```
 
 ---
 
-## 📦 Key Technologies
+## 📚 Learn More
 
-- **Framework**: NestJS (Dependency Injection, Modularity)
-- **AI Providers**:
-  - Built-in CLI providers (cli/*): Claude Code, Gemini CLI, GitHub Copilot CLI, **Codex CLI**
-  - Plugin providers (plugin/*): User-defined external AI tools via YAML config with **environment variables support**
-  - Remote providers (remote/*): **Remote MCP agents** for distributed collaboration
-  - Future API providers (api/*): Direct API integrations (planned)
-- **Provider Namespace System**: `{namespace}/{id}` format for organized provider management
-- **Protocols**: Model Context Protocol (MCP) with remote server support
-- **Integrations**: Slack Bolt SDK with CrewX branding
-- **Template Engine**: Handlebars
-- **Configuration**: YAML (js-yaml, AJV validation)
-- **CLI**: Yargs
-- **Testing**: Vitest
+- 🔗 [packages/cli/CREWX.md](packages/cli/CREWX.md) - CLI package
+- 🔗 [packages/sdk/CREWX.md](packages/sdk/CREWX.md) - SDK package
 
 ---
 
-## 📚 Drill Down
-
-For detailed information about each module, see:
-
-- 🔗 [src/CREWX.md](src/CREWX.md) - Source code structure and architecture
-
----
-
-**Last Updated**: 2025-10-13
+**Last Updated**: 2025-10-20

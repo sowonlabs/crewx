@@ -132,7 +132,7 @@ agents:
       type: "agent"
       provider: "plugin/ollama"
       model: "qwen3:8b"
-      system_prompt: "You are a helpful AI assistant running locally via Ollama."
+      prompt: "You are a helpful AI assistant running locally via Ollama."
 
   # Ollama Qwen Agent (Remote)
   - id: "ollama_qwen_remote"
@@ -144,7 +144,7 @@ agents:
       type: "agent"
       provider: "plugin/ollama_remote"
       model: "qwen3:8b"
-      system_prompt: "You are a helpful AI assistant running on a remote Ollama server."
+      prompt: "You are a helpful AI assistant running on a remote Ollama server."
 
   # Ollama DeepSeek Agent
   - id: "ollama_deepseek"
@@ -156,7 +156,7 @@ agents:
       type: "agent"
       provider: "plugin/ollama"
       model: "deepseek-r1:8b"
-      system_prompt: "You are DeepSeek R1, a helpful AI assistant with reasoning capabilities."
+      prompt: "You are DeepSeek R1, a helpful AI assistant with reasoning capabilities."
 
   # Aider Coding Assistant (Local)
   - id: "aider_qwen"
