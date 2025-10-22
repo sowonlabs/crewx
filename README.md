@@ -67,6 +67,13 @@ agents:
 
 ## Quick Start
 
+### 🚀 One-Command Setup (Recommended)
+```bash
+# Interactive setup - creates crewx.yaml and helps with Slack setup
+npx crewx-quickstart
+```
+
+### 📦 Manual Installation
 ```bash
 # Install
 npm install -g crewx
