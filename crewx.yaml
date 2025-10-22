@@ -1841,8 +1841,8 @@ agents:
         git checkout develop
         pwd
 
-        # 3. Create RC worktree from develop (ALWAYS start with rc.0)
-        git worktree add worktree/release-0.1.14-rc.0 -b release/0.1.14-rc.0 develop
+        # 3. Create RC worktree from main (ALWAYS start with rc.0)
+        git worktree add worktree/release-0.1.14-rc.0 -b release/0.1.14-rc.0 main
 
         # 4. Navigate to RC worktree
         cd worktree/release-0.1.14-rc.0
@@ -1958,9 +1958,9 @@ agents:
         # 1. Read QA report to identify failed bugs
         # Example: bug-00000014 FAILED in rc.0
 
-        # 2. Create new RC (increment: rc.0 → rc.1) from develop, excluding failed bugs
+        # 2. Create new RC (increment: rc.0 → rc.1) from main, excluding failed bugs
         cd /Users/doha/git/crewx
-        git worktree add worktree/release-0.1.9-rc.1 -b release/0.1.9-rc.1 develop
+        git worktree add worktree/release-0.1.9-rc.1 -b release/0.1.9-rc.1 main
 
         # 3. Merge only PASSED bugs
         cd worktree/release-0.1.9-rc.1
@@ -1980,10 +1980,10 @@ agents:
 
         **Steps:**
         ```bash
-        # 1. Create release worktree from develop
+        # 1. Create release worktree from main
         cd /Users/doha/git/crewx
         git checkout develop
-        git worktree add worktree/release-0.1.16 -b release/0.1.16 develop
+        git worktree add worktree/release-0.1.16 -b release/0.1.16 main
 
         # 2. Navigate to release worktree
         cd worktree/release-0.1.16
