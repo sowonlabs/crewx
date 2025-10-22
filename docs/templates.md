@@ -40,7 +40,7 @@ Documents are defined at three levels with clear priority:
 ```yaml
 # documents.yaml
 documents:
-  quick-tips: |
+  quick_tips: |
     # Quick Tips
     - Use @agent:model to specify AI model
     - Use q/x shortcuts for query/execute
@@ -50,7 +50,7 @@ documents:
 
 ```yaml
 documents:
-  coding-standards:
+  coding_standards:
     content: |
       # Coding Standards
       ## TypeScript
@@ -69,7 +69,7 @@ documents:
     type: "markdown"
     lazy: false  # Load immediately
 
-  large-guide:
+  large_guide:
     path: "docs/large-guide.md"
     summary: "Comprehensive guide"
     lazy: true   # Load on-demand (for large files)
@@ -77,12 +77,12 @@ documents:
 
 ### Using Documents in Agents
 
-Reference documents in `system_prompt` using Handlebars template variables:
+Reference documents in `prompt` using Handlebars template variables:
 
 ```yaml
 # crewx.yaml
 documents:
-  project-guide: |
+  project_guide: |
     # Project Guide
     This is project-specific documentation.
 
@@ -90,15 +90,15 @@ agents:
   - id: "my_agent"
     inline:
       documents:
-        agent-doc: |
+        agent_doc: |
           # Agent-Specific Doc
           Only this agent can see this.
 
-      system_prompt: |
+      prompt: |
         You are a helpful assistant.
 
-        <document name="quick-tips">
-        {{{documents.quick-tips.content}}}
+        <document name="quick_tips">
+        {{{documents.quick_tips.content}}}
         </document>
 
         <toc>
@@ -127,9 +127,9 @@ agents:
 
 **Documents:**
 ```handlebars
-{{{documents.doc-name.content}}}  - Full document content (unescaped)
-{{{documents.doc-name.toc}}}      - Table of contents
-{{documents.doc-name.summary}}     - Document summary (escaped)
+{{{documents.doc_name.content}}}  - Full document content (unescaped)
+{{{documents.doc_name.toc}}}      - Table of contents
+{{documents.doc_name.summary}}     - Document summary (escaped)
 ```
 
 **Environment Variables:**
@@ -314,7 +314,7 @@ For special formatting needs, use as a block helper:
 agents:
   - id: "dev_assistant"
     inline:
-      system_prompt: |
+      prompt: |
         You are a development assistant.
 
         {{#if (eq env.NODE_ENV "production")}}
@@ -334,7 +334,7 @@ agents:
 agents:
   - id: "researcher"
     inline:
-      system_prompt: |
+      prompt: |
         You are a research assistant.
 
         {{#if (or (eq agent.provider "cli/claude") (eq agent.provider "cli/gemini"))}}
@@ -356,7 +356,7 @@ agents:
 agents:
   - id: "coder"
     inline:
-      system_prompt: |
+      prompt: |
         You are a coding assistant.
 
         {{#if (eq agent.model "haiku")}}
@@ -378,7 +378,7 @@ agents:
 **documents.yaml (global):**
 ```yaml
 documents:
-  coding-standards: |
+  coding_standards: |
     # Coding Standards
     ## TypeScript
     - Use strict type checking
@@ -389,7 +389,7 @@ documents:
 **crewx.yaml (project):**
 ```yaml
 documents:
-  project-conventions: |
+  project_conventions: |
     # Project Conventions
     - Follow trunk-based development
     - Write tests for all features
@@ -399,26 +399,26 @@ agents:
   - id: "code_reviewer"
     inline:
       documents:
-        review-checklist: |
+        review_checklist: |
           # Review Checklist
           - Check type safety
           - Verify test coverage
           - Review error handling
 
-      system_prompt: |
+      prompt: |
         You are a code reviewer.
 
-        <coding-standards>
-        {{{documents.coding-standards.content}}}
-        </coding-standards>
+        <coding_standards>
+        {{{documents.coding_standards.content}}}
+        </coding_standards>
 
-        <project-conventions>
-        {{{documents.project-conventions.content}}}
-        </project-conventions>
+        <project_conventions>
+        {{{documents.project_conventions.content}}}
+        </project_conventions>
 
-        <review-checklist>
-        {{{documents.review-checklist.content}}}
-        </review-checklist>
+        <review_checklist>
+        {{{documents.review_checklist.content}}}
+        </review_checklist>
 ```
 
 ### Example 5: Conversation History Integration
@@ -427,7 +427,7 @@ agents:
 agents:
   - id: "slack_bot"
     inline:
-      system_prompt: |
+      prompt: |
         You are a Slack assistant.
 
         {{{formatConversation messages platform}}}
@@ -465,7 +465,7 @@ CrewX layouts provide reusable prompt structure templates. Layouts work together
 ```yaml
 # Define documents (Template System)
 documents:
-  coding-standards: |
+  coding_standards: |
     # Coding Standards
     - Use TypeScript strict mode
     - Write unit tests
@@ -481,7 +481,7 @@ agents:
         You are a code reviewer.
 
         <standards>
-        {{{documents.coding-standards.content}}}
+        {{{documents.coding_standards.content}}}
         </standards>
 
         Environment: {{env.NODE_ENV}}
@@ -492,37 +492,77 @@ For detailed layout usage, see [Layout System Guide](layouts.md).
 
 ## Best Practices
 
-### 1. Organize by Scope
+### 1. Document ID Naming Convention
+
+**Use underscores (`_`) for document IDs:**
+
+```yaml
+# ✅ Recommended: Use underscores
+documents:
+  coding_standards: |
+    # Coding Standards
+  api_guide: |
+    # API Guide
+  review_checklist: |
+    # Review Checklist
+
+# ❌ Avoid: Hyphens can cause issues
+documents:
+  coding-standards: |  # May not work in all contexts
+    # Coding Standards
+```
+
+**Why underscores?**
+- ✅ Works reliably in all template contexts
+- ✅ Compatible with Handlebars variable syntax
+- ✅ Prevents potential parsing issues
+- ✅ Consistent with JavaScript naming conventions
+
+**Example usage:**
+```yaml
+documents:
+  project_conventions: |
+    # Project Conventions
+    - Follow trunk-based development
+
+agents:
+  - id: reviewer
+    inline:
+      prompt: |
+        {{{documents.project_conventions.content}}}
+```
+
+### 2. Organize by Scope
 - **Global**: Coding standards, general guidelines
 - **Project**: Project-specific conventions, architecture
 - **Agent**: Role-specific checklists, workflows
 
-### 2. Use Lazy Loading
+### 3. Use Lazy Loading
 For large documents (>100KB):
 ```yaml
 documents:
-  large-spec:
+  large_spec:
     path: "docs/large-spec.md"
     lazy: true  # Only load when accessed
 ```
 
-### 3. Preserve Formatting
+### 4. Preserve Formatting
 Always use triple braces for markdown:
 ```yaml
 {{{documents.name.content}}}  # Correct
 {{documents.name.content}}    # Escaped (wrong for markdown)
 ```
 
-### 4. Provide Summaries
+### 5. Provide Summaries
 Help agents understand document purpose:
 ```yaml
 documents:
-  api-guide:
+  api_guide:
     path: "docs/api.md"
     summary: "RESTful API design patterns and best practices"
 ```
 
-### 5. Version Control
+### 6. Version Control
 Store documents in Git:
 ```
 project/
@@ -532,7 +572,7 @@ project/
 └── crewx.yaml
 ```
 
-### 6. Use Environment Variables
+### 7. Use Environment Variables
 Make agents context-aware:
 ```bash
 export NODE_ENV=production
@@ -540,14 +580,14 @@ export FEATURE_FLAGS=experimental,beta
 crewx query "@dev analyze this feature"
 ```
 
-### 7. Use Descriptive Variable Names
+### 8. Use Descriptive Variable Names
 Make conditions clear:
 ```handlebars
 {{#if (eq env.DEPLOYMENT_ENV "production")}}  # Clear
 {{#if (eq env.DE "prod")}}                    # Unclear
 ```
 
-### 8. Provide Fallbacks
+### 9. Provide Fallbacks
 Always have an `{{else}}` clause:
 ```handlebars
 {{#if tools}}
@@ -571,4 +611,3 @@ Always have an `{{else}}` clause:
 - [Layout System Guide](layouts.md) - Reusable prompt templates with props
 - [Agent Configuration Guide](agent-configuration.md) - Agent setup
 - [CLI Guide](cli-guide.md) - Command-line usage
-- [Tools Guide](tools.md) - Tool system integration

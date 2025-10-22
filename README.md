@@ -169,11 +169,11 @@ Create `crewx.yaml` (or `agents.yaml` for backward compatibility):
 agents:
   - id: "frontend_dev"
     name: "React Expert"
-    provider: "cli/claude"  # Built-in CLI provider
     working_directory: "./src"
     inline:
       type: "agent"
-      system_prompt: |
+      provider: "cli/claude"  # Built-in CLI provider
+      prompt: |
         You are a senior React developer.
         Provide detailed examples and best practices.
 ```
@@ -338,7 +338,6 @@ For more information, see:
 - [📚 Template System](docs/templates.md) - Knowledge management and dynamic prompts for agents
 - [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations and TemplateContext usage (WBS-14)
 - [🎨 Layout System](docs/layouts.md) - Reusable prompt templates with React PropTypes-style props
-- [🔧 Tool System](docs/tools.md) - Tool integration and creation guide
 - [🔧 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 - [💬 Slack Integration](SLACK_INSTALL.md) - Slack bot setup
 

@@ -770,8 +770,8 @@ prompt: |
 agents:
   - id: code_reviewer
     name: "Code Review Assistant"
-    provider: "cli/claude"
     inline:
+      provider: "cli/claude"
       layout: "crewx/default"  # Use simple default
       prompt: |
         You are a code review assistant.
@@ -798,8 +798,8 @@ crewx query "@code_reviewer review my authentication code"
 agents:
   - id: quick_helper
     name: "Quick Helper"
-    provider: "cli/claude"
     inline:
+      provider: "cli/claude"
       layout: "crewx/minimal"  # Lightweight wrapper
       prompt: |
         You are a quick helper for simple questions.
@@ -826,8 +826,8 @@ crewx query "@quick_helper explain git rebase in one sentence"
 agents:
   - id: frontend_specialist
     name: "Frontend Expert"
-    provider: "cli/claude"
     inline:
+      provider: "cli/claude"
       layout: "crewx/default"  # Shared structure
       prompt: |
         You are a frontend development specialist.
@@ -839,8 +839,8 @@ agents:
 
   - id: backend_specialist
     name: "Backend Expert"
-    provider: "cli/gemini"
     inline:
+      provider: "cli/gemini"
       layout: "crewx/default"  # Same structure, different content
       prompt: |
         You are a backend development specialist.
