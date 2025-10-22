@@ -362,7 +362,7 @@ packages/cli/
 └── tests/                # Tests
 ```
 
-### SDK Integration (WBS-9)
+### SDK Integration
 
 The CLI uses SDK components as a foundation, adding NestJS integration and platform-specific features:
 
@@ -390,8 +390,6 @@ The CLI uses SDK components as a foundation, adding NestJS integration and platf
 2. **Clean Separation**: Platform logic (NestJS, Slack) stays in CLI
 3. **Testability**: SDK tests verify core logic, CLI tests verify integration
 4. **Extensibility**: Custom integrations can use SDK directly
-
-For migration details, see [WBS-9 Integration Guide](../../docs/wbs-9-phase1-5-integration.md).
 
 ## Development
 
@@ -547,7 +545,7 @@ The CLI is optimized for:
 - [Agent Configuration](../../docs/agent-configuration.md) - Configuration details
 - [Remote Agents](../../docs/remote-agents.md) - Distributed setup
 - [Template System](../../docs/templates.md) - Knowledge management
-- [Template Variables](../../docs/template-variables.md) - Dynamic variables and TemplateContext usage (WBS-14)
+- [Template Variables](../../docs/template-variables.md) - Dynamic variables and TemplateContext usage
 - [Context Integration Standard](../../packages/docs/context-integration-standard.md) - TemplateContext pipeline and layout responsibilities
 - [Context Migration Guide](../../packages/docs/context-integration-migration.md) - Upgrade steps for custom agents
 - [Layout DSL Reference](../../packages/docs/layout-dsl-field-reference.md) - Layout fields, props, and helpers

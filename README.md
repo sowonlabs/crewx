@@ -288,8 +288,8 @@ The SDK provides reusable components that power the CLI, enabling custom integra
 - Built-in providers: `ClaudeProvider`, `GeminiProvider`, `CopilotProvider`, `CodexProvider`
 - `RemoteAgentManager` - Remote agent communication
 - `createCrewxAgent` - High-level agent factory API
-- `TemplateContext` - Cross-platform template context interface (WBS-14)
-- `AgentMetadata` - Agent capabilities and specialties metadata (WBS-14)
+- `TemplateContext` - Cross-platform template context interface
+- `AgentMetadata` - Agent capabilities and specialties metadata
 
 **CLI Adds:**
 - NestJS integration and dependency injection
@@ -310,8 +310,6 @@ const provider = new ClaudeProvider({
 
 const result = await provider.query('Analyze codebase');
 ```
-
-For detailed integration patterns, see [WBS-9 Integration Guide](docs/wbs-9-phase1-5-integration.md).
 
 ### Development
 
@@ -343,7 +341,7 @@ For more information, see:
 - [⚙️ Agent Configuration](docs/agent-configuration.md) - Custom agents and advanced config
 - [🌐 Remote Agents](docs/remote-agents.md) - Connect to remote CrewX instances
 - [📚 Template System](docs/templates.md) - Knowledge management and dynamic prompts for agents
-- [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations and TemplateContext usage (WBS-14)
+- [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations and TemplateContext usage
 - [🎨 Layout System](docs/layouts.md) - Reusable prompt templates with React PropTypes-style props
 - [🔧 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 - [💬 Slack Integration](SLACK_INSTALL.md) - Slack bot setup
@@ -353,9 +351,9 @@ For more information, see:
 - [⚙️ CLI Development](packages/cli/README.md) - CLI architecture and development
 - [📦 Build & Release](BUILD.md) - Building and releasing packages
 - [🔧 Development Workflow](docs/development.md) - Contributing guidelines
-- [🧩 Context Integration Standard](packages/docs/context-integration-standard.md) - TemplateContext pipeline and layout responsibilities (WBS-14)
-- [🛠️ Context Migration Guide](packages/docs/context-integration-migration.md) - Upgrade steps for custom agents (WBS-14)
-- [🧱 Layout DSL Reference](packages/docs/layout-dsl-field-reference.md) - Layout fields, props, and helpers (WBS-14)
+- [🧩 Context Integration Standard](packages/docs/context-integration-standard.md) - TemplateContext pipeline and layout responsibilities
+- [🛠️ Context Migration Guide](packages/docs/context-integration-migration.md) - Upgrade steps for custom agents
+- [🧱 Layout DSL Reference](packages/docs/layout-dsl-field-reference.md) - Layout fields, props, and helpers
 
 ## License
 

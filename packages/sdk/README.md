@@ -257,7 +257,7 @@ try {
 }
 ```
 
-### Agent Factory API (NEW in WBS-8)
+### Agent Factory API
 
 #### createCrewxAgent
 
@@ -433,7 +433,7 @@ export class DatabaseConversationProvider implements IConversationHistoryProvide
 }
 ```
 
-## Shared SDK/CLI Integration (WBS-9)
+## Shared SDK/CLI Integration
 
 The SDK provides reusable components that were previously CLI-only. These abstractions enable custom platform integrations while maintaining consistency.
 
@@ -869,14 +869,6 @@ const result = await manager.queryAgent('backend', 'Analyze codebase');
 console.log(result.content);
 ```
 
-### Migration Guide
-
-For detailed migration instructions from CLI to SDK, see:
-- [WBS-9 Phase 1-5 Integration Guide](../../docs/wbs-9-phase1-5-integration.md)
-- [Phase 1: Message Formatter](../../docs/wbs-9-phase1-migration.md)
-- [Phase 2: AI Providers](../../docs/wbs-9-phase2-migration.md)
-- [Phase 3: Remote Agents](../../docs/wbs-9-phase3-migration.md)
-
 ## Advanced Usage
 
 ### Using Internal APIs
@@ -987,7 +979,7 @@ Please follow these steps:
 
 Apache-2.0 License - See [LICENSE](./LICENSE) for details.
 
-## Context Integration (WBS-14)
+## Context Integration
 
 The SDK provides `TemplateContext` and `AgentMetadata` exports for dynamic template processing:
 

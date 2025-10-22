@@ -126,7 +126,7 @@ describe('LayoutLoader', () => {
       
       expect(layout.id).toBe('crewx/default'); // Should fallback to default
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Layout not found: crewx/nonexistent')
+        expect.stringContaining('Layout not found: nonexistent')
       );
       
       warnSpy.mockRestore();
