@@ -1,265 +1,99 @@
+# CrewX Layout System Examples
+# This file demonstrates custom layout creation and usage
+#
+# Quick Test (using mock provider - no AI calls):
+#   crewx query "@test_basic hello" --config crewx.layout.yaml
+#   crewx query "@test_props_custom what are your settings?" --config crewx.layout.yaml
+#
+# See docs/layouts.md for complete guide
+
+# ========================================
+# Custom Layout Definitions
+# ========================================
+
 layouts:
-  crewx_dev_layout: |
-    <crewx_system_prompt key="{{vars.security_key}}">
-      <agent_profile>
-        <identity>
-          <id>{{{agent.id}}}</id>
-          {{#if agent.name}}<name>{{{agent.name}}}</name>{{/if}}
-          {{#if agent.role}}<role>{{{agent.role}}}</role>{{/if}}
-          {{#if agent.team}}<team>{{{agent.team}}}</team>{{/if}}
-          {{#if agent.description}}<description>{{{agent.description}}}</description>{{/if}}
-          {{#if agent.provider}}<providers>{{{agent.provider}}}</providers>{{/if}}
-          {{#if agent.inline.model}}<default_model>{{{agent.inline.model}}}</default_model>{{/if}}
-          {{#if agent.workingDirectory}}<working_directory>{{{agent.workingDirectory}}}</working_directory>{{/if}}
-        </identity>
-
-        {{#if agent.specialties.length}}
-        <specialties>
-          {{#each agent.specialties}}
-          <item>{{{this}}}</item>
-          {{/each}}
-        </specialties>
-        {{/if}}
-
-        {{#if agent.capabilities.length}}
-        <capabilities>
-          {{#each agent.capabilities}}
-          <item>{{{this}}}</item>
-          {{/each}}
-        </capabilities>
-        {{/if}}
-
-        {{#if agent.remote}}
-        <remote_connection type="{{agent.remote.type}}">
-          {{#if agent.remote.url}}<url>{{{agent.remote.url}}}</url>{{/if}}
-          {{#if agent.remote.agentId}}<agent_id>{{{agent.remote.agentId}}}</agent_id>{{/if}}
-          {{#if agent.remote.timeoutMs}}<timeout_ms>{{agent.remote.timeoutMs}}</timeout_ms>{{/if}}
-        </remote_connection>
-        {{/if}}
-
-        {{#if agent.optionsArray}}
-        <cli_options mode="legacy">
-          {{#each agent.optionsArray}}
-          <item>{{{this}}}</item>
-          {{/each}}
-        </cli_options>
-        {{/if}}
-
-        {{#if agent.optionsByMode.query}}
-        <cli_options mode="query">
-          {{#each agent.optionsByMode.query}}
-          <item>{{#if @key}}provider="{{@key}}" {{/if}}{{{this}}}</item>
-          {{/each}}
-        </cli_options>
-        {{/if}}
-
-        {{#if agent.optionsByMode.execute}}
-        <cli_options mode="execute">
-          {{#each agent.optionsByMode.execute}}
-          <item>{{#if @key}}provider="{{@key}}" {{/if}}{{{this}}}</item>
-          {{/each}}
-        </cli_options>
-        {{/if}}
-
-        <session mode="{{session.mode}}" platform="{{session.platform}}">
-          {{#if session.options.length}}
-          <cli_options>
-            {{#each session.options}}
-            <item>{{{this}}}</item>
-            {{/each}}
-          </cli_options>
-          {{/if}}
-        </session>
-      </agent_profile>
-
-      {{#if documents.crewx_manual.content}}
-      <document name="CrewX User Manual">
-      {{{documents.crewx_manual.content}}}
-      </document>
-      {{/if}}
-    </crewx_system_prompt>
-
+  # Test layout from guide: Basic custom layout
+  test_basic_layout: |
     <system_prompt key="{{vars.security_key}}">
-      {{{layout.system_prompt}}}
+    You are a specialized agent.
 
-      {{#if messages.length}}
-      <conversation_history platform="{{platform}}">
-        {{{formatConversation messages platform}}}
-      </conversation_history>
-      {{/if}}
+    {{{agent.inline.prompt}}}
+
+    Always follow best practices.
     </system_prompt>
 
-    {{#if user_input}}
-    <user_query key="{{vars.security_key}}">
-      {{{user_input}}}
-    </user_query>
-    {{/if}}
+  # Test layout with props validation
+  test_props_layout:
+    propsSchema:
+      teamName:
+        type: string
+        defaultValue: "Development Team"
+      maxContextDocs:
+        type: number
+        min: 1
+        max: 50
+        defaultValue: 10
+      verbose:
+        type: bool
+        defaultValue: false
+    template: |
+      <system_prompt key="{{vars.security_key}}">
+      <team>{{props.teamName}}</team>
+      <context_limit>{{props.maxContextDocs}}</context_limit>
+      <verbose_mode>{{props.verbose}}</verbose_mode>
 
-  crewx_simple_layout: |
-    <system_prompt key="{{vars.security_key}}">
       {{{agent.inline.prompt}}}
-    </system_prompt>
 
-    {{#if user_input}}
-    <user_query key="{{vars.security_key}}">
-      {{{user_input}}}
-    </user_query>
-    {{/if}}
-# Plugin Providers
+      Follow team guidelines and best practices.
+      </system_prompt>
+
 providers:
-  # Crush with Z.AI GLM-4.6
-  - id: crush_zai
+  # Mock CLI for testing layout system (fast, no AI calls)
+  - id: mock
     type: plugin
-    cli_command: crush
-    display_name: "Crush (Z.AI)"
-    description: "Crush terminal AI assistant with GLM-4.6 model"
-    default_model: "glm-4.6"
-    query_args:
-      - "run"
-      - "--quiet"  # Hide spinner for clean output
-    execute_args:
-      - "run"
-      - "--quiet"  # Hide spinner (no --yolo: it's a global flag, not supported in args)
+    cli_command: test-tools/mock-cli
+    display_name: "Mock CLI (Testing)"
+    description: "Mock provider for testing layout rendering without AI calls"
+    default_model: "sonnet"
+    query_args: ["--model", "{model}", "--message"]
+    execute_args: ["--model", "{model}", "--message"]
     prompt_in_args: true
-    timeout:
-      query: 180000   # 3 minutes
-      execute: 600000 # 10 minutes
-
-  - id: mcp_cso
-    type: remote
-    location: "http://localhost:9001"
-    external_agent_id: "cso"
-    display_name: "Remote CSO (CrewX MCP)"
-    description: "Delegates requests to the CSO agent exposed by the remote MCP server on localhost:9001."
-    auth:
-      type: bearer
-      token: "sk-0001"
-    timeout:
-      query: 180000
-      execute: 600000
-
-  - id: mcp_cso_codex
-    type: remote
-    location: "http://localhost:9001"
-    external_agent_id: "cso_codex"
-    display_name: "Remote CSO Codex (CrewX MCP)"
-    description: "Codex-backed CSO agent hosted on the remote MCP server."
-    auth:
-      type: bearer
-      token: "sk-0001"
-    timeout:
-      query: 180000
-      execute: 600000
-
-# Project-level documents (optional)
-documents:
-  # Git-Bug Command Reference (Primary Bug Tracking)
-  git-bug-reference:
-    path: "docs/guides/git-bug-reference.md"
-    summary: "Git-bug command reference and CrewX bug workflow"
-    type: "markdown"
-
-  # Branch Protection Rule (All Agents)
-  branch-protection:
-    path: "docs/rules/branch-protection.md"
-    summary: "Main directory must always stay on develop branch"
-    type: "markdown"
-
-  # Development Workflow Overview (QA Lead, Release Manager)
-  development-workflow:
-    path: "docs/process/development-workflow.md"
-    summary: "Bug status flow, RC process, branch strategy"
-    type: "markdown"
-
-  # Test Report Structure (Tester, QA Lead)
-  report-structure:
-    path: "docs/standards/report-structure.md"
-    summary: "Directory structure and naming conventions for test reports"
-    type: "markdown"
-
-  # RC Versioning Standard (QA Lead, Release Manager)
-  rc-versioning:
-    path: "docs/standards/rc-versioning.md"
-    summary: "RC versioning convention - always start from rc.0"
-    type: "markdown"
-
-  # Release Plan Template
-  release-plan-template: |
-    # Release Plan: {version}
-
-    ## 📦 Included Bugs
-    List bugs with target_release field set to this version:
-    - bug-XXXXX: [title] (target_release: {version})
-    - bug-YYYYY: [title] (target_release: {version})
-
-    ## 🧪 Test Report Location
-    - RC Test Reports: `reports/releases/{version}/rc.N-test-report.md`
-    - QA Reports: `reports/releases/{version}/qa-report-{PASS|FAIL}.md`
-    - Individual Bug Tests: `reports/bugs/bug-XXXXX-test-{timestamp}.md`
-
-    ## 📋 Testing Scope
-    **NEW bugs** (not tested before): [list]
-    **RETEST bugs** (failed previously): [list]
-    **SKIP bugs** (already passed): [list]
-
-    ## 🎯 Success Criteria
-    All included bugs must pass integration testing in RC branch.
-
-  claude-system-prompt: |
-    When executing terminal commands, use a 30-minute timeout setting.
-
-  # Example: inline document for this project
-  project-guide: |
-    # Project Guide
-    This is a project-specific guide.
-    All agents in this file can reference this.
-
-# Add your custom agents below:
 
 agents:
-  - id: "crewx_codex_dev"
-    name: "CrewX Codex Developer"
-    role: "developer"
-    team: "Development Team"
-    description: "Specialized developer for analyzing and improving the CrewX project (powered by Codex)"
-    options:
-      query:
-      execute:
-    inline:
-      type: "agent"
-      provider: "cli/codex"
-      prompt: |
-        You are a developer for the CrewX project.
+  # ========================================
+  # Layout Testing Agents (using Mock CLI)
+  # ========================================
+  # These agents demonstrate custom layout usage with fast mock provider
+  # Usage: crewx query "@test_basic hello" --config crewx.layout.yaml
 
-  - id: "crewx_claude_dev"
-    name: "CrewX Developer"
-    role: "developer"
-    team: "Development Team"
-    description: "Specialized developer for analyzing and improving the CrewX project"
-    options:
-      query:
-        - "--verbose"
-      execute:
-        - "--verbose"
-        - "--dangerously-skip-permissions"
+  - id: "test_basic"
+    name: "Test Basic Layout"
+    description: "Demonstrates basic custom layout with mock provider"
     inline:
-      type: "agent"
-      provider: "cli/claude"
-      model: "sonnet"
+      provider: "plugin/mock"  # Fast testing without AI calls
+      layout: "test_basic_layout"
       prompt: |
-        You are a developer for the CrewX project.
+        You are a test assistant using basic custom layout.
 
-  # Crush Z.AI GLM Developer
-  - id: "crewx_glm_dev"
-    name: "CrewX GLM-4.6 Developer"
-    role: "developer"
-    team: "Development Team"
-    description: "CrewX AI developer powered by Crush with GLM-4.6 for advanced code generation and analysis"
+  - id: "test_props_default"
+    name: "Test Props Default"
+    description: "Demonstrates layout with default props"
     inline:
-      type: "agent"
-      provider: "plugin/crush_zai"
-      model: "glm-4.6"
-      layout: "crewx_simple_layout"
+      provider: "plugin/mock"
+      layout: "test_props_layout"  # Uses default props
       prompt: |
-        You are a developer for the CrewX project.
+        You are a test agent using default props.
 
+  - id: "test_props_custom"
+    name: "Test Props Custom"
+    description: "Demonstrates layout with custom props override"
+    inline:
+      provider: "plugin/mock"
+      layout:
+        id: "test_props_layout"
+        props:
+          teamName: "AI Research Team"
+          maxContextDocs: 25
+          verbose: true
+      prompt: |
+        You are a test agent with custom props.

@@ -9,6 +9,7 @@ Complete guide for using the template system in CrewX, including document manage
 - [Handlebars Helpers](#handlebars-helpers)
 - [Built-in Helpers](#built-in-helpers)
 - [Template Examples](#template-examples)
+- [Layout System](#layout-system)
 - [Best Practices](#best-practices)
 
 ## Overview
@@ -434,6 +435,61 @@ agents:
         Respond naturally based on the conversation history.
 ```
 
+## Layout System
+
+CrewX layouts provide reusable prompt structure templates. Layouts work together with the template system to organize agent prompts.
+
+**Quick Comparison:**
+
+| Feature | Templates (this doc) | Layouts |
+|---------|---------------------|---------|
+| Purpose | Document management & variables | Prompt structure & reusability |
+| Configuration | `documents`, `{{{variables}}}` | `inline.layout` with props |
+| Scope | Content insertion | Structural wrapping |
+| Example | Load coding standards | Define system prompt format |
+
+**Template System (this document):**
+- Manage documents across agents
+- Reference content with `{{{documents.name.content}}}`
+- Use Handlebars helpers for dynamic content
+- Insert variables like `{{agent.id}}`, `{{env.DEBUG}}`
+
+**Layout System:**
+- Define reusable prompt templates
+- Customize with React PropTypes-style props
+- Share structure across multiple agents
+- Security containers and prompt wrapping
+
+**Example - Using Both Together:**
+
+```yaml
+# Define documents (Template System)
+documents:
+  coding-standards: |
+    # Coding Standards
+    - Use TypeScript strict mode
+    - Write unit tests
+
+agents:
+  - id: code_reviewer
+    inline:
+      # Use layout for structure (Layout System)
+      layout: "crewx/default"  # Full agent profile
+
+      # Reference documents in prompt (Template System)
+      prompt: |
+        You are a code reviewer.
+
+        <standards>
+        {{{documents.coding-standards.content}}}
+        </standards>
+
+        Environment: {{env.NODE_ENV}}
+        Provider: {{agent.provider}}
+```
+
+For detailed layout usage, see [Layout System Guide](layouts.md).
+
 ## Best Practices
 
 ### 1. Organize by Scope
@@ -512,6 +568,7 @@ Always have an `{{else}}` clause:
 
 ## See Also
 
+- [Layout System Guide](layouts.md) - Reusable prompt templates with props
 - [Agent Configuration Guide](agent-configuration.md) - Agent setup
 - [CLI Guide](cli-guide.md) - Command-line usage
 - [Tools Guide](tools.md) - Tool system integration

@@ -9,20 +9,18 @@ This reference documents every field, helper, and rendering hook available to Cr
 3. `processDocumentTemplate()` runs post-processing: document includes, helper registration, and security-tag preservation.
 
 ## Core Render Context
-| Key | Type | Description |
-| --- | ---- | ----------- |
-| `agent` | Object | Raw agent fields (`id`, `name`, `role`, `team`, `description`, `workingDirectory`, `capabilities`, `specialties`, `provider`, `providerList`, `providerRaw`, `inline`, `model`, `options`, `optionsArray`, `optionsByMode`, `remote`, `documents`). |
-| `agentMetadata` | `TemplateContext.agentMetadata` | Preferred metadata surface (if provided). Accessible via Handlebars as `agentMetadata.*`. |
-| `layout` | Object | `{ system_prompt, prompt }` seeded with the resolved base system prompt. Allows templates to embed or transform base text. |
-| `props` | Object | Validated custom props supplied through `inline.layout.props`. Defaults to `{}`. |
-| `messages` | Array | Conversation history (previous turns). Each entry: `{ text, isAssistant, metadata }`. Use helpers like `formatConversation`. |
-| `platform` | String | Channel hint e.g. `cli`, `slack`, `mcp`. |
-| `tools` | Object | `{ list, json, count }` describing registered MCP tools. |
-| `vars` | Object | Runtime variables (currently `security_key`). |
-| `env` | Object | Selected environment variables (entire `process.env` by default). |
-| `session` | Object | `{ mode, platform, options, env, vars, tools }` summarizing current invocation. |
-| `context` | Object | Mirrors `TemplateContext` for compatibility; includes `mode`, `platform`, `options`, `env`, `vars`, `agent`. |
-| `documents` | Object | Document stubs resolved lazily by `processDocumentTemplate()`. Access via `{{{documents.<id>.content}}}`. |
+| Key             | Type                            | Description                                                                                                                                                                                                                                         |
+| --------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agent`         | Object                          | Raw agent fields (`id`, `name`, `role`, `team`, `description`, `workingDirectory`, `capabilities`, `specialties`, `provider`, `providerList`, `providerRaw`, `inline`, `model`, `options`, `optionsArray`, `optionsByMode`, `remote`, `documents`). |
+| `layout`        | Object                          | `{ system_prompt, prompt }` seeded with the resolved base system prompt. Allows templates to embed or transform base text.                                                                                                                          |
+| `props`         | Object                          | Validated custom props supplied through `inline.layout.props`. Defaults to `{}`.                                                                                                                                                                    |
+| `messages`      | Array                           | Conversation history (previous turns). Each entry: `{ text, isAssistant, metadata }`. Use helpers like `formatConversation`.                                                                                                                        |
+| `platform`      | String                          | Channel hint e.g. `cli`, `slack`, `mcp`.                                                                                                                                                                                                            |
+| `vars`          | Object                          | Runtime variables (currently `security_key`).                                                                                                                                                                                                       |
+| `env`           | Object                          | Selected environment variables (entire `process.env` by default).                                                                                                                                                                                   |
+| `session`       | Object                          | `{ mode, platform, options, env, vars, tools }` summarizing current invocation.                                                                                                                                                                     |
+| `context`       | Object                          | Mirrors `TemplateContext` for compatibility; includes `mode`, `platform`, `options`, `env`, `vars`, `agent`.                                                                                                                                        |
+| `documents`     | Object                          | Document stubs resolved lazily by `processDocumentTemplate()`. Access via `{{{documents.<id>.content}}}`.                                                                                                                                           |
 
 ## Layout Manifest Structure
 ```yaml

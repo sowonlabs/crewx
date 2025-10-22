@@ -180,6 +180,36 @@ agents:
 
 > **Note:** `crewx.yaml` is the preferred configuration file name. The legacy `agents.yaml` is still supported for backward compatibility. If both files exist, `crewx.yaml` takes priority.
 
+## Layout System
+
+CrewX layouts provide reusable prompt templates that separate structure from content.
+
+### Quick Example
+
+```yaml
+# crewx.yaml
+agents:
+  - id: full_agent
+    inline:
+      layout: "crewx/default"  # Full agent profile
+      prompt: |
+        You are a comprehensive assistant.
+
+  - id: simple_agent
+    inline:
+      layout: "crewx/minimal"  # Lightweight wrapper
+      prompt: |
+        You are a simple assistant.
+```
+
+**Features:**
+- 🎨 **Reusable Templates** - Share layouts across agents
+- ⚛️ **Props Schema** - React PropTypes-style validation for custom layouts
+- 🔧 **Built-in Layouts** - `crewx/default`, `crewx/minimal`
+- 🛡️ **Security Containers** - Automatic prompt wrapping
+
+👉 **[Layout System Guide →](./docs/layouts.md)** for detailed usage
+
 ## Remote Agents (Experimental)
 
 Connect to other CrewX instances and delegate tasks across projects or servers.
@@ -307,6 +337,7 @@ For more information, see:
 - [🌐 Remote Agents](docs/remote-agents.md) - Connect to remote CrewX instances
 - [📚 Template System](docs/templates.md) - Knowledge management and dynamic prompts for agents
 - [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations and TemplateContext usage (WBS-14)
+- [🎨 Layout System](docs/layouts.md) - Reusable prompt templates with React PropTypes-style props
 - [🔧 Tool System](docs/tools.md) - Tool integration and creation guide
 - [🔧 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 - [💬 Slack Integration](SLACK_INSTALL.md) - Slack bot setup
