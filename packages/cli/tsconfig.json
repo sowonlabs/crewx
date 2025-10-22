@@ -1,0 +1,32 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "incremental": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "paths": {
+      "@sowonai/crewx-sdk": [
+        "../sdk/dist/index"
+      ],
+      "@sowonai/crewx-sdk/internal": [
+        "../sdk/dist/internal/index"
+      ],
+      "@sowonai/crewx-sdk/*": [
+        "../sdk/dist/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "dist",
+    "tests",
+    "node_modules"
+  ]
+}
