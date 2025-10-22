@@ -1,0 +1,99 @@
+# CrewX Layout System Examples
+# This file demonstrates custom layout creation and usage
+#
+# Quick Test (using mock provider - no AI calls):
+#   crewx query "@test_basic hello" --config crewx.layout.yaml
+#   crewx query "@test_props_custom what are your settings?" --config crewx.layout.yaml
+#
+# See docs/layouts.md for complete guide
+
+# ========================================
+# Custom Layout Definitions
+# ========================================
+
+layouts:
+  # Test layout from guide: Basic custom layout
+  test_basic_layout: |
+    <system_prompt key="{{vars.security_key}}">
+    You are a specialized agent.
+
+    {{{agent.inline.prompt}}}
+
+    Always follow best practices.
+    </system_prompt>
+
+  # Test layout with props validation
+  test_props_layout:
+    propsSchema:
+      teamName:
+        type: string
+        defaultValue: "Development Team"
+      maxContextDocs:
+        type: number
+        min: 1
+        max: 50
+        defaultValue: 10
+      verbose:
+        type: bool
+        defaultValue: false
+    template: |
+      <system_prompt key="{{vars.security_key}}">
+      <team>{{props.teamName}}</team>
+      <context_limit>{{props.maxContextDocs}}</context_limit>
+      <verbose_mode>{{props.verbose}}</verbose_mode>
+
+      {{{agent.inline.prompt}}}
+
+      Follow team guidelines and best practices.
+      </system_prompt>
+
+providers:
+  # Mock CLI for testing layout system (fast, no AI calls)
+  - id: mock
+    type: plugin
+    cli_command: test-tools/mock-cli
+    display_name: "Mock CLI (Testing)"
+    description: "Mock provider for testing layout rendering without AI calls"
+    default_model: "sonnet"
+    query_args: ["--model", "{model}", "--message"]
+    execute_args: ["--model", "{model}", "--message"]
+    prompt_in_args: true
+
+agents:
+  # ========================================
+  # Layout Testing Agents (using Mock CLI)
+  # ========================================
+  # These agents demonstrate custom layout usage with fast mock provider
+  # Usage: crewx query "@test_basic hello" --config crewx.layout.yaml
+
+  - id: "test_basic"
+    name: "Test Basic Layout"
+    description: "Demonstrates basic custom layout with mock provider"
+    inline:
+      provider: "plugin/mock"  # Fast testing without AI calls
+      layout: "test_basic_layout"
+      prompt: |
+        You are a test assistant using basic custom layout.
+
+  - id: "test_props_default"
+    name: "Test Props Default"
+    description: "Demonstrates layout with default props"
+    inline:
+      provider: "plugin/mock"
+      layout: "test_props_layout"  # Uses default props
+      prompt: |
+        You are a test agent using default props.
+
+  - id: "test_props_custom"
+    name: "Test Props Custom"
+    description: "Demonstrates layout with custom props override"
+    inline:
+      provider: "plugin/mock"
+      layout:
+        id: "test_props_layout"
+        props:
+          teamName: "AI Research Team"
+          maxContextDocs: 25
+          verbose: true
+      prompt: |
+        You are a test agent with custom props.

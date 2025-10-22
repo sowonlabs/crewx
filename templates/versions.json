@@ -10,7 +10,7 @@
     },
     "main": {
       "released": "development",
-      "templates": ["default", "minimal", "development", "production"],
+      "templates": ["default", "minimal", "secure-wrapper", "development", "production"],
       "description": "Development branch - latest unreleased features",
       "minCrewxVersion": "0.1.8",
       "maxCrewxVersion": null

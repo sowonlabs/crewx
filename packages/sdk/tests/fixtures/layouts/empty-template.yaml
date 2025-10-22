@@ -1,0 +1,5 @@
+id: crewx/empty-template
+version: 1.0.0
+description: Layout with empty template field
+template: ""
+propsSchema: {}
