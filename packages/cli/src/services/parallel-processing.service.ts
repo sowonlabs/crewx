@@ -42,7 +42,7 @@ interface ParallelProcessingConfig {
   failFast?: boolean;
 }
 
-type ProviderName = 'claude' | 'gemini' | 'copilot' | 'codex';
+type ProviderName = 'cli/claude' | 'cli/gemini' | 'cli/copilot' | 'cli/codex' | string;
 
 type AgentExecutionMode = 'query' | 'execute';
 
@@ -412,16 +412,17 @@ export class ParallelProcessingService {
    */
   private getProviderForAgent(agentId: string): ProviderName {
     if (agentId === 'claude' || agentId === 'gemini' || agentId === 'copilot' || agentId === 'codex') {
-      return agentId;
+      return `cli/${agentId}`;
     }
 
     const agentConfig = this.configService.getAgentConfig(agentId);
-    if (agentConfig && agentConfig.inline?.provider) {
-      return agentConfig.inline.provider as ProviderName;
+    const resolved = this.resolveProviderFromConfig(agentConfig);
+    if (resolved) {
+      return resolved;
     }
 
-    this.logger.warn(`No provider found for agent ${agentId}, defaulting to claude`);
-    return 'claude';
+    this.logger.warn(`No provider found for agent ${agentId}, defaulting to cli/claude`);
+    return 'cli/claude';
   }
 
   /**
@@ -431,9 +432,53 @@ export class ParallelProcessingService {
     const agentConfig = this.configService.getAgentConfig(agentId);
     if (agentConfig && agentConfig.options) {
       if (typeof agentConfig.options === 'object' && agentConfig.options[mode]) {
-        return agentConfig.options[mode] || [];
+        const modeOptions = agentConfig.options[mode];
+        return Array.isArray(modeOptions) ? modeOptions : [];
       }
     }
     return [];
+  }
+
+  private resolveProviderFromConfig(agentConfig: any): ProviderName | null {
+    if (!agentConfig) {
+      return null;
+    }
+
+    const providerValue = Array.isArray(agentConfig.provider)
+      ? agentConfig.provider[0]
+      : agentConfig.provider;
+    const normalized = this.normalizeProviderName(providerValue);
+    if (normalized) {
+      return normalized;
+    }
+
+    if (agentConfig.inline?.provider) {
+      return this.normalizeProviderName(agentConfig.inline.provider);
+    }
+
+    return null;
+  }
+
+  private normalizeProviderName(provider?: string): ProviderName | null {
+    if (!provider || typeof provider !== 'string') {
+      return null;
+    }
+
+    const trimmed = provider.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    // If already namespaced, return as-is
+    if (trimmed.includes('/')) {
+      return trimmed;
+    }
+
+    // Legacy support: convert bare names to namespaced format
+    if (trimmed === 'claude' || trimmed === 'gemini' || trimmed === 'copilot' || trimmed === 'codex') {
+      return `cli/${trimmed}`;
+    }
+
+    return null;
   }
 }

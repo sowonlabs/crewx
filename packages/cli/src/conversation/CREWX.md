@@ -44,13 +44,15 @@ Child providers implement platform-specific storage mechanisms.
 
 ### **cli-conversation-history.provider.ts**
 CLI-specific conversation history implementation.
-Stores threads in local filesystem (~/.crewx/conversations/).
-Supports thread creation, message append, history retrieval for CLI mode, and agent metadata persistence.
+Stores threads in local filesystem (`~/.crewx/conversations/`).
+Persists TemplateContext snapshots, agent metadata, and append metrics for layout replays.
+Supports thread creation, message append, and history retrieval for CLI mode.
 
 ### **slack-conversation-history.provider.ts**
 Slack-specific conversation history implementation with CrewX branding alignment.
 Retrieves thread history from Slack API using thread timestamps.
-Formats Slack messages for AI context, handles Slack-specific metadata, supports CrewX branding consistency, and integrates with remote agents for cross-platform conversation continuity.
+Formats Slack messages for AI context, syncs agent metadata, and feeds TemplateContext fields back into the CLI.
+Supports CrewX branding consistency and integrates with remote agents for cross-platform continuity.
 
 ### **index.ts**
 Public API exports for conversation system.
@@ -59,4 +61,4 @@ Provides clean entry point for conversation functionality.
 
 ---
 
-**Last Updated**: 2025-10-13
+**Last Updated**: 2025-10-20

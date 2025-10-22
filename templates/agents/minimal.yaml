@@ -5,9 +5,12 @@
 
 layouts:
   minimal: |
-    <crewx_system_prompt>
+    <system_prompt key="{{vars.security_key}}">
     {{{agent.inline.prompt}}}
-    </crewx_system_prompt>
+    </system_prompt>
 
-propsSchema: {}
-defaultProps: {}
+    {{#if vars.user_input}}
+    <user_query key="{{vars.security_key}}">
+    {{{vars.user_input}}}
+    </user_query>
+    {{/if}}

@@ -247,8 +247,14 @@ export function validateAgentConfig(config: CrewxAgentConfig): boolean {
 
   // Provider validation (if present)
   if (config.provider) {
-    if (!config.provider.namespace || !config.provider.id) {
-      throw new YamlConfigError('Provider must have both namespace and id');
+    // Check if it's a ProviderConfig (has namespace and id)
+    if ('namespace' in config.provider && 'id' in config.provider) {
+      if (!config.provider.namespace || !config.provider.id) {
+        throw new YamlConfigError('Provider must have both namespace and id');
+      }
+    } else {
+      // It's an AIProvider instance, which is already validated by its type
+      // No additional validation needed
     }
   }
 

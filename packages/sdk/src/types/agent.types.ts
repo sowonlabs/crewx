@@ -1,3 +1,5 @@
+import type { SkillsConfig } from '../schema/skills.types';
+
 export interface RemoteAgentToolsConfig {
   query?: string;
   execute?: string;
@@ -43,6 +45,7 @@ export interface AgentConfig {
     query?: string[];    // Read-only analysis mode
     execute?: string[];  // File modification/execution mode
   };
+  skills?: SkillsConfig;
   
   tools?: string[]; // Available tools
   capabilities?: {
@@ -119,11 +122,12 @@ export interface AgentInfo {
   }; // Flexible CLI options - legacy array, mode-specific array, or provider-specific object
   inline?: {
     type: 'agent';
-    provider: 'claude' | 'gemini' | 'copilot';
+    provider?: 'claude' | 'gemini' | 'copilot' | 'remote' | `plugin/${string}` | `cli/${string}` | string; // Support plugin and remote providers
     system_prompt?: string; // Legacy system prompt (backward compatibility)
     prompt?: string; // Alternative to system_prompt
     model?: string; // Default model for this agent
     layout?: string | { id: string; props?: Record<string, any> }; // WBS-13: Layout DSL support
   };
   remote?: RemoteAgentInfo;
+  skills?: SkillsConfig;
 }

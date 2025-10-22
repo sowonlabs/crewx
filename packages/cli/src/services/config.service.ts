@@ -1,42 +1,23 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { readFileSync, existsSync } from 'fs';
-import * as yaml from 'js-yaml';
+import { existsSync } from 'fs';
 import * as path from 'path';
-import { PluginProviderConfig, RemoteProviderConfig } from '@sowonai/crewx-sdk';
-
-export interface AgentConfig {
-  id: string;
-  name?: string;
-  role?: string;
-  team?: string;
-  working_directory?: string;
-  options?: {
-    query?: string[];
-    execute?: string[];
-  };
-  inline?: {
-    type: 'agent';
-    provider: 'claude' | 'gemini' | 'copilot' | 'codex';
-    system_prompt: string;
-  };
-}
-
-export interface CrewXConfig {
-  agents: AgentConfig[];
-  providers?: PluginProviderConfig[];
-  settings?: {
-    slack?: {
-      log_conversations?: boolean;
-    };
-  };
-}
+import {
+  PluginProviderConfig,
+  RemoteProviderConfig,
+  SkillLoadError,
+  parseCrewxConfigFromFile,
+  type AgentDefinition,
+  type CrewxProjectConfig,
+} from '@sowonai/crewx-sdk';
 
 @Injectable()
 export class ConfigService implements OnModuleInit {
   private readonly logger = new Logger(ConfigService.name);
-  private agents: Map<string, AgentConfig> = new Map();
+  private agents: Map<string, AgentDefinition> = new Map();
   private providerConfigs: Array<PluginProviderConfig | RemoteProviderConfig> = [];
+  private projectConfig: CrewxProjectConfig | null = null;
   private customConfigPath: string | null = null;
+  private currentConfigPath: string | null = null;
   private slackSettings: { logConversations: boolean } = {
     logConversations: false,
   };
@@ -63,89 +44,55 @@ export class ConfigService implements OnModuleInit {
     // Clear existing configurations when reloading
     this.agents.clear();
     this.providerConfigs = [];
+    this.projectConfig = null;
+    this.currentConfigPath = null;
     this.slackSettings = { logConversations: false };
 
-    let configPath: string | null = null;
-    let configName: string | null = null;
+    const { path: configPath, name: configName } = this.resolveConfigPath();
 
-    // Priority: CLI --config option > crewx.yaml > agents.yaml
-    if (this.customConfigPath) {
-      const customPath = path.isAbsolute(this.customConfigPath)
-        ? this.customConfigPath
-        : path.join(process.cwd(), this.customConfigPath);
-
-      if (existsSync(customPath)) {
-        configPath = customPath;
-        configName = path.basename(customPath);
-      } else {
-        this.logger.error(`Custom config file not found: ${customPath}`);
-        return;
-      }
-    } else {
-      // Default: search for crewx.yaml or agents.yaml
-      const configPaths = [
-        { path: path.join(process.cwd(), 'crewx.yaml'), name: 'crewx.yaml' },
-        { path: path.join(process.cwd(), 'agents.yaml'), name: 'agents.yaml' },
-      ];
-
-      // Find first existing config file
-      for (const config of configPaths) {
-        if (existsSync(config.path)) {
-          configPath = config.path;
-          configName = config.name;
-          break;
-        }
-      }
-    }
-
-    if (!configPath) {
+    if (!configPath || !configName) {
       this.logger.warn('No configuration file found (crewx.yaml or agents.yaml). No agent configurations loaded.');
       return;
     }
 
+    this.currentConfigPath = configPath;
     this.logger.log(`Loading agent configurations from: ${configPath}`);
 
     try {
-      const configContent = readFileSync(configPath, 'utf8');
+      const config = parseCrewxConfigFromFile(configPath);
+      this.projectConfig = config;
 
-      // Use default (JSON) schema for proper type conversion
-      // FAILSAFE_SCHEMA was too restrictive - it treats all values as strings
-      const config = yaml.load(configContent) as any;
-
-      // Load agents
-      if (config.agents && Array.isArray(config.agents)) {
+      if (Array.isArray(config.agents)) {
         for (const agent of config.agents) {
-          if (agent.id) {
+          if (agent && agent.id) {
             this.agents.set(agent.id, agent);
           }
         }
         this.logger.log(`Loaded ${this.agents.size} agent configurations from ${configName}.`);
       }
 
-      // Load plugin providers
-      if (config.providers && Array.isArray(config.providers)) {
-        this.providerConfigs = config.providers.filter(
-          (p: any) => p && (p.type === 'plugin' || p.type === 'remote')
-        );
+      const providers = Array.isArray((config as { providers?: unknown }).providers)
+        ? ((config as { providers?: unknown }).providers as Array<PluginProviderConfig | RemoteProviderConfig>)
+        : [];
 
+      this.providerConfigs = providers.filter(
+        (provider): provider is PluginProviderConfig | RemoteProviderConfig =>
+          Boolean(provider && (provider.type === 'plugin' || provider.type === 'remote')),
+      );
+
+      if (this.providerConfigs.length > 0) {
         const pluginCount = this.providerConfigs.filter(
-          (p): p is PluginProviderConfig => p.type === 'plugin'
+          (p): p is PluginProviderConfig => p.type === 'plugin',
         ).length;
-        const remoteCount = this.providerConfigs.filter(
-          (p): p is RemoteProviderConfig => p.type === 'remote'
-        ).length;
-
+        const remoteCount = this.providerConfigs.length - pluginCount;
         this.logger.log(`Loaded ${pluginCount} plugin provider configurations.`);
         if (remoteCount > 0) {
           this.logger.log(`Loaded ${remoteCount} remote provider configurations.`);
         }
       }
 
-      // Load Slack settings
       if (config.settings?.slack?.log_conversations !== undefined) {
-        this.slackSettings.logConversations = Boolean(
-          config.settings.slack.log_conversations,
-        );
+        this.slackSettings.logConversations = Boolean(config.settings.slack.log_conversations);
         if (this.slackSettings.logConversations) {
           this.logger.log('Slack conversation logging enabled via configuration.');
         }
@@ -157,15 +104,26 @@ export class ConfigService implements OnModuleInit {
           envSlackLogging.toLowerCase(),
         );
         this.logger.log(
-          `Slack conversation logging ${this.slackSettings.logConversations ? 'enabled' : 'disabled'} via CREWX_SLACK_LOG_CONVERSATIONS.`,
+          `Slack conversation logging ${
+            this.slackSettings.logConversations ? 'enabled' : 'disabled'
+          } via CREWX_SLACK_LOG_CONVERSATIONS.`,
         );
       }
     } catch (error) {
-      this.logger.error(`Failed to load or parse ${configName}`, error);
+      if (error instanceof SkillLoadError) {
+        this.logger.error(`Failed to parse ${configName}: ${error.message}`);
+        if (error.cause) {
+          this.logger.debug(`Parse error stack: ${error.cause.stack ?? error.cause.message}`);
+        }
+      } else if (error instanceof Error) {
+        this.logger.error(`Failed to load or parse ${configName}`, error);
+      } else {
+        this.logger.error(`Failed to load or parse ${configName}: ${String(error)}`);
+      }
     }
   }
 
-  getAgentConfig(agentId: string): AgentConfig | undefined {
+  getAgentConfig(agentId: string): AgentDefinition | undefined {
     return this.agents.get(agentId);
   }
 
@@ -175,13 +133,13 @@ export class ConfigService implements OnModuleInit {
 
   getPluginProviders(): PluginProviderConfig[] {
     return this.providerConfigs.filter(
-      (provider): provider is PluginProviderConfig => provider.type === 'plugin'
+      (provider): provider is PluginProviderConfig => provider.type === 'plugin',
     );
   }
 
   getRemoteProviders(): RemoteProviderConfig[] {
     return this.providerConfigs.filter(
-      (provider): provider is RemoteProviderConfig => provider.type === 'remote'
+      (provider): provider is RemoteProviderConfig => provider.type === 'remote',
     );
   }
 
@@ -193,15 +151,38 @@ export class ConfigService implements OnModuleInit {
     return this.slackSettings.logConversations;
   }
 
+  getProjectConfig(): CrewxProjectConfig | null {
+    return this.projectConfig;
+  }
+
+  getSkillsPaths(): string[] {
+    return this.projectConfig?.skillsPaths ? [...this.projectConfig.skillsPaths] : [];
+  }
+
   /**
    * Get the currently loaded config file path
    * Used by AgentLoaderService to load from the same config
    */
   getCurrentConfigPath(): string | null {
+    if (this.currentConfigPath) {
+      return this.currentConfigPath;
+    }
+
     if (this.customConfigPath) {
       return path.isAbsolute(this.customConfigPath)
         ? this.customConfigPath
         : path.join(process.cwd(), this.customConfigPath);
+    }
+
+    const envConfigPath = process.env.CREWX_CONFIG?.trim();
+    if (envConfigPath) {
+      const resolvedEnvPath = path.isAbsolute(envConfigPath)
+        ? envConfigPath
+        : path.join(process.cwd(), envConfigPath);
+
+      if (existsSync(resolvedEnvPath)) {
+        return resolvedEnvPath;
+      }
     }
 
     // Default paths
@@ -215,5 +196,46 @@ export class ConfigService implements OnModuleInit {
     }
 
     return null;
+  }
+
+  private resolveConfigPath(): { path: string | null; name: string | null } {
+    if (this.customConfigPath) {
+      const customPath = path.isAbsolute(this.customConfigPath)
+        ? this.customConfigPath
+        : path.join(process.cwd(), this.customConfigPath);
+
+      if (existsSync(customPath)) {
+        return { path: customPath, name: path.basename(customPath) };
+      }
+
+      this.logger.error(`Custom config file not found: ${customPath}`);
+      return { path: null, name: null };
+    }
+
+    const envConfigPath = process.env.CREWX_CONFIG?.trim();
+    if (envConfigPath) {
+      const resolvedEnvPath = path.isAbsolute(envConfigPath)
+        ? envConfigPath
+        : path.join(process.cwd(), envConfigPath);
+
+      if (existsSync(resolvedEnvPath)) {
+        return { path: resolvedEnvPath, name: path.basename(resolvedEnvPath) };
+      }
+
+      this.logger.warn(`CREWX_CONFIG file not found: ${resolvedEnvPath}`);
+    }
+
+    const defaultCandidates = [
+      { path: path.join(process.cwd(), 'crewx.yaml'), name: 'crewx.yaml' },
+      { path: path.join(process.cwd(), 'agents.yaml'), name: 'agents.yaml' },
+    ];
+
+    for (const candidate of defaultCandidates) {
+      if (existsSync(candidate.path)) {
+        return candidate;
+      }
+    }
+
+    return { path: null, name: null };
   }
 }

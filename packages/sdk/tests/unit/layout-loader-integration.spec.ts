@@ -28,8 +28,9 @@ describe('LayoutLoader Integration (Real Templates)', () => {
 
       expect(layout).toBeDefined();
       expect(layout.id).toBe('crewx/default');
-      expect(layout.template).toContain('<crewx_system_prompt>');
-      expect(layout.template).toContain('You are a built-in AI agent');
+      expect(layout.template).toContain('<crewx_system_prompt key="{{vars.security_key}}">');
+      expect(layout.template).toContain('<agent_profile>');
+      expect(layout.template).toContain('{{{agent.inline.prompt}}}');
     });
 
     it('should handle layouts map format in default.yaml', () => {
@@ -72,7 +73,7 @@ describe('LayoutLoader Integration (Real Templates)', () => {
       const layout = loader.load('crewx/default');
 
       // Should have a place to inject agent's system prompt
-      expect(layout.template).toMatch(/\{\{\{.*?system_prompt.*?\}\}\}/);
+      expect(layout.template).toMatch(/\{\{\{.*?agent\.inline\.prompt.*?\}\}\}/);
     });
   });
 

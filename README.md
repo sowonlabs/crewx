@@ -16,7 +16,7 @@ Bring AI agents directly into your team's workspace:
 - **Natural integration** - Works like chatting with team members
 - **Shared knowledge** - Team learns from AI interactions, not isolated sessions
 
-### **Remote Agents** - Distributed AI Teams
+### **Remote Agents** - Distributed AI Teams (Experimental)
 Connect and orchestrate CrewX instances across projects and servers:
 - **Cross-project experts** - Frontend dev asks backend team's API specialist agent
 - **Team collaboration** - Each team builds their own agents, entire org can use them
@@ -67,6 +67,13 @@ agents:
 
 ## Quick Start
 
+### 🚀 One-Command Setup (Recommended)
+```bash
+# Interactive setup - creates crewx.yaml and helps with Slack setup
+npx crewx-quickstart
+```
+
+### 📦 Manual Installation
 ```bash
 # Install
 npm install -g crewx
@@ -169,18 +176,48 @@ Create `crewx.yaml` (or `agents.yaml` for backward compatibility):
 agents:
   - id: "frontend_dev"
     name: "React Expert"
-    provider: "cli/claude"  # Built-in CLI provider
     working_directory: "./src"
     inline:
       type: "agent"
-      system_prompt: |
+      provider: "cli/claude"  # Built-in CLI provider
+      prompt: |
         You are a senior React developer.
         Provide detailed examples and best practices.
 ```
 
 > **Note:** `crewx.yaml` is the preferred configuration file name. The legacy `agents.yaml` is still supported for backward compatibility. If both files exist, `crewx.yaml` takes priority.
 
-## Remote Agents
+## Layout System
+
+CrewX layouts provide reusable prompt templates that separate structure from content.
+
+### Quick Example
+
+```yaml
+# crewx.yaml
+agents:
+  - id: full_agent
+    inline:
+      layout: "crewx/default"  # Full agent profile
+      prompt: |
+        You are a comprehensive assistant.
+
+  - id: simple_agent
+    inline:
+      layout: "crewx/minimal"  # Lightweight wrapper
+      prompt: |
+        You are a simple assistant.
+```
+
+**Features:**
+- 🎨 **Reusable Templates** - Share layouts across agents
+- ⚛️ **Props Schema** - React PropTypes-style validation for custom layouts
+- 🔧 **Built-in Layouts** - `crewx/default`, `crewx/minimal`
+- 🛡️ **Security Containers** - Automatic prompt wrapping
+
+👉 **[Layout System Guide →](./docs/layouts.md)** for detailed usage
+
+## Remote Agents (Experimental)
 
 Connect to other CrewX instances and delegate tasks across projects or servers.
 
@@ -251,6 +288,8 @@ The SDK provides reusable components that power the CLI, enabling custom integra
 - Built-in providers: `ClaudeProvider`, `GeminiProvider`, `CopilotProvider`, `CodexProvider`
 - `RemoteAgentManager` - Remote agent communication
 - `createCrewxAgent` - High-level agent factory API
+- `TemplateContext` - Cross-platform template context interface
+- `AgentMetadata` - Agent capabilities and specialties metadata
 
 **CLI Adds:**
 - NestJS integration and dependency injection
@@ -271,8 +310,6 @@ const provider = new ClaudeProvider({
 
 const result = await provider.query('Analyze codebase');
 ```
-
-For detailed integration patterns, see [WBS-9 Integration Guide](docs/wbs-9-phase1-5-integration.md).
 
 ### Development
 
@@ -304,8 +341,8 @@ For more information, see:
 - [⚙️ Agent Configuration](docs/agent-configuration.md) - Custom agents and advanced config
 - [🌐 Remote Agents](docs/remote-agents.md) - Connect to remote CrewX instances
 - [📚 Template System](docs/templates.md) - Knowledge management and dynamic prompts for agents
-- [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations
-- [🔧 Tool System](docs/tools.md) - Tool integration and creation guide
+- [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations and TemplateContext usage
+- [🎨 Layout System](docs/layouts.md) - Reusable prompt templates with React PropTypes-style props
 - [🔧 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 - [💬 Slack Integration](SLACK_INSTALL.md) - Slack bot setup
 
@@ -314,6 +351,9 @@ For more information, see:
 - [⚙️ CLI Development](packages/cli/README.md) - CLI architecture and development
 - [📦 Build & Release](BUILD.md) - Building and releasing packages
 - [🔧 Development Workflow](docs/development.md) - Contributing guidelines
+- [🧩 Context Integration Standard](packages/docs/context-integration-standard.md) - TemplateContext pipeline and layout responsibilities
+- [🛠️ Context Migration Guide](packages/docs/context-integration-migration.md) - Upgrade steps for custom agents
+- [🧱 Layout DSL Reference](packages/docs/layout-dsl-field-reference.md) - Layout fields, props, and helpers
 
 ## License
 

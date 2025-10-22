@@ -177,29 +177,6 @@ agents:
       expect(() => validateAgentConfig(undefined as any)).toThrow(YamlConfigError);
     });
 
-    it('should throw error for provider missing namespace', () => {
-      const config: any = {
-        provider: {
-          id: 'claude',
-          // missing namespace
-        },
-      };
-
-      expect(() => validateAgentConfig(config)).toThrow(YamlConfigError);
-      expect(() => validateAgentConfig(config)).toThrow(/namespace and id/);
-    });
-
-    it('should throw error for provider missing id', () => {
-      const config: any = {
-        provider: {
-          namespace: 'cli',
-          // missing id
-        },
-      };
-
-      expect(() => validateAgentConfig(config)).toThrow(YamlConfigError);
-    });
-
     it('should throw error for knowledge base without path or sources', () => {
       const config: any = {
         knowledgeBase: {

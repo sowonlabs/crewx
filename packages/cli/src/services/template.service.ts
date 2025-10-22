@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 // CrewX version - should match package.json
-const CREWX_VERSION = '0.1.8';
+const CREWX_VERSION = '0.3.0';
 
 export interface TemplateMetadata {
   name: string;
@@ -35,12 +35,45 @@ export class TemplateService {
   private readonly cdnBaseUrl = 'https://cdn.jsdelivr.net/gh/sowonlabs/crewx@';
   private readonly githubRawUrl = 'https://raw.githubusercontent.com/sowonlabs/crewx/';
   private readonly cacheDir = join(process.cwd(), '.crewx', 'cache', 'templates');
+  private readonly remoteTemplatesEnabled =
+    process.env.CREWX_ENABLE_REMOTE_TEMPLATES === 'true';
 
   constructor() {
     // Ensure cache directory exists
     if (!existsSync(this.cacheDir)) {
       mkdirSync(this.cacheDir, { recursive: true });
     }
+  }
+
+  /**
+   * Attempt to load a template from the local filesystem before hitting the network.
+   * This lets developers verify template changes without publishing to CDN/GitHub,
+   * and also allows packaged installs to reuse bundled templates.
+   */
+  private tryLoadLocalTemplate(templateName: string): string | undefined {
+    const candidatePaths = [
+      join(__dirname, '..', 'templates', 'agents', `${templateName}.yaml`),
+      join(__dirname, '..', '..', 'templates', 'agents', `${templateName}.yaml`),
+      join(__dirname, '..', '..', '..', 'templates', 'agents', `${templateName}.yaml`),
+      join(process.cwd(), 'templates', 'agents', `${templateName}.yaml`),
+    ];
+
+    for (const candidate of candidatePaths) {
+      if (!existsSync(candidate)) {
+        continue;
+      }
+
+      try {
+        const content = readFileSync(candidate, 'utf8');
+        this.logger.log(`📄 Using local template: ${templateName} (${candidate})`);
+        return content;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Failed to read local template at ${candidate}: ${message}`);
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -97,19 +130,41 @@ export class TemplateService {
     version: string = 'main'
   ): Promise<string> {
     try {
+      // Prefer local templates when available (developer builds or packaged assets)
+      const localTemplate = this.tryLoadLocalTemplate(templateName);
+      if (localTemplate) {
+        return localTemplate;
+      }
+
+      if (!this.remoteTemplatesEnabled) {
+        this.logger.warn(
+          `Remote template download disabled (set CREWX_ENABLE_REMOTE_TEMPLATES=true to enable).`
+        );
+
+        const cached = this.loadFromCache(templateName, version);
+        if (cached) {
+          this.logger.log(`📦 Using cached template: ${templateName}@${version}`);
+          return cached;
+        }
+
+        throw new Error(
+          `Remote template download disabled and no cached template found for ${templateName}@${version}`
+        );
+      }
+
       this.logger.log(`Downloading template: ${templateName}@${version}`);
-      
+
       // Check version compatibility from versions.json
       try {
         const versions = await this.getVersions();
         const versionInfo = versions?.versions?.[version];
-        
+
         if (versionInfo) {
           const compatible = this.isVersionCompatible(
             versionInfo.minCrewxVersion,
             versionInfo.maxCrewxVersion
           );
-          
+
           if (!compatible) {
             throw new Error(
               `❌ Template version ${version} is not compatible with CrewX ${CREWX_VERSION}.\n` +
@@ -121,39 +176,39 @@ export class TemplateService {
         this.logger.warn(`Could not check version compatibility: ${versionError?.message || versionError}`);
         // Continue anyway if version check fails
       }
-      
+
       // Try CDN first (faster, cached)
       const cdnUrl = `${this.cdnBaseUrl}${version}/templates/agents/${templateName}.yaml`;
-      
+
       try {
         const response = await fetch(cdnUrl);
         if (response.ok) {
           const content = await response.text();
           this.logger.log(`✅ Downloaded from CDN: ${templateName}@${version}`);
-          
+
           // Cache the template locally
           this.cacheTemplate(templateName, version, content);
-          
+
           return content;
         }
       } catch (cdnError) {
         this.logger.warn(`CDN download failed, trying GitHub raw...`);
       }
-      
+
       // Fallback to GitHub raw URL
       const githubUrl = `${this.githubRawUrl}${version}/templates/agents/${templateName}.yaml`;
       const response = await fetch(githubUrl);
-      
+
       if (!response.ok) {
         throw new Error(`Template not found: ${templateName}@${version} (HTTP ${response.status})`);
       }
-      
+
       const content = await response.text();
       this.logger.log(`✅ Downloaded from GitHub: ${templateName}@${version}`);
-      
+
       // Cache the template
       this.cacheTemplate(templateName, version, content);
-      
+
       return content;
       
     } catch (error) {
@@ -174,6 +229,13 @@ export class TemplateService {
    * Get available templates list
    */
   async listAvailableTemplates(version: string = 'main'): Promise<string[]> {
+    if (!this.remoteTemplatesEnabled) {
+      this.logger.warn(
+        'Remote template listing disabled (set CREWX_ENABLE_REMOTE_TEMPLATES=true to enable). Returning defaults.'
+      );
+      return ['default', 'minimal', 'development', 'production'];
+    }
+
     try {
       const url = `${this.cdnBaseUrl}${version}/versions.json`;
       const response = await fetch(url);
@@ -199,6 +261,13 @@ export class TemplateService {
    * Get template versions information
    */
   async getVersions(): Promise<TemplateVersions | null> {
+    if (!this.remoteTemplatesEnabled) {
+      this.logger.warn(
+        'Remote template version lookup disabled (set CREWX_ENABLE_REMOTE_TEMPLATES=true to enable).'
+      );
+      return null;
+    }
+
     try {
       const url = `${this.cdnBaseUrl}main/versions.json`;
       const response = await fetch(url);

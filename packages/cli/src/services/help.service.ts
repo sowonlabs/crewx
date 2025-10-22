@@ -96,8 +96,19 @@ their own specialization, and get results in parallel.
       'agent',
       'Inspect available agents and their metadata.',
       [
+        'crewx agent',
         'crewx agent ls',
         'crewx agent ls --raw',
+      ],
+    );
+
+    this.showCommandHelp(
+      'log',
+      'View task execution logs and debugging information.',
+      [
+        'crewx log',
+        'crewx log ls',
+        'crewx log task_1234567890_abcdef',
       ],
     );
 

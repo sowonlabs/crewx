@@ -15,6 +15,7 @@ import { readFileSync, readdirSync, existsSync } from 'fs';
 import * as path from 'path';
 import { load as loadYaml } from 'js-yaml';
 import {
+  CustomLayoutDefinition,
   LayoutDefinition,
   LoaderOptions,
   LayoutLoadError,
@@ -55,7 +56,7 @@ export class LayoutLoader {
   /**
    * Load a layout by ID with optional props override
    *
-   * @param layoutId - Layout ID (e.g., "crewx/dashboard", "dashboard")
+   * @param layoutId - Layout ID (e.g., "crewx/dashboard", "dashboard", "my_custom_layout")
    * @param propsOverride - Props to override default values
    * @returns Layout definition with merged props
    *
@@ -69,14 +70,16 @@ export class LayoutLoader {
    * ```
    */
   load(layoutId: string, propsOverride?: Record<string, any>): LayoutDefinition {
-    // Normalize ID: "dashboard" → "crewx/dashboard"
-    const normalizedId = this.normalizeLayoutId(layoutId);
-
-    // Get layout or fallback
-    let layout = this.layouts.get(normalizedId);
+    // Try exact match first, then try normalized ID for backward compatibility
+    let layout = this.layouts.get(layoutId);
 
     if (!layout) {
-      console.warn(`Layout not found: ${normalizedId}, falling back to ${this.options.fallbackLayoutId}`);
+      const normalizedId = this.normalizeLayoutId(layoutId);
+      layout = this.layouts.get(normalizedId);
+    }
+
+    if (!layout) {
+      console.warn(`Layout not found: ${layoutId}, falling back to ${this.options.fallbackLayoutId}`);
       layout = this.layouts.get(this.options.fallbackLayoutId);
 
       if (!layout) {
@@ -114,6 +117,10 @@ export class LayoutLoader {
    * @returns true if layout exists
    */
   hasLayout(layoutId: string): boolean {
+    // Try exact match first, then try normalized ID for backward compatibility
+    if (this.layouts.has(layoutId)) {
+      return true;
+    }
     const normalizedId = this.normalizeLayoutId(layoutId);
     return this.layouts.has(normalizedId);
   }
@@ -157,7 +164,9 @@ export class LayoutLoader {
           const layout = this.loadLayoutFile(layoutPath, layoutName);
           const layoutId = `crewx/${layoutName}`;
           this.layouts.set(layoutId, layout);
-          console.log(`Loaded layout: ${layoutId} from ${file}`);
+          if (layoutId !== 'crewx/minimal') {
+            console.log(`Loaded layout: ${layoutId} from ${file}`);
+          }
         } catch (error) {
           console.error(`Failed to load layout file ${file}:`, error);
           // Continue loading other layouts
@@ -210,7 +219,7 @@ export class LayoutLoader {
 
       if (parsed.layouts && typeof parsed.layouts === 'object') {
         // Format 2: layouts map (e.g., templates/agents/default.yaml)
-        const layoutTemplate = parsed.layouts[layoutName] || parsed.layouts['default'];
+        const layoutTemplate = this.resolveLayoutTemplate(parsed.layouts, layoutName);
 
         if (!layoutTemplate || (typeof layoutTemplate === 'string' && layoutTemplate.trim().length === 0)) {
           console.warn(`Empty or missing layout template in ${filePath} for ${layoutName}`);
@@ -304,5 +313,110 @@ export class LayoutLoader {
 
     // Add crewx namespace
     return `crewx/${layoutId}`;
+  }
+
+  /**
+   * Register or override a layout at runtime (e.g., from project configuration)
+   *
+   * @param layoutId Layout identifier (used as-is, without forced namespace)
+   * @param layoutConfig Template string or configuration object
+   */
+  registerLayout(layoutId: string, layoutConfig: string | CustomLayoutDefinition): void {
+    if (!layoutId || typeof layoutId !== 'string') {
+      throw new LayoutLoadError('Layout ID must be a non-empty string', layoutId);
+    }
+
+    // Use the layoutId as-is (no forced namespace)
+    const config: CustomLayoutDefinition =
+      typeof layoutConfig === 'string'
+        ? { template: layoutConfig }
+        : layoutConfig;
+
+    const template = typeof config.template === 'string' ? config.template : '';
+
+    if (!template || template.trim().length === 0) {
+      throw new LayoutLoadError(`Custom layout template is empty for ${layoutId}`, layoutId);
+    }
+
+    const propsSchemaRaw = config.propsSchema || {};
+    const defaultPropsFromSchema = this.extractDefaultProps(propsSchemaRaw);
+    const explicitDefaults = config.defaultProps || {};
+
+    const layoutDefinition: LayoutDefinition = {
+      id: layoutId,
+      version: config.version || '1.0.0',
+      description: config.description || `Custom layout ${layoutId}`,
+      template,
+      propsSchema: this.parsePropsSchema(propsSchemaRaw),
+      defaultProps: { ...defaultPropsFromSchema, ...explicitDefaults },
+    };
+
+    const existingLayout = this.layouts.get(layoutId);
+
+    const templatesEqual =
+      existingLayout?.template === template &&
+      JSON.stringify(existingLayout?.defaultProps ?? {}) === JSON.stringify(layoutDefinition.defaultProps ?? {}) &&
+      JSON.stringify(existingLayout?.propsSchema ?? {}) === JSON.stringify(layoutDefinition.propsSchema ?? {});
+
+    this.layouts.set(layoutId, layoutDefinition);
+
+    if (!existingLayout) {
+      console.log(`Registered custom layout: ${layoutId}`);
+    } else if (!templatesEqual) {
+      console.log(`Updated custom layout: ${layoutId}`);
+    }
+  }
+
+  /**
+   * Register multiple layouts from a map of layoutId -> configuration
+   */
+  registerLayouts(layoutsMap: Record<string, string | CustomLayoutDefinition>): void {
+    for (const [id, config] of Object.entries(layoutsMap)) {
+      try {
+        this.registerLayout(id, config);
+      } catch (error) {
+        console.warn(`Failed to register custom layout ${id}:`, error instanceof Error ? error.message : error);
+      }
+    }
+  }
+
+  /**
+   * Resolve layout template from layouts map using common key variants
+   * @private
+   */
+  private resolveLayoutTemplate(layoutsMap: Record<string, any>, layoutName: string): string | undefined {
+    const candidates = new Set<string>();
+
+    if (layoutName) {
+      candidates.add(layoutName);
+
+      if (layoutName.includes('/')) {
+        const parts = layoutName.split('/');
+        const last = parts[parts.length - 1];
+        if (last) {
+          candidates.add(last);
+        }
+      } else {
+        candidates.add(`crewx/${layoutName}`);
+      }
+    }
+
+    candidates.add('default');
+
+    for (const key of candidates) {
+      const value = layoutsMap[key];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value;
+      }
+    }
+
+    // Fall back to the first non-empty string template
+    for (const value of Object.values(layoutsMap)) {
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value;
+      }
+    }
+
+    return undefined;
   }
 }

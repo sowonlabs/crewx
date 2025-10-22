@@ -6,7 +6,12 @@ import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.inter
 import type { BaseAIProviderOptions, LoggerLike } from './base-ai.types';
 import type { ToolCallHandler } from './tool-call.types';
 
-class ConsoleLogger implements LoggerLike {
+/**
+ * Simple console logger implementation.
+ * Outputs to stdout/stderr with context prefix.
+ * Used as default logger throughout SDK.
+ */
+export class ConsoleLogger implements LoggerLike {
   constructor(private readonly context: string) {}
 
   log(message: string, ...optionalParams: any[]): void {
@@ -338,13 +343,14 @@ export abstract class BaseAIProvider implements AIProvider {
   }
 
   /**
-   * Wrap user query in authenticated security container
-   * This prevents prompt injection attacks by isolating user input
+   * @deprecated Use layout-based rendering instead.
+   *
+   * User query wrapping is now handled by the layout system.
+   * See crewx.layout.yaml for the standard <user_query> wrapper.
+   *
+   * This method is kept for backward compatibility but is not used internally.
    */
   protected wrapUserQueryWithSecurity(userQuery: string, securityKey: string): string {
-    // Note: The actual prompt will be:
-    // System Prompt (with key) + Conversation History (with key) + User Query (with key)
-    // This method wraps only the user query portion
     return `
 <user_query key="${securityKey}">
 ${userQuery}
@@ -352,8 +358,10 @@ ${userQuery}
   }
 
   /**
-   * Extract the actual user query from the wrapped version
-   * Used for logging and debugging
+   * @deprecated No longer needed with layout-based rendering.
+   *
+   * User query extraction is handled by the layout rendering pipeline.
+   * This method is kept for backward compatibility but is not used internally.
    */
   protected extractUserQuery(wrappedQuery: string, securityKey: string): string {
     const regex = new RegExp(`<user_query key="${securityKey}">\\s*([\\s\\S]*?)\\s*</user_query>`, 'm');

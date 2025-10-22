@@ -17,6 +17,7 @@ export { getTimeoutConfig, getDefaultTimeoutConfig } from './config/timeout.conf
 
 // Conversation contracts
 export type {
+  BaseMessage,
   ConversationMessage,
   ConversationThread,
   FetchHistoryOptions,
@@ -50,6 +51,8 @@ export {
   CopilotProvider,
   CodexProvider,
   BaseDynamicProviderFactory,
+  MockProvider,
+  createProviderFromConfig,
 } from './core/providers';
 export type {
   BaseAIProviderOptions,
@@ -62,6 +65,11 @@ export type {
   DynamicProviderConfig,
   DynamicProviderFactoryOptions,
 } from './core/providers/dynamic-provider.factory';
+export type {
+  ProviderConfig,
+  ProviderInput,
+  ProviderResolutionResult,
+} from './types/provider.types';
 export type {
   Tool,
   ToolExecutionContext,
@@ -115,6 +123,7 @@ export {
   createCrewxAgent,
   loadAgentConfigFromYaml,
   loadAgentConfigFromFile,
+  resolveProvider,
   type CrewxAgent,
   type CrewxAgentConfig,
   type CrewxAgentResult,
@@ -125,6 +134,7 @@ export {
   type AgentQueryRequest,
   type AgentExecuteRequest,
   type AgentResult,
+  type AgentRuntimeOptions,
   type CallStackFrame,
   type EventListener,
 } from './core/agent';
@@ -195,4 +205,71 @@ export type {
   LoaderOptions,
   LayoutLoadError,
   InlineLayoutSpec,
+  CustomLayoutDefinition,
 } from './types/layout.types';
+
+// Template system (WBS-14 Phase 3)
+export type {
+  BaseContext,
+  TemplateContext,
+  AgentMetadata,
+  TemplateVars,
+} from './types/template.types';
+
+// Skills schema (WBS-16 Phase 1)
+export type {
+  SkillMetadata,
+  SkillContent,
+  SkillDefinition,
+  SkillsConfig,
+  CrewxProjectConfig,
+  AgentDefinition,
+  SkillParserOptions,
+  SkillManifest,
+} from './schema/skills.types';
+export {
+  SkillLoadError,
+  SkillNotFoundError,
+  SkillDependencyError,
+  SkillVersionMismatchError,
+} from './schema/skills.types';
+
+// Skills parser (WBS-16 Phase 2)
+export {
+  parseCrewxConfig,
+  parseCrewxConfigFromFile,
+  parseSkillManifest,
+  parseSkillManifestFromFile,
+  validateSkillMetadata,
+  loadSkillContent,
+  clearSkillCache,
+} from './schema/skills-parser';
+
+// Skill Runtime (WBS-17 Phase 1)
+export {
+  ProgressiveSkillLoader,
+  ClaudeSkillAdapter,
+  SystemRuntimeValidator,
+  MockRuntimeValidator,
+} from './skills';
+export type {
+  ISkillRuntime,
+  IProgressiveSkillLoader,
+  IClaudeSkillAdapter,
+  RuntimeRequirementsValidator,
+  SkillExecutionContext,
+  SkillExecutionResult,
+  SkillLoadOptions,
+  SkillCacheStats,
+  SkillRuntimeInfo,
+  SkillRuntimeEvents,
+  SkillRuntimeError,
+  ProgressiveLoadingError,
+  SkillExecutionError,
+  SkillContextError,
+  SDKExecutionContext,
+  CLIExecutionContext,
+  ProgressiveDisclosureConfig,
+  RuntimeInfo,
+  SkillBundleInfo,
+} from './skills';

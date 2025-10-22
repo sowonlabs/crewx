@@ -10,47 +10,7 @@
 
 import * as Handlebars from 'handlebars';
 import { DocumentLoaderService } from '../services/document-loader.service';
-
-/**
- * Additional context for template processing
- */
-export interface TemplateContext {
-  /** Environment variables */
-  env?: Record<string, string | undefined>;
-  /** Agent options passed via CLI */
-  options?: string[];
-  /** Agent metadata */
-  agent?: {
-    id: string;
-    name: string;
-    provider: string;
-    model?: string;
-    workingDirectory?: string;
-  };
-  /** Query/execution mode */
-  mode?: 'query' | 'execute';
-  /** Conversation messages for history */
-  messages?: Array<{
-    text: string;
-    isAssistant: boolean;
-    metadata?: Record<string, any>; // Platform-specific metadata (e.g., Slack user info)
-  }>;
-  /** Platform (slack or cli) */
-  platform?: 'slack' | 'cli';
-  /** Available tools */
-  tools?: {
-    list: Array<{
-      name: string;
-      description: string;
-      input_schema: any;
-      output_schema?: any;
-    }>;
-    json: string;
-    count: number;
-  };
-  /** Additional custom variables */
-  vars?: Record<string, any>;
-}
+import type { TemplateContext } from '@sowonai/crewx-sdk';
 
 /**
  * Process Handlebars template with document variables and context
@@ -88,8 +48,8 @@ export async function processDocumentTemplate(
   const context: any = {
     documents: {},
     env: additionalContext?.env || process.env,
-    options: additionalContext?.options || [],
     agent: additionalContext?.agent || {},
+    agentMetadata: additionalContext?.agentMetadata || {},
     mode: additionalContext?.mode,
     messages: additionalContext?.messages || [],
     platform: additionalContext?.platform,
@@ -101,40 +61,62 @@ export async function processDocumentTemplate(
   registerHandlebarsHelpers();
 
   // Extract document references from template
-  // Pattern: {{{documents.doc-name.property}}}
-  const pattern = /{{{documents\.([^.}]+)\.([^}]+)}}}/g;
+  // Pattern: {{{documents.doc-name.property}}} or {{documents.doc-name.property}}
+  const pattern = /(\{\{\{|\{\{)documents\.([^.}]+)\.([^}]+)}}}?/g;
   const matches = [...template.matchAll(pattern)];
 
   if (matches.length > 0 && documentLoader.isInitialized()) {
-    // Collect unique document names
-    const docNames = Array.from(new Set(matches.map(m => m[1]).filter((name): name is string => !!name)));
+    const docProps = new Map<string, Map<string, string[]>>();
 
-    // Load all referenced documents
-    for (const docName of docNames) {
+    for (const match of matches) {
+      const [, , docName, prop] = match;
+      if (!docName || !prop) {
+        continue;
+      }
+      const propMap = docProps.get(docName) ?? new Map<string, string[]>();
+      const expressions = propMap.get(prop) ?? [];
+      expressions.push(match[0]);
+      propMap.set(prop, expressions);
+      docProps.set(docName, propMap);
+    }
+
+    for (const [docName, propMap] of docProps.entries()) {
+      const shouldRender =
+        typeof documentLoader.shouldRenderDocument === 'function'
+          ? documentLoader.shouldRenderDocument(docName)
+          : false;
+
       let content = await documentLoader.getDocumentContent(docName);
-      const toc = await documentLoader.getDocumentToc(docName);
-      const summary = await documentLoader.getDocumentSummary(docName);
+      let toc = await documentLoader.getDocumentToc(docName);
+      let summary = await documentLoader.getDocumentSummary(docName);
 
-      // Process document content as template to support nested variables
-      // This allows documents to use {{agent.xxx}}, {{env.xxx}}, etc.
-      if (content) {
+      if (shouldRender && content) {
         try {
           const docTemplate = Handlebars.compile(content, { noEscape: true });
           content = docTemplate(context);
-        } catch (error) {
-          // If document content has invalid Handlebars syntax, use as-is
-          // Silently ignore template errors in document content
-          // (documents may contain literal {{...}} examples that aren't meant to be processed)
+        } catch {
+          // leave as-is
         }
       }
 
-      // IMPORTANT: Use the original hyphenated name as key
-      // Handlebars can access it via documents['crewx-docs']
-      // We store it with hyphens to match the template reference
+      const valueFor = (prop: string, value: string | undefined): string => {
+        if (value) {
+          return value;
+        }
+        if (shouldRender) {
+          return '';
+        }
+        const expressions = propMap.get(prop);
+        if (expressions && expressions.length > 0) {
+          return expressions[0]!;
+        }
+        return "";
+      };
+
       context.documents[docName] = {
-        content: content || '',
-        toc: toc || '',
-        summary: summary || '',
+        content: propMap.has('content') ? valueFor('content', content) : '',
+        toc: propMap.has('toc') ? valueFor('toc', toc) : '',
+        summary: propMap.has('summary') ? valueFor('summary', summary) : '',
       };
     }
   }

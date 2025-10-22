@@ -19,12 +19,9 @@ export async function handleAgent(app: any, args: CliOptions) {
     switch (resolvedSubcommand) {
       case 'ls':
       case 'list':
-        await handleAgentList(crewXTool, raw);
-        break;
-
       case '':
-        printAgentHelp();
-        process.exit(1);
+        // Default to list when no subcommand (crewx agent → crewx agent ls)
+        await handleAgentList(crewXTool, raw);
         break;
 
       default:
@@ -149,10 +146,12 @@ function printAgentHelp() {
 CrewX Agent Management
 
 Usage:
+  crewx agent             # List configured agents (default)
   crewx agent ls          # List configured agents
   crewx agent list        # Alias for ls
 
 Examples:
+  crewx agent
   crewx agent ls
   CREWX_CONFIG=./crewx.yaml crewx agent list
 

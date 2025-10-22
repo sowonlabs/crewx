@@ -9,10 +9,18 @@
  */
 
 import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
-import { AgentInfo, RemoteAgentInfo, RemoteAgentConfigInput, getErrorMessage } from '@sowonai/crewx-sdk';
-import * as yaml from 'js-yaml';
-import { readFile } from 'fs/promises';
-import type { TemplateContext } from '../utils/template-processor';
+import {
+  AgentInfo,
+  RemoteAgentInfo,
+  RemoteAgentConfigInput,
+  CustomLayoutDefinition,
+  LayoutLoader,
+  getErrorMessage,
+  parseCrewxConfig,
+  parseCrewxConfigFromFile,
+  SkillLoadError,
+  type SkillsConfig,
+} from '@sowonai/crewx-sdk';
 import { DocumentLoaderService } from './document-loader.service';
 import { TemplateService } from './template.service';
 import { ConfigValidatorService } from './config-validator.service';
@@ -41,6 +49,7 @@ export class AgentLoaderService {
     @Optional() private readonly configValidatorService?: ConfigValidatorService,
     @Optional() @Inject(forwardRef(() => AIProviderService)) private readonly aiProviderService?: AIProviderService,
     @Optional() private readonly configService?: ConfigService,
+    @Optional() @Inject('LAYOUT_LOADER') private readonly layoutLoader?: LayoutLoader,
   ) {}
 
   /**
@@ -82,6 +91,8 @@ export class AgentLoaderService {
     },
   ];
 
+  private registeredLayoutSources: Set<string> = new Set<string>();
+
   /**
    * Get all available agents (using loadAvailableAgents)
    * Simple wrapper for backward compatibility
@@ -106,10 +117,18 @@ export class AgentLoaderService {
    * Get configuration source info
    */
   getConfigSource(): { source: string; path?: string } {
-    const agentsConfigPath = process.env.AGENTS_CONFIG;
+    const envConfigPath = process.env.CREWX_CONFIG?.trim();
+    const configPath = this.configService?.getCurrentConfigPath() ?? (envConfigPath ? envConfigPath : undefined);
+
+    if (configPath) {
+      return {
+        source: 'External YAML file',
+        path: configPath,
+      };
+    }
+
     return {
-      source: agentsConfigPath ? 'External YAML file' : 'Default hardcoded values',
-      path: agentsConfigPath,
+      source: 'Default hardcoded values',
     };
   }
 
@@ -202,6 +221,7 @@ export class AgentLoaderService {
   private async loadBuiltInAgents(): Promise<AgentInfo[]> {
     try {
       let templateContent: string;
+      let templateDir: string | undefined;
 
       // Try local template first
       try {
@@ -209,6 +229,7 @@ export class AgentLoaderService {
         const fs = await import('fs/promises');
         const templatePath = path.join(__dirname, '..', '..', 'templates', 'agents', 'default.yaml');
         templateContent = await fs.readFile(templatePath, 'utf-8');
+        templateDir = path.dirname(templatePath);
         this.logger.log('Loaded built-in agents from local template');
       } catch (localError) {
         // Fallback to GitHub download
@@ -220,7 +241,7 @@ export class AgentLoaderService {
         this.logger.log('Loaded built-in agents from GitHub template');
       }
 
-      const config = yaml.load(templateContent) as any;
+      const config = parseCrewxConfig(templateContent, { validationMode: 'lenient' });
 
       if (!config.agents || !Array.isArray(config.agents)) {
         throw new Error('Invalid template: missing agents array');
@@ -228,32 +249,50 @@ export class AgentLoaderService {
 
       // Initialize DocumentLoaderService with built-in documents
       if (this.documentLoaderService) {
-        await this.documentLoaderService.initialize(config.documents);
+        await this.documentLoaderService.initialize(
+          config.documents as Record<string, string | { path: string; name?: string }>,
+          templateDir,
+        );
       }
+
+      // Register layouts bundled with built-in template so CLI remains zero-config
+      this.registerCustomLayoutsFromConfig(config, 'built-in template');
+
+      const projectSkills = config.skills;
 
       // Process templates
       const processedAgents = await Promise.all(
-        config.agents.map(async (agent: any) => {
+        config.agents.map(async (agent) => {
           let systemPrompt = agent.inline?.system_prompt;
 
           // Do NOT process system_prompt template here
           // It will be processed at execution time in crewx.tool.ts
           // This allows formatConversation and other runtime helpers to work correctly
 
+          const mergedSkills = this.mergeSkillsConfig(projectSkills, agent.skills);
+
+          const parsedProvider = this.parseProviderConfig(agent);
+          const providerValue = typeof parsedProvider === 'string' ? parsedProvider : parsedProvider[0];
+
           return {
             id: agent.id,
             name: agent.name || agent.id,
             role: agent.role || 'AI Agent',
             team: agent.team,
-            provider: this.parseProviderConfig(agent),
+            provider: parsedProvider,
             workingDirectory: agent.working_directory || './',
             capabilities: agent.capabilities || [],
             description: systemPrompt ? this.extractDescription(systemPrompt) : `${agent.name || agent.id} agent`,
             specialties: agent.specialties || [],
             systemPrompt: systemPrompt,
             options: agent.options || [],
-            inline: agent.inline,
+            inline: agent.inline ? {
+              ...agent.inline,
+              type: 'agent' as const,
+              provider: providerValue,
+            } : undefined,
             remote: this.parseRemoteConfig(agent),
+            ...(mergedSkills ? { skills: mergedSkills } : {}),
           };
         })
       );
@@ -275,22 +314,17 @@ export class AgentLoaderService {
 
       this.logger.log(`Loading agents from config: ${configPath}`);
 
-      const configContent = await readFile(configPath, 'utf-8');
-      let config;
+      const parsedConfig =
+        this.configService?.getProjectConfig() ??
+        parseCrewxConfigFromFile(configPath, { validationMode: 'lenient' });
 
-      if (configPath.endsWith('.yaml') || configPath.endsWith('.yml')) {
-        config = yaml.load(configContent) as any;
-      } else {
-        config = JSON.parse(configContent);
-      }
-
-      if (!config.agents || !Array.isArray(config.agents)) {
+      if (!parsedConfig.agents || !Array.isArray(parsedConfig.agents)) {
         throw new Error('Invalid config: missing agents array');
       }
 
       // Validate configuration if validator is available
       if (this.configValidatorService) {
-        const validationResult = this.configValidatorService.validateConfig(config, configPath);
+        const validationResult = this.configValidatorService.validateConfig(parsedConfig, configPath);
         if (!validationResult.valid) {
           const errorMessage = this.configValidatorService.formatErrorMessage(validationResult.errors);
           this.logger.error(errorMessage);
@@ -299,30 +333,43 @@ export class AgentLoaderService {
         this.logger.log('Configuration validation passed');
       }
 
+      // Register any custom layouts defined in the project configuration
+      this.registerCustomLayoutsFromConfig(parsedConfig, configPath);
+
       // Initialize DocumentLoaderService with documents from agents.yaml
       if (this.documentLoaderService) {
         const projectPath = path.dirname(configPath);
-        this.logger.log(`Initializing DocumentLoaderService, has documents: ${!!config.documents}`);
-        await this.documentLoaderService.initialize(config.documents, projectPath);
+        this.logger.log(`Initializing DocumentLoaderService, has documents: ${!!parsedConfig.documents}`);
+        await this.documentLoaderService.initialize(
+          parsedConfig.documents as Record<string, string | { path: string; name?: string }>,
+          projectPath,
+        );
       } else {
         this.logger.warn('DocumentLoaderService not injected - documents will not be loaded');
       }
 
+      const projectSkills = parsedConfig.skills;
+
       // Process templates using the template-processor utility
       const agents = await Promise.all(
-        config.agents.map(async (agent: any) => {
+        parsedConfig.agents.map(async (agent) => {
           let systemPrompt = agent.inline?.system_prompt;
 
           // Do NOT process system_prompt template here
           // It will be processed at execution time in crewx.tool.ts
           // This allows formatConversation and other runtime helpers to work correctly
 
+          const mergedSkills = this.mergeSkillsConfig(projectSkills, agent.skills);
+
+          const parsedProvider = this.parseProviderConfig(agent);
+          const providerValue = typeof parsedProvider === 'string' ? parsedProvider : parsedProvider[0];
+
           return {
             id: agent.id,
             name: agent.name || agent.id,
             role: agent.role || 'AI Agent',
             team: agent.team,
-            provider: this.parseProviderConfig(agent),
+            provider: parsedProvider,
             workingDirectory: agent.working_directory || './',
             capabilities: agent.capabilities || [],
             description: systemPrompt ? this.extractDescription(systemPrompt) : `${agent.name || agent.id} agent`,
@@ -331,19 +378,225 @@ export class AgentLoaderService {
             options: agent.options || [],
             inline: agent.inline ? {
               ...agent.inline,
+              type: 'agent' as const,
               system_prompt: systemPrompt, // Use the original (unprocessed) system_prompt
+              provider: providerValue,
             } : undefined,
             remote: this.parseRemoteConfig(agent),
+            ...(mergedSkills ? { skills: mergedSkills } : {}),
           };
         })
       );
 
       return agents;
     } catch (error) {
-      this.logger.error(`Failed to load agents config from ${configPath}:`, getErrorMessage(error));
+      if (error instanceof SkillLoadError) {
+        this.logger.error(
+          `Failed to parse CrewX configuration at ${configPath}: ${error.message}`,
+        );
+      } else {
+        this.logger.error(`Failed to load agents config from ${configPath}:`, getErrorMessage(error));
+      }
       // Return empty array if config loading fails
       return [];
     }
+  }
+
+  /**
+   * Register custom layouts defined within agent configuration files
+   */
+  private registerCustomLayoutsFromConfig(config: any, source: string): void {
+    if (!this.layoutLoader) {
+      return;
+    }
+
+    if (!config || typeof config !== 'object') {
+      return;
+    }
+
+    const layouts = config.layouts;
+    if (!layouts || typeof layouts !== 'object') {
+      return;
+    }
+
+    if (this.registeredLayoutSources.has(source)) {
+      return;
+    }
+
+    const layoutEntries: Record<string, string | CustomLayoutDefinition> = {};
+    const seenLayoutIds = new Set<string>();
+    const shouldSkipLayout = (layoutId: string) =>
+      source === 'built-in template' && (layoutId === 'crewx/minimal' || layoutId === 'minimal');
+
+    for (const [layoutId, layoutValue] of Object.entries(layouts)) {
+      if (layoutValue === null || layoutValue === undefined) {
+        continue;
+      }
+
+      // Use layout ID as-is, no forced namespace
+      if (typeof layoutValue === 'string') {
+        if (shouldSkipLayout(layoutId) || seenLayoutIds.has(layoutId)) {
+          continue;
+        }
+        seenLayoutIds.add(layoutId);
+        layoutEntries[layoutId] = layoutValue;
+        continue;
+      }
+
+      if (typeof layoutValue === 'object') {
+        const template = typeof (layoutValue as any).template === 'string' ? (layoutValue as any).template : undefined;
+        const nestedLayouts = (layoutValue as any).layouts;
+
+        if (template) {
+          const propsSchema =
+            (layoutValue as any).propsSchema ??
+            (layoutValue as any).props_schema ??
+            {};
+          const defaultProps =
+            (layoutValue as any).defaultProps ??
+            (layoutValue as any).default_props ??
+            {};
+
+          if (shouldSkipLayout(layoutId) || seenLayoutIds.has(layoutId)) {
+            continue;
+          }
+          seenLayoutIds.add(layoutId);
+          layoutEntries[layoutId] = {
+            template,
+            description: (layoutValue as any).description,
+            version: (layoutValue as any).version,
+            propsSchema: typeof propsSchema === 'object' ? (propsSchema as Record<string, any>) : undefined,
+            defaultProps: typeof defaultProps === 'object' ? (defaultProps as Record<string, any>) : undefined,
+          };
+          continue;
+        }
+
+        if (nestedLayouts && typeof nestedLayouts === 'object') {
+          for (const [nestedId, nestedTemplate] of Object.entries(nestedLayouts)) {
+            if (typeof nestedTemplate !== 'string') {
+              continue;
+            }
+            // Use nested ID as-is or combine with parent
+            const resolvedId =
+              nestedId === 'default'
+                ? layoutId
+                : nestedId.includes('/')
+                  ? nestedId
+                  : `${layoutId}/${nestedId}`;
+
+            if (shouldSkipLayout(resolvedId) || seenLayoutIds.has(resolvedId)) {
+              continue;
+            }
+
+            seenLayoutIds.add(resolvedId);
+            layoutEntries[resolvedId] = nestedTemplate;
+          }
+          continue;
+        }
+
+        // Object with direct string variants (e.g., { default: '...', minimal: '...' })
+        let registeredVariant = false;
+        for (const [variantId, variantTemplate] of Object.entries(layoutValue)) {
+          if (typeof variantTemplate !== 'string') {
+            continue;
+          }
+          // Use variant ID as-is or combine with parent
+          const resolvedId =
+            variantId === 'default'
+              ? layoutId
+              : variantId.includes('/')
+                ? variantId
+                : `${layoutId}/${variantId}`;
+
+          if (shouldSkipLayout(resolvedId) || seenLayoutIds.has(resolvedId)) {
+            continue;
+          }
+
+          seenLayoutIds.add(resolvedId);
+          layoutEntries[resolvedId] = variantTemplate;
+          registeredVariant = true;
+        }
+
+        if (!registeredVariant) {
+          this.logger.warn(`Skipping custom layout "${layoutId}" from ${source}: unsupported format`);
+        }
+
+        continue;
+      }
+
+      this.logger.warn(`Skipping custom layout "${layoutId}" from ${source}: expected string or object`);
+    }
+
+    const entryCount = Object.keys(layoutEntries).length;
+    if (entryCount > 0) {
+      if (typeof (this.layoutLoader as any)?.registerLayouts === 'function') {
+        this.layoutLoader.registerLayouts(layoutEntries);
+        this.logger.log(`Registered ${entryCount} custom layout(s) from ${source}`);
+        this.registeredLayoutSources.add(source);
+      } else {
+        this.logger.warn(
+          `LayoutLoader.registerLayouts not available (source: ${source}). ` +
+          'Consider upgrading @sowonai/crewx-sdk to the latest dev version.'
+        );
+      }
+    }
+  }
+
+  private mergeSkillsConfig(
+    projectSkills?: SkillsConfig,
+    agentSkills?: SkillsConfig,
+  ): SkillsConfig | undefined {
+    if (!projectSkills && !agentSkills) {
+      return undefined;
+    }
+
+    const merged: SkillsConfig = {};
+
+    const includeSet = new Set<string>();
+    if (projectSkills?.include) {
+      for (const skill of projectSkills.include) {
+        if (typeof skill === 'string' && skill.trim()) {
+          includeSet.add(skill);
+        }
+      }
+    }
+    if (agentSkills?.include) {
+      for (const skill of agentSkills.include) {
+        if (typeof skill === 'string' && skill.trim()) {
+          includeSet.add(skill);
+        }
+      }
+    }
+    if (includeSet.size > 0) {
+      merged.include = Array.from(includeSet);
+    }
+
+    const excludeSet = new Set<string>();
+    if (projectSkills?.exclude) {
+      for (const skill of projectSkills.exclude) {
+        if (typeof skill === 'string' && skill.trim()) {
+          excludeSet.add(skill);
+        }
+      }
+    }
+    if (agentSkills?.exclude) {
+      for (const skill of agentSkills.exclude) {
+        if (typeof skill === 'string' && skill.trim()) {
+          excludeSet.add(skill);
+        }
+      }
+    }
+    if (excludeSet.size > 0) {
+      merged.exclude = Array.from(excludeSet);
+    }
+
+    if (agentSkills?.autoload !== undefined) {
+      merged.autoload = agentSkills.autoload;
+    } else if (projectSkills?.autoload !== undefined) {
+      merged.autoload = projectSkills.autoload;
+    }
+
+    return Object.keys(merged).length === 0 ? undefined : merged;
   }
 
   /**

@@ -20,88 +20,42 @@
 
 ```
 src/
-├── cli/                          # CLI Interface Layer
-│   ├── chat.handler.ts           # Interactive chat mode
-│   ├── agent.handler.ts          # Agent management commands
-│   ├── query.handler.ts          # Read-only queries
-│   ├── execute.handler.ts        # File modification tasks
-│   ├── init.handler.ts           # Project initialization
-│   ├── doctor.handler.ts         # System diagnostics
-│   ├── templates.handler.ts      # Template management
-│   ├── help.handler.ts           # Help system
-│   └── cli.handler.ts            # CLI orchestration
+├── cli/                          # Command handlers (chat, query, execute, init, doctor, templates, help, mcp)
+│   └── *.handler.ts              # Each handler owns its CLI subcommand orchestration
 │
-├── providers/                    # AI Provider System (Namespace-based)
-│   ├── ai-provider.interface.ts  # Provider contract & namespace constants
-│   ├── base-ai.provider.ts       # Base implementation with model substitution & env vars
-│   ├── claude.provider.ts        # cli/claude - Claude Code integration
-│   ├── gemini.provider.ts        # cli/gemini - Gemini CLI integration
-│   ├── copilot.provider.ts       # cli/copilot - GitHub Copilot integration
-│   ├── codex.provider.ts         # cli/codex - Codex CLI integration
-│   └── dynamic-provider.factory.ts # plugin/* & remote/* - YAML-based system
+├── services/                     # Business services & integrations
+│   ├── tool-call.service.ts      # Tool execution pipeline (layout-driven prompts + tool wiring)
+│   ├── agent-loader.service.ts   # Agent resolution + layout/template selection
+│   ├── config.service.ts         # crewx.yaml loading + dynamic provider config exposure
+│   ├── config-validator.service.ts # JSON Schema/YAML validation (WBS-16)
+│   ├── context-enhancement.service.ts # TemplateContext assembly & enrichment
+│   ├── template.service.ts       # Remote/local template fetcher with version gating
+│   ├── parallel-processing.service.ts # Concurrent agent execution coordinator
+│   ├── intelligent-compression.service.ts # Conversation compression & summarization
+│   ├── document-loader.service.ts # Repository content loaders
+│   ├── remote-agent.service.ts   # Remote MCP agent lifecycle
+│   ├── task-management.service.ts # Todo tracking & reporting
+│   ├── result-formatter.service.ts # Output formatting for CLI/Slack surfaces
+│   ├── help.service.ts           # Help content provider
+│   └── mcp-client.service.ts     # Model Context Protocol client utilities
 │
-├── services/                     # Business Logic Services
-│   ├── tool-call.service.ts              # Tool execution engine
-│   ├── config.service.ts                 # Configuration management
-│   ├── config-validator.service.ts       # YAML validation
-│   ├── agent-loader.service.ts           # Agent management
-│   ├── parallel-processing.service.ts    # Concurrent execution
-│   ├── task-management.service.ts        # Todo tracking
-│   ├── template.service.ts               # Template rendering
-│   ├── result-formatter.service.ts       # Output formatting
-│   ├── context-enhancement.service.ts    # Context loading
-│   ├── intelligent-compression.service.ts # History compression
-│   ├── document-loader.service.ts        # Document loading
-│   ├── mcp-client.service.ts             # MCP client for remote agents
-│   ├── remote-agent.service.ts           # Remote agent management
-│   └── help.service.ts                   # Help content
-│
-├── conversation/                 # Conversation System
-│   ├── conversation-history.interface.ts      # Interface
-│   ├── conversation-config.ts                 # Configuration
-│   ├── conversation-storage.service.ts        # Storage layer
-│   ├── conversation-provider.factory.ts       # Provider factory
-│   ├── base-conversation-history.provider.ts  # Base provider
-│   ├── cli-conversation-history.provider.ts   # CLI implementation
-│   ├── slack-conversation-history.provider.ts # Slack implementation
-│   └── index.ts                               # Public exports
-│
-├── slack/                        # Slack Integration
-│   ├── slack-bot.ts              # Slack Bot core
-│   └── formatters/
-│       └── message.formatter.ts  # Message formatting
-│
-├── utils/                        # Utility Functions
-│   ├── mention-parser.ts         # @mention parsing
-│   ├── template-processor.ts     # Template rendering
-│   ├── error-utils.ts            # Error handling
-│   ├── string-utils.ts           # String helpers
-│   ├── config-utils.ts           # Config helpers
-│   ├── stdin-utils.ts            # Stdin handling
-│   ├── mcp-installer.ts          # MCP installation
-│   ├── simple-security.ts        # Security utils
-│   └── math-utils.ts             # Math helpers
-│
-├── config/                       # Configuration
-│   └── timeout.config.ts         # Timeout settings
-│
-├── guards/                       # Security Guards
-│   └── (security middleware)
-│
-├── knowledge/                    # Knowledge Management
-│   └── DocumentManager.ts        # Document handling
-│
-├── crewx.tool.ts                 # MCP Tool (1,399 LOC) ⚠️
-├── ai.service.ts                 # Core AI Service (715 LOC)
-├── ai-provider.service.ts        # Provider Manager
-├── project.service.ts            # Project Context
-├── mcp.controller.ts             # MCP Controller
-├── app.module.ts                 # NestJS Module
-├── main.ts                       # Entry Point
-├── constants.ts                  # Constants
-├── cli-options.ts                # CLI Options
-├── agent.types.ts                # Type Definitions
-└── stderr.logger.ts              # Logger
+├── conversation/                 # Conversation history providers (CLI, Slack)
+├── slack/                        # Slack bot + message formatters
+├── providers/                    # Provider factory + logger adapter (built-ins come from SDK)
+├── utils/                        # Shared helpers (template-processor, config-utils, stdin-utils, simple-security, terminal-message-formatter)
+├── config/                       # Static configuration (timeout.config.ts)
+├── guards/                       # CLI guard middleware
+├── ai-provider.service.ts        # Provider registry using SDK providers & dynamic factory
+├── ai.service.ts                 # Thin facade over AIProviderService + layout pipeline entry
+├── crewx.tool.ts                 # MCP tool server (1,838 LOC) ⚠️
+├── mcp.controller.ts             # MCP HTTP interface
+├── project.service.ts            # Workspace context + repo metadata
+├── app.module.ts                 # NestJS module assembly
+├── main.ts                       # Application entrypoint
+├── cli-options.ts                # CLI option definitions
+├── health.controller.ts          # Readiness health checks
+├── stderr.logger.ts              # STDERR logger wiring
+└── version.ts                    # Published CLI version constant
 ```
 
 ---
@@ -134,56 +88,61 @@ Handles external interactions:
 The heart of the application:
 
 - **AI Services** (`ai.service.ts`, `ai-provider.service.ts`)
-  - AI request orchestration
-  - Provider selection & routing
-  - Response handling
+  - Bridges CLI flows into SDK providers (Claude/Gemini/Copilot/Codex) with shared tool-call adapter
+  - Manages provider availability checks, health, and capability negotiation
+  - Routes execution/query modes while preserving TemplateContext metadata
 
 - **Provider System** (`providers/`)
-  - Namespace-based provider organization: `{namespace}/{id}`
-  - Built-in CLI providers: `cli/claude`, `cli/gemini`, `cli/copilot`, `cli/codex`
-  - Plugin providers: `plugin/{id}` for YAML-defined external tools with **environment variables support**
-  - Remote providers: `remote/{id}` for **MCP-based remote agent connections**
-  - Future API providers: `api/*` (planned for direct API integrations)
-  - Model placeholder substitution: `{model}` → actual model name
-  - **Security**: Environment variable validation blocks dangerous variables
+  - Dynamic provider factory for `plugin/*` and `remote/*` YAML definitions with strict env-var validation (WBS-16)
+  - Logger adapters feed SDK provider telemetry back into Nest logger
+  - Built-in providers now live in the SDK; CLI wires tool-call + version enforcement (`version.ts`)
 
 - **Tool System** (`services/tool-call.service.ts`)
-  - Tool discovery & loading
-  - Tool execution
-  - Security validation
+  - Layout-driven prompt construction and secure `<user_query>` wrapping (WBS-13~15)
+  - Tool invocation pipeline with streaming + cancellation support
+  - Post-execution formatting and telemetry hooks for TemplateContext append metrics
 
 - **Conversation System** (`conversation/`)
-  - Thread-based history with agent metadata persistence
-  - Multiple storage backends (CLI, Slack)
-  - Context management with improved log formatting
+  - Thread persistence for CLI/Slack with agent metadata carry-over
+  - Context hydration for layout rendering and compression fallbacks
 
 ### 4. **Support Services**
 Enable core functionality:
 
-- **Configuration** (`services/config*.ts`)
-  - YAML loading & parsing
-  - Schema validation
-  - Environment handling
+- **Configuration & Schema** (`services/config*.ts`)
+  - crewx.yaml / crewx.layout.yaml loading
+  - JSON Schema validation (WBS-16) and dynamic provider surfacing
+  - Legacy feature flags (`CREWX_APPEND_LEGACY`) to control fallback behavior
 
-- **Task Management** (`services/task-management.service.ts`)
-  - Todo tracking
-  - Progress reporting
+- **Task & Result Management** (`services/task-management.service.ts`, `services/result-formatter.service.ts`)
+  - Todo tracking and status rollups
+  - Output formatting per surface (CLI, Slack, MCP)
 
-- **Parallel Processing** (`services/parallel-processing.service.ts`)
-  - Concurrent agent execution
-  - Result aggregation
+- **Parallel Execution** (`services/parallel-processing.service.ts`, `services/intelligent-compression.service.ts`)
+  - Concurrent agent scheduling
+  - Conversation summarisation + history window control
 
-- **Template Engine** (`services/template.service.ts`)
-  - Handlebars rendering
-  - Variable interpolation
+- **Template Infrastructure** (`services/template.service.ts`, `services/context-enhancement.service.ts`)
+  - Local/CDN template resolution with version gating and caching
+  - TemplateContext enrichment (agent metadata, security vars, layout props)
 
 ### 5. **Utilities**
-Cross-cutting concerns:
+Cross-cutting helpers:
 
-- **Parsing** (`utils/mention-parser.ts`) - @mention extraction
-- **Error Handling** (`utils/error-utils.ts`) - Standardized errors
-- **Security** (`utils/simple-security.ts`) - Input validation
-- **Helpers** - String, config, stdin utilities
+- **Template Utilities** (`utils/template-processor.ts`, `utils/terminal-message-formatter.ts`)
+- **Configuration Helpers** (`utils/config-utils.ts`, `utils/stdin-utils.ts`)
+- **Security** (`utils/simple-security.ts`)
+- **MCP Tooling** (`utils/mcp-installer.ts`)
+
+---
+
+## 🧱 Template & Layout Pipeline (WBS-13 ~ WBS-15)
+
+- **Two-stage rendering**: CLI defers agent prompt assembly to the SDK `LayoutLoader`/`LayoutRenderer`, then applies CLI-specific substitutions (document highlights, command previews).
+- **TemplateContext standardisation**: `ContextEnhancementService` populates `TemplateContext` + `agentMetadata` before layout rendering, eliminating hard-coded prompt fragments.
+- **Secure `<user_query>` handling**: Layout props now carry both escaped and raw user input; security wrappers live in `templates/agents/secure-wrapper.yaml`.
+- **Fallback order**: Layout → `inline.system_prompt` → legacy `systemPrompt`/`description`, with feature flag `CREWX_APPEND_LEGACY` controlling append behaviour.
+- **Metrics & telemetry**: Append usage recorded for safety dashboards (see `wbs/wbs-14-phase-1-append-metrics.md`).
 
 ---
 
@@ -191,14 +150,13 @@ Cross-cutting concerns:
 
 | Component | File | LOC | Description |
 |-----------|------|-----|-------------|
-| **MCP Tool** | `crewx.tool.ts` | 1,399 | MCP tool implementation (⚠️ large) |
-| **Tool Executor** | `services/tool-call.service.ts` | 970 | Tool execution engine (⚠️ large) |
-| **Base Provider** | `providers/base-ai.provider.ts` | 716 | AI provider base class |
-| **AI Service** | `ai.service.ts` | 715 | Core AI orchestration |
-| **Chat Handler** | `cli/chat.handler.ts` | 575 | Interactive chat mode |
-| **Slack Bot** | `slack/slack-bot.ts` | 566 | Slack integration |
-| **Config Validator** | `services/config-validator.service.ts` | 536 | YAML validation |
-| **Dynamic Provider Factory** | `providers/dynamic-provider.factory.ts` | 792 | CLI safety wrappers for SDK dynamic providers |
+| **MCP Tool** | `crewx.tool.ts` | 1,838 | MCP tool implementation (⚠️ large) |
+| **Tool Executor** | `services/tool-call.service.ts` | 1,187 | Layout-aware tool execution pipeline (⚠️ large) |
+| **Agent Loader** | `services/agent-loader.service.ts` | 671 | Agent resolution, layout selection, capability gates |
+| **Slack Bot** | `slack/slack-bot.ts` | 599 | Slack orchestrator with TemplateContext bridge |
+| **Chat Handler** | `cli/chat.handler.ts` | 586 | Interactive chat entrypoint |
+| **Config Validator** | `services/config-validator.service.ts` | 580 | JSON Schema validation + config diagnostics |
+| **Init Handler** | `cli/init.handler.ts` | 491 | Project bootstrap + layout/template scaffolding |
 
 ---
 
@@ -213,15 +171,16 @@ Cross-cutting concerns:
                   ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Core AI Services                         │
-│  ai.service.ts ←→ ai-provider.service.ts ←→ providers/*    │
+│  ai.service.ts ←→ ai-provider.service.ts ←→ SDK Providers   │
 └─────────────────┬───────────────────────────────────────────┘
                   │
-                  ├──────────────┬──────────────┬─────────────┐
-                  ▼              ▼              ▼             ▼
-         ┌────────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-         │   Tool     │  │  Config  │  │  Conv.   │  │ Template │
-         │   System   │  │  System  │  │  System  │  │  Engine  │
-         └────────────┘  └──────────┘  └──────────┘  └──────────┘
+                  ├──────────────┬──────────────┬─────────────┬─────────────┐
+                  ▼              ▼              ▼             ▼             ▼
+         ┌────────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+         │ Tool/      │  │ Config & │  │ Conv.    │  │ Template │  │ Remote   │
+         │ Layout     │  │ Schema   │  │ System   │  │ Service  │  │ Agents   │
+         │ Pipeline   │  │          │  │          │  │          │  │ / MCP    │
+         └────────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘
 ```
 
 ---
@@ -267,20 +226,13 @@ NestJS providers registered in `app.module.ts`:
 
 ### Large Files (Refactoring Candidates)
 
-1. **`crewx.tool.ts` (1,399 LOC)**
-   - Too many responsibilities
-   - Consider splitting:
-     - `crewx-query.tool.ts` - Query operations
-     - `crewx-execute.tool.ts` - Execute operations
-     - `crewx-agent.tool.ts` - Agent management
-     - `crewx-common.tool.ts` - Shared utilities
+1. **`crewx.tool.ts` (1,838 LOC)**
+   - Owns MCP server, provider negotiation, streaming, telemetry
+   - Potential split: transport adapters vs. request pipeline vs. formatting
 
-2. **`tool-call.service.ts` (970 LOC)**
-   - Complex tool execution logic
-   - Consider splitting:
-     - `tool-executor.service.ts` - Execution
-     - `tool-validator.service.ts` - Validation
-     - `tool-loader.service.ts` - Discovery & loading
+2. **`tool-call.service.ts` (1,187 LOC)**
+   - Handles layout rendering, tool orchestration, error surfaces
+   - Consider extracting layout pipeline + validation helpers into dedicated modules
 
 ---
 
@@ -297,4 +249,4 @@ For more details on specific modules:
 
 ---
 
-**Last Updated**: 2025-10-13
+**Last Updated**: 2025-10-20

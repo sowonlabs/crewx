@@ -1,168 +1,65 @@
-# AI Provider System
+# Provider Integration
 
-> Namespace-based AI provider implementations and YAML-based plugin system
+> CLI wiring for SDK-based providers + dynamic plugin/remote factories
 
 [← Back to Source](../CREWX.md)
 
 ---
 
-> **⚠️ Document Maintenance**
->
-> When making changes to providers:
-> 1. Update file descriptions below if responsibilities change
-> 2. Update parent [src/CREWX.md](../CREWX.md) if architecture changes
+## Overview
+
+The CLI no longer ships bespoke provider classes. Instead it composes the SDK's
+built-in providers (Claude, Gemini, Copilot, Codex) and augments them with CLI
+tool-call telemetry and version gating. Custom providers are defined via YAML
+(`plugin/*`, `remote/*`) and instantiated through `DynamicProviderFactory`.
+
+- **Built-in providers**: Created inside `AIProviderService` using SDK classes.
+- **Dynamic providers**: Loaded at runtime from `crewx.yaml` and validated by
+  the factory (WBS-16 schema work).
+- **Logger adapter**: Bridges SDK log calls into NestJS `Logger` with provider-aware tags.
 
 ---
 
-## 🏗️ Provider Namespace Architecture
+## Namespace Format
 
-Provider names follow the format: **`{namespace}/{id}`**
+Provider identifiers follow `{namespace}/{id}`:
 
-### Namespaces
+| Namespace | Description | Examples |
+|-----------|-------------|----------|
+| `cli/`    | Built-in providers backed by the SDK | `cli/claude`, `cli/gemini` |
+| `plugin/` | YAML-defined external CLIs            | `plugin/aider`, `plugin/mock` |
+| `remote/` | MCP remote agents via HTTP            | `remote/backend`, `remote/ui` |
 
-| Namespace | Format | Purpose | Examples |
-|-----------|--------|---------|----------|
-| **cli/** | `cli/{id}` | Built-in CLI-based providers | `cli/claude`, `cli/gemini`, `cli/copilot`, `cli/codex` |
-| **plugin/** | `plugin/{id}` | User-defined external tools via YAML with env vars | `plugin/mock`, `plugin/custom-ai` |
-| **remote/** | `remote/{id}` | Remote MCP agents for distributed collaboration | `remote/backend`, `remote/ai-team` |
-| **api/** | `api/{id}` | Direct API integrations (future) | `api/openai`, `api/anthropic`, `api/ollama` |
-
-### Benefits
-
-- **Clear Type Identification**: Instantly know provider type from name
-- **Conflict Prevention**: Avoid naming collisions (e.g., `cli/claude` vs `api/claude`)
-- **Extensibility**: Easy to add new provider types without breaking changes
-- **Organization**: Providers grouped by implementation approach
-
-### Usage in Configuration
-
-```yaml
-# crewx.yaml example
-providers:
-  # Plugin provider definition
-  - id: mock
-    type: plugin
-    cli_command: test-tools/mock-cli
-    default_model: "sonnet"
-    query_args: ["--model", "{model}", "--message"]
-    prompt_in_args: true
-    env:                          # Optional: Environment variables
-      API_KEY: "your-api-key"
-      CUSTOM_HOST: "http://localhost:8080"
-
-agents:
-  - id: claude
-    provider: cli/claude      # Built-in CLI provider
-    capabilities: [query, implementation]
-
-  - id: custom_agent
-    provider: plugin/mock     # Plugin provider (from config above)
-    capabilities: [query]
-```
-
-### Model Placeholder Substitution
-
-Providers support `{model}` placeholder in command arguments:
-
-- **Configuration**: `query_args: ["--model", "{model}", "--message"]`
-- **Runtime**: `{model}` → actual model name (e.g., `sonnet`, `gemini-2.5-pro`)
-- **Priority**: `options.model` > `default_model` from config
-
-**Example**:
-```bash
-# User runs: crewx query "@custom:opus Hello"
-# Command becomes: test-tools/mock-cli --model opus --message "Hello"
-
-# User runs: crewx query "@custom Hello"
-# Command becomes: test-tools/mock-cli --model sonnet --message "Hello"
-#                  (uses default_model from config)
-```
-
-### Environment Variables
-
-Plugin providers support custom environment variables via the `env` field:
-
-- **Purpose**: Pass configuration to CLI tools (API endpoints, tokens, hostnames)
-- **Scope**: Variables are only set for the provider's CLI process
-- **Security**: Built-in validation prevents dangerous variables (PATH, LD_PRELOAD, etc.)
-
-**Example - Remote Ollama**:
-```yaml
-providers:
-  # Connect to remote Ollama server
-  - id: ollama_remote
-    type: plugin
-    cli_command: ollama
-    default_model: "qwen3:8b"
-    query_args: ["run", "{model}"]
-    execute_args: ["run", "{model}"]
-    prompt_in_args: false
-    env:
-      OLLAMA_HOST: "http://192.168.1.100:11434"  # Remote server IP
-
-  # Aider with remote Ollama
-  - id: aider_remote
-    type: plugin
-    cli_command: aider
-    default_model: "ollama/qwen3:8b"
-    query_args: ["--yes-always", "--model", "{model}", "--message"]
-    execute_args: ["--yes-always", "--model", "{model}", "--message"]
-    prompt_in_args: true
-    env:
-      OLLAMA_API_BASE: "http://192.168.1.100:11434"  # Aider uses OLLAMA_API_BASE
-```
-
-**Security Restrictions**:
-- Blocked variables: `PATH`, `LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, `LD_PRELOAD`, `IFS`, `BASH_ENV`
-- Null byte injection protection
-- Shell metacharacter warning (but not blocked)
-
-**Common Use Cases**:
-- Remote AI services (Ollama, LM Studio)
-- Custom API endpoints
-- Authentication tokens
-- Debug/logging configuration
+`AIProviderService` auto-registers the SDK providers on module init, then
+invokes the factory to register all dynamic providers discovered in config.
 
 ---
 
-## 📋 Files Overview
+## Dynamic Provider Lifecycle
 
-### **ai-provider.interface.ts**
-Provider contract and namespace constants for all AI providers.
-Defines ProviderNamespace (cli/plugin/api), BuiltInProviders constants, AIProvider interface, AIQueryOptions, and AIResponse types.
-Ensures consistent behavior across different provider implementations with namespace format.
+1. `ConfigService.getDynamicProviders()` returns validated YAML entries.
+2. `DynamicProviderFactory.validateConfig()` ensures schema compliance, safe env vars,
+   and executable presence.
+3. `DynamicProviderFactory.createProvider()` builds a runtime instance that
+   delegates command execution through the shared `ToolCallService`.
+4. `AIProviderService` registers the provider and emits availability telemetry.
 
-### **base-ai.provider.ts**
-Abstract base class with model placeholder substitution support.
-Handles CLI process spawning, output streaming, error handling, logging, and `{model}` placeholder replacement.
-Implements getDefaultModel() and substituteModelPlaceholders() for runtime model injection.
+### Security Guardrails
 
-### **claude.provider.ts**
-Built-in CLI provider: `cli/claude` (Claude Code integration).
-Implements Claude-specific arguments, output parsing, and error handling.
-Supports stream-json output format for structured responses.
-
-### **gemini.provider.ts**
-Built-in CLI provider: `cli/gemini` (Gemini CLI integration).
-Implements Google Gemini-specific CLI arguments and response handling.
-Provides real-time web access and multi-modal capabilities.
-
-### **copilot.provider.ts**
-Built-in CLI provider: `cli/copilot` (GitHub Copilot CLI integration).
-Implements Copilot-specific command routing and response parsing.
-Specialized for code-focused tasks and explanations.
-
-### **codex.provider.ts**
-Built-in CLI provider: `cli/codex` (Codex CLI integration).
-Implements Codex-specific arguments with experimental JSON output format.
-Handles authentication errors and rate limiting for Codex API.
-
-### **dynamic-provider.factory.ts**
-Plugin provider factory: `plugin/*` (YAML-based plugin system).
-Creates plugin provider instances from YAML configuration at runtime with namespace format.
-Validates CLI commands, sanitizes arguments, prevents injection attacks, and supports model substitution.
-Manages environment variable injection with security validation (blocks dangerous vars, null bytes).
+- Blocks dangerous env vars (`PATH`, `LD_PRELOAD`, `DYLD_LIBRARY_PATH`, `IFS`, etc.).
+- Verifies command paths + arguments to avoid shell injection.
+- Captures full config snapshot in debug logs for troubleshooting failed loads.
 
 ---
 
-**Last Updated**: 2025-10-13
+## Files
+
+| File | Purpose |
+|------|---------|
+| `dynamic-provider.factory.ts` | Validates YAML configs, constructs plugin/remote providers with tool-call hooks. |
+| `logger.adapter.ts`           | Adapts NestJS logger to SDK provider logger contract with provider-scoped prefixes. |
+
+---
+
+**Last Updated**: 2025-10-20
+

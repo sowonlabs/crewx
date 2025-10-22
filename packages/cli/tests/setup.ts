@@ -16,6 +16,8 @@ process.env.LOG_LEVEL = 'error';
 vi.mock('@nestjs/common', () => ({
   Injectable: () => (target: any) => target, // Decorator that returns the class unchanged
   Inject: () => (target: any, propertyKey: string | symbol, parameterIndex: number) => {}, // Parameter decorator
+  Optional: () => (target: any, propertyKey: string | symbol, parameterIndex: number) => {}, // Parameter decorator
+  forwardRef: (factory: () => any) => ({ forwardRef: factory }), // Minimal forwardRef shim
   Logger: vi.fn().mockImplementation(() => ({
     log: vi.fn(),
     error: vi.fn(),

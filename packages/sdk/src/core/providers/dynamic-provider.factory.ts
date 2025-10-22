@@ -537,6 +537,12 @@ export class BaseDynamicProviderFactory {
         }
       }
 
+      /**
+       * Parse user query from layout-rendered prompt for remote providers.
+       *
+       * Extracts content from <user_query> tags if present, otherwise returns full prompt.
+       * Used for backward compatibility with remote agents that expect raw user input.
+       */
       private parseUserQueryForRemote(prompt: string): string {
         if (!prompt) {
           return '';

@@ -257,7 +257,7 @@ try {
 }
 ```
 
-### Agent Factory API (NEW in WBS-8)
+### Agent Factory API
 
 #### createCrewxAgent
 
@@ -433,7 +433,7 @@ export class DatabaseConversationProvider implements IConversationHistoryProvide
 }
 ```
 
-## Shared SDK/CLI Integration (WBS-9)
+## Shared SDK/CLI Integration
 
 The SDK provides reusable components that were previously CLI-only. These abstractions enable custom platform integrations while maintaining consistency.
 
@@ -869,14 +869,6 @@ const result = await manager.queryAgent('backend', 'Analyze codebase');
 console.log(result.content);
 ```
 
-### Migration Guide
-
-For detailed migration instructions from CLI to SDK, see:
-- [WBS-9 Phase 1-5 Integration Guide](../../docs/wbs-9-phase1-5-integration.md)
-- [Phase 1: Message Formatter](../../docs/wbs-9-phase1-migration.md)
-- [Phase 2: AI Providers](../../docs/wbs-9-phase2-migration.md)
-- [Phase 3: Remote Agents](../../docs/wbs-9-phase3-migration.md)
-
 ## Advanced Usage
 
 ### Using Internal APIs
@@ -986,6 +978,34 @@ Please follow these steps:
 ## License
 
 Apache-2.0 License - See [LICENSE](./LICENSE) for details.
+
+## Context Integration
+
+The SDK provides `TemplateContext` and `AgentMetadata` exports for dynamic template processing:
+
+```typescript
+import { TemplateContext, AgentMetadata } from '@sowonai/crewx-sdk';
+
+// Use TemplateContext for dynamic prompts
+const context: TemplateContext = {
+  env: process.env,
+  agent: {
+    id: 'claude',
+    name: 'Claude Assistant',
+    provider: 'cli/claude',
+    model: 'claude-3-5-sonnet'
+  },
+  agentMetadata: {
+    specialties: ['code-analysis', 'architecture'],
+    capabilities: ['file-operations', 'web-search'],
+    description: 'Advanced reasoning and analysis specialist'
+  },
+  mode: 'query',
+  platform: 'cli'
+};
+```
+
+For detailed usage, see [Template Variables Guide](../../docs/template-variables.md).
 
 ## Support
 

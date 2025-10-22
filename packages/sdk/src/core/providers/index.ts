@@ -3,6 +3,7 @@ export { ClaudeProvider } from './claude.provider';
 export { GeminiProvider } from './gemini.provider';
 export { CopilotProvider } from './copilot.provider';
 export { CodexProvider } from './codex.provider';
+export { MockProvider } from './mock.provider';
 export {
   BaseDynamicProviderFactory,
   type PluginProviderConfig,
@@ -10,3 +11,4 @@ export {
   type DynamicProviderConfig,
   type DynamicProviderFactoryOptions,
 } from './dynamic-provider.factory';
+export { createProviderFromConfig } from './provider-factory';

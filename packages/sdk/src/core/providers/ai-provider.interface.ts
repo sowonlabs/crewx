@@ -47,6 +47,7 @@ export interface AIProvider {
   readonly name: string;
   isAvailable(): Promise<boolean>;
   query(prompt: string, options?: AIQueryOptions): Promise<AIResponse>;
+  execute(prompt: string, options?: AIQueryOptions): Promise<AIResponse>;
   getToolPath(): Promise<string | null>;
 }
 

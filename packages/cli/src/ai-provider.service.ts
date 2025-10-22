@@ -153,11 +153,11 @@ export class AIProviderService implements OnModuleInit {
 
   async queryAI(
     prompt: string,
-    providerName: string = 'claude',
+    providerName: string = BuiltInProviders.CLAUDE,
     options: AIQueryOptions = {}
   ): Promise<AIResponse> {
     const provider = this.providers.get(providerName);
-    
+
     if (!provider) {
       throw new ProviderNotAvailableError(providerName);
     }

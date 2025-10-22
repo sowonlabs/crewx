@@ -10,11 +10,11 @@ Create a `crewx.yaml` file in your project:
 agents:
   - id: "frontend_dev"
     name: "React Expert"
-    provider: "cli/claude"  # Built-in CLI provider
     working_directory: "./src"
     inline:
       type: "agent"
-      system_prompt: |
+      provider: "cli/claude"  # Built-in CLI provider
+      prompt: |
         You are a senior React developer.
         Provide detailed examples and best practices.
 ```
@@ -27,7 +27,6 @@ agents:
 agents:
   - id: "agent_id"                       # Required: Unique identifier
     name: "Human Readable Name"          # Optional: Display name
-    provider: "cli/claude"               # Required: AI provider (namespace/id format)
     working_directory: "/path/to/dir"    # Optional: Working directory
     options:                             # Optional: CLI options
       query:                             # Options for query mode
@@ -37,8 +36,9 @@ agents:
         - "--allowedTools=Edit,Bash"
     inline:                              # Required: Agent definition
       type: "agent"                      # Required: Type
+      provider: "cli/claude"             # Required: AI provider (namespace/id format)
       model: "opus"                      # Optional: Specific model
-      system_prompt: |                   # Required: Instructions
+      prompt: |                          # Required: Instructions
         Your agent's system prompt
 ```
 
@@ -115,7 +115,7 @@ agents:
     provider: "cli/claude"
     inline:
       model: "opus"  # Fixed model
-      system_prompt: "You are an expert."
+      prompt: "You are an expert."
 ```
 
 ### At Runtime
@@ -178,7 +178,7 @@ agents:
     inline:
       type: "agent"
       model: "sonnet"
-      system_prompt: |
+      prompt: |
         You are a senior frontend developer specializing in React.
 
         **Expertise:**
@@ -204,7 +204,7 @@ agents:
         - "--allowedTools=Edit,Bash"
     inline:
       type: "agent"
-      system_prompt: |
+      prompt: |
         You are a backend engineering expert.
 
         **Expertise:**
@@ -232,7 +232,7 @@ agents:
         - "--allow-tool=files"
     inline:
       type: "agent"
-      system_prompt: |
+      prompt: |
         You are a DevOps engineer expert in infrastructure and deployment.
 
         **Expertise:**
@@ -361,4 +361,4 @@ This validates:
 
 For advanced features like documents and templates, see:
 - [Template System Guide](templates.md)
-- [Tool System Guide](tools.md)
+- [Layout System Guide](layouts.md)

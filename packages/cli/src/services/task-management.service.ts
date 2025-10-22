@@ -8,7 +8,7 @@ export interface TaskLog {
   id: string;
   type: 'query' | 'execute' | 'init' | 'doctor';
   agentId?: string;
-  provider?: 'claude' | 'gemini' | 'copilot' | 'codex';
+  provider?: string;
   startTime: Date;
   endTime?: Date;
   status: 'running' | 'completed' | 'failed';
@@ -31,7 +31,7 @@ export interface TaskLog {
 // Task creation options
 export interface TaskCreationOptions {
   type: 'query' | 'execute' | 'init' | 'doctor';
-  provider?: 'claude' | 'gemini' | 'copilot' | 'codex';
+  provider?: string;
   prompt?: string;
   command?: string;
   options?: any;
@@ -157,7 +157,7 @@ export class TaskManagementService {
   /**
    * Get tasks by provider
    */
-  getTasksByProvider(provider: 'claude' | 'gemini' | 'copilot'): TaskLog[] {
+  getTasksByProvider(provider: string): TaskLog[] {
     return this.getAllTasks().filter(task => task.provider === provider);
   }
 
@@ -180,8 +180,10 @@ export class TaskManagementService {
         if (logFiles.length === 0) {
           return 'No task logs found';
         }
-        
-        return `Found ${logFiles.length} task logs:\n${logFiles.map(file => `- ${file}`).join('\n')}`;
+
+        // Remove .log extension from file names
+        const taskIds = logFiles.map(file => file.replace('.log', ''));
+        return `Found ${taskIds.length} task logs:\n${taskIds.map(id => `- ${id}`).join('\n')}`;
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

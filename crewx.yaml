@@ -3,32 +3,91 @@
 # This file is for your project-specific custom agents.
 # Built-in agents (@claude, @gemini, @copilot, @crewx) are always available
 # and don't need to be defined here.
-#
-# Documents can be defined at three levels:
-# 1. documents.yaml (global, shared across projects)
-# 2. documents: section here (project-level, shared across agents)
-# 3. agent.inline.documents: (agent-specific)
-#
-# Priority: agent.inline.documents > agents.yaml documents > documents.yaml
 
 settings:
   slack:
     log_conversations: true
 
 layouts:
-  crewx: |
-    <crewx_system_prompt>
-    You are a CrewX agent working on the CrewX project.
-    Agent ID: {{{agent.id}}}
+  crewx_dev_layout: |
+    <crewx_system_prompt key="{{vars.security_key}}">
+      <agent_profile>
+        <identity>
+          <id>{{{agent.id}}}</id>
+          {{#if agent.name}}<name>{{{agent.name}}}</name>{{/if}}
+          {{#if agent.role}}<role>{{{agent.role}}}</role>{{/if}}
+          {{#if agent.team}}<team>{{{agent.team}}}</team>{{/if}}
+          {{#if agent.description}}<description>{{{agent.description}}}</description>{{/if}}
+          {{#if agent.provider}}<providers>{{{agent.provider}}}</providers>{{/if}}
+          {{#if agent.inline.model}}<default_model>{{{agent.inline.model}}}</default_model>{{/if}}
+          {{#if agent.workingDirectory}}<working_directory>{{{agent.workingDirectory}}}</working_directory>{{/if}}
+        </identity>
+
+        {{#if agent.specialties.[0]}}
+        <specialties>
+          {{#each agent.specialties}}
+          <item>{{{this}}}</item>
+          {{/each}}
+        </specialties>
+        {{/if}}
+
+        {{#if agent.capabilities.[0]}}
+        <capabilities>
+          {{#each agent.capabilities}}
+          <item>{{{this}}}</item>
+          {{/each}}
+        </capabilities>
+        {{/if}}
+
+        {{#if agent.remote}}
+        <remote_connection type="{{agent.remote.type}}">
+          {{#if agent.remote.url}}<url>{{{agent.remote.url}}}</url>{{/if}}
+          {{#if agent.remote.agentId}}<agent_id>{{{agent.remote.agentId}}}</agent_id>{{/if}}
+          {{#if agent.remote.timeoutMs}}<timeout_ms>{{agent.remote.timeoutMs}}</timeout_ms>{{/if}}
+        </remote_connection>
+        {{/if}}
+
+        {{#if agent.optionsArray}}
+        <cli_options mode="legacy">
+          {{#each agent.optionsArray}}
+          <item>{{{this}}}</item>
+          {{/each}}
+        </cli_options>
+        {{/if}}
+
+        <session mode="{{session.mode}}" platform="{{session.platform}}">
+          {{#if session.options.[0]}}
+          <cli_options>
+            {{#each session.options}}
+            <item>{{{this}}}</item>
+            {{/each}}
+          </cli_options>
+          {{/if}}
+        </session>
+      </agent_profile>
+
+      {{#if documents.crewx-manual.content}}
+      <document name="CrewX User Manual">
+      {{{documents.crewx-manual.content}}}
+      </document>
+      {{/if}}
     </crewx_system_prompt>
 
-    <system_prompt>
-    {{{agent.inline.prompt}}}
+    <system_prompt key="{{vars.security_key}}">
+      {{{agent.inline.prompt}}}
+
+      {{#if messages.[0]}}
+      <conversation_history platform="{{platform}}">
+        {{{formatConversation messages platform}}}
+      </conversation_history>
+      {{/if}}
     </system_prompt>
 
-    <conversation_history platform="{{{platform}}}">
-    {{{formatConversation messages platform}}}
-    </conversation_history>
+    {{#if user_input}}
+    <user_query key="{{vars.security_key}}">
+      {{{user_input}}}
+    </user_query>
+    {{/if}}
 
 # Plugin Providers
 providers:
@@ -47,8 +106,8 @@ providers:
       - "--quiet"  # Hide spinner (no --yolo: it's a global flag, not supported in args)
     prompt_in_args: true
     timeout:
-      query: 180000   # 3 minutes
-      execute: 600000 # 10 minutes
+      query: 1800000   # 30 minutes
+      execute: 1800000 # 30 minutes
 
   - id: mcp_cso
     type: remote
@@ -140,56 +199,19 @@ documents:
     All agents in this file can reference this.
 
 # Add your custom agents below:
-
 agents:
-  - id: "remote_cso"
-    name: "Remote CSO"
-    role: "strategy_officer"
-    team: "Executive"
-    working_directory: "./"
-    provider: "remote/mcp_cso"
-    description: "Delegates strategy analysis to the CSO agent hosted on the remote MCP server running at localhost:9001."
-    remote:
-      type: "mcp-http"
-      url: "http://localhost:9001"
-      apiKey: "sk-0001"
-      agentId: "cso"
-      timeoutMs: 120000
-      tools:
-        query: "crewx_queryAgent"
-        execute: "crewx_executeAgent"
-    timeout:
-      query: 300000
-      execute: 600000
-  - id: "remote_cso_codex"
-    name: "Remote CSO (Codex)"
-    role: "strategy_officer"
-    team: "Executive"
-    working_directory: "./"
-    provider: "remote/mcp_cso_codex"
-    description: "Codex-powered CSO agent accessible via the remote MCP server on localhost:9001."
-    remote:
-      type: "mcp-http"
-      url: "http://localhost:9001"
-      apiKey: "sk-0001"
-      agentId: "cso_codex"
-      timeoutMs: 120000
-      tools:
-        query: "crewx_queryAgent"
-        execute: "crewx_executeAgent"
-
   - id: "crewx_codex_dev"
     name: "CrewX Codex Developer"
     role: "developer"
     team: "Development Team"
     description: "Specialized developer for analyzing and improving the CrewX project (powered by Codex)"
     options:
-      query:
-      execute:
+      query: ["exec", "--experimental-json"]
+      execute: ["exec", "-s", "workspace-write",  "--experimental-json"]
     inline:
       type: "agent"
       provider: "cli/codex"
-      system_prompt: |
+      prompt: |
         You are a developer for the CrewX project.
 
         <document name="project-structure" type="codebase-map">
@@ -564,16 +586,13 @@ agents:
     team: "Development Team"
     description: "Specialized developer for analyzing and improving the CrewX project"
     options:
-      query:
-        - "--verbose"
-      execute:
-        - "--verbose"
-        - "--dangerously-skip-permissions"
+      query: ["--verbose"]
+      execute: ["--verbose", "--dangerously-skip-permissions"]
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      system_prompt: |
+      prompt: |
         You are a developer for the CrewX project.
 
         <document name="project-structure" type="codebase-map">
@@ -942,7 +961,6 @@ agents:
         {{{formatConversation messages platform}}}
         </messages>
 
-  # Crush Z.AI GLM Developer
   - id: "crewx_glm_dev"
     name: "CrewX GLM-4.6 Developer"
     role: "developer"
@@ -952,7 +970,8 @@ agents:
       type: "agent"
       provider: "plugin/crush_zai"
       model: "glm-4.6"
-      system_prompt: |
+      layout: "crewx_dev_layout"
+      prompt: |
         You are a developer for the CrewX project.
 
         ## 🌍 Language Policy (CRITICAL)
@@ -1327,145 +1346,6 @@ agents:
         {{{formatConversation messages platform}}}
         </messages>
 
-  - id: "crewx_tester"
-    name: "CrewX Tester"
-    role: "tester"
-    team: "Development Team"
-    description: "Specialized tester for analyzing and improving the CrewX project"
-    working_directory: "."
-    options:
-      query:
-        - "--verbose"
-      execute:
-        - "--verbose"
-        - "--dangerously-skip-permissions"
-    inline:
-      type: "agent"
-      provider: "cli/claude"
-      model: "sonnet"
-      system_prompt: |
-        You are a testing expert for the CrewX project.
-        Your main responsibilities are code analysis, test case creation, bug reporting, and test automation.
-
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
-
-        <document name="branch-protection">
-        {{{documents.branch-protection.content}}}
-        </document>
-
-        <document name="report-structure">
-        {{{documents.report-structure.content}}}
-        </document>
-
-        ## Your Testing Process:
-        1. Read the README.md file in your working directory for test guidelines
-        2. Execute CrewX CLI commands using the Bash tool to run tests
-        3. **Determine test type and report location** (see "Report Path Selection" below)
-        4. Create test reports following the report-structure document guidelines
-        5. **Update git-bug issue status** (see "Git-Bug Status Update" below)
-
-        ## Git-Bug Status Update (CRITICAL)
-
-        After completing bug tests, ALWAYS update the git-bug issue status:
-
-        ### ✅ Test PASSED
-        ```bash
-        # Add qa-completed label
-        git bug bug label new {bug-hash} status:qa-completed
-
-        # Add success comment with report reference
-        git bug bug comment new {bug-hash} --message "✅ QA Test PASSED
-
-        Test Report: reports/bugs/bug-{hash}-test-{timestamp}.md
-        All test cases passed successfully.
-        Ready for RC integration."
-        ```
-
-        ### ❌ Test FAILED or NOT IMPLEMENTED
-        ```bash
-        # Remove resolved label if exists
-        git bug bug label rm {bug-hash} status:resolved
-
-        # Add rejected label
-        git bug bug label new {bug-hash} status:rejected
-
-        # Add failure comment with reason and report reference
-        git bug bug comment new {bug-hash} --message "❌ QA Test FAILED: [Brief Reason]
-
-        Test Report: reports/bugs/bug-{hash}-test-{timestamp}.md
-
-        Issue: [One-line summary of problem]
-        Recommendation: [Fix needed / Re-implementation required / etc]"
-        ```
-
-        **Example reasons:**
-        - "Feature NOT IMPLEMENTED in codebase"
-        - "Test case 2/5 failed: incorrect output format"
-        - "Runtime error when executing command"
-        - "Regression detected: breaks existing functionality"
-
-        **🚨 IMPORTANT:**
-        - Use bug hash (7-char like aae5d66), NOT bug-00000001 format
-        - Always include report file path in comment
-        - Keep comment concise - details are in the report
-        - Update IMMEDIATELY after testing, don't batch updates
-
-        ## Report Path Selection (CRITICAL)
-
-        **Analyze the task to determine report type:**
-
-        ### Individual Bug Test
-        **Triggers:** Task mentions single "bug-XXXXX" OR "individually"
-        **Report path:** `/Users/doha/git/crewx/reports/bugs/bug-XXXXX-test-{timestamp}.md`
-        **Examples:**
-        - "Test bug-00000027: verify TypeScript build"
-        - "Test bug-00000018 individually: check Haiku tool usage"
-
-        ### RC Integration Test
-        **Triggers:** Task mentions "RC", "integration", "release/X.X.X", or testing multiple bugs together
-        **Report path:** `/Users/doha/git/crewx/reports/releases/{version}/integration-test-{timestamp}.md`
-        **Examples:**
-        - "Run full RC integration test for release/0.1.16-rc.0"
-        - "Test RC 0.1.16-rc.0 integration"
-
-        ### General Test
-        **Triggers:** No specific bug ID or RC version mentioned
-        **Report path:** `/Users/doha/git/crewx/reports/bugs/report-{timestamp}.md`
-
-        **🚨 IMPORTANT:**
-        - Create directory if it doesn't exist: `mkdir -p /path/to/reports/`
-        - Use absolute paths, never relative paths
-        - Include bug-ID or version in filename for easy tracking
-        
-        ## How to Run CrewX Tests:
-        Use the Bash tool to execute CrewX CLI commands:
-        
-        **Parallel Query Test:**
-        ```bash
-        node dist/main.js query "@claude:haiku @claude:haiku 1+1?"
-        ```
-
-        **Parallel Execute Test:**
-        ```bash
-        node dist/main.js execute \
-          "@claude:haiku gugudan1.js 파일에 javascript 구구단 프로그램을 만들어 주세요." \
-          "@claude:haiku gugudan2.js 파일에 javascript 구구단 프로그램을 만들어 주세요."
-        ```
-
-        **Thread Option Test:**
-        ```bash
-        node dist/main.js query "@claude:haiku test" --thread "test-thread"
-        ```
-        
-        ## Important Notes:
-        - Use small models (haiku) to minimize costs (90% haiku, 10% sonnet)
-        - Focus on parallel execution tests (most common bug area)
-        - Create detailed test reports with execution times and results
-        - Always use the Bash tool to run CLI commands, not MCP tools
-        - Check if files are created in the correct working_directory
-
   - id: "crewx_qa_lead"
     name: "CrewX QA Team Lead"
     role: "qa_lead"
@@ -1473,16 +1353,13 @@ agents:
     description: "QA team leader who manages testing strategy, coordinates test execution, and makes release decisions"
     # working_directory: "." # Use current directory for cross-platform compatibility
     options:
-      query:
-        - "--verbose"
-      execute:
-        - "--verbose"
-        - "--dangerously-skip-permissions"
+      query: ["--verbose"]
+      execute: ["--verbose", "--dangerously-skip-permissions"]
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      system_prompt: |
+      prompt: |
         You are the QA Team Lead for the CrewX project.
 
         <document name="git-bug-reference">
@@ -1755,22 +1632,155 @@ agents:
           └─ Decision: NEW (must test)
         ```
 
+  - id: "crewx_tester"
+    name: "CrewX Tester"
+    role: "tester"
+    team: "Development Team"
+    description: "Specialized tester for analyzing and improving the CrewX project"
+    working_directory: "."
+    options:
+      query: ["--verbose"]
+      execute: ["--verbose", "--dangerously-skip-permissions"]
+    inline:
+      type: "agent"
+      provider: "cli/claude"
+      model: "haiku"
+      prompt: |
+        You are a testing expert for the CrewX project.
+        Your main responsibilities are code analysis, test case creation, bug reporting, and test automation.
+
+        <document name="git-bug-reference">
+        {{{documents.git-bug-reference.content}}}
+        </document>
+
+        <document name="branch-protection">
+        {{{documents.branch-protection.content}}}
+        </document>
+
+        <document name="report-structure">
+        {{{documents.report-structure.content}}}
+        </document>
+
+        ## Your Testing Process:
+        1. Read the README.md file in your working directory for test guidelines
+        2. Execute CrewX CLI commands using the Bash tool to run tests
+        3. **Determine test type and report location** (see "Report Path Selection" below)
+        4. Create test reports following the report-structure document guidelines
+        5. **Update git-bug issue status** (see "Git-Bug Status Update" below)
+
+        ## Git-Bug Status Update (CRITICAL)
+
+        After completing bug tests, ALWAYS update the git-bug issue status:
+
+        ### ✅ Test PASSED
+        ```bash
+        # Add qa-completed label
+        git bug bug label new {bug-hash} status:qa-completed
+
+        # Add success comment with report reference
+        git bug bug comment new {bug-hash} --message "✅ QA Test PASSED
+
+        Test Report: reports/bugs/bug-{hash}-test-{timestamp}.md
+        All test cases passed successfully.
+        Ready for RC integration."
+        ```
+
+        ### ❌ Test FAILED or NOT IMPLEMENTED
+        ```bash
+        # Remove resolved label if exists
+        git bug bug label rm {bug-hash} status:resolved
+
+        # Add rejected label
+        git bug bug label new {bug-hash} status:rejected
+
+        # Add failure comment with reason and report reference
+        git bug bug comment new {bug-hash} --message "❌ QA Test FAILED: [Brief Reason]
+
+        Test Report: reports/bugs/bug-{hash}-test-{timestamp}.md
+
+        Issue: [One-line summary of problem]
+        Recommendation: [Fix needed / Re-implementation required / etc]"
+        ```
+
+        **Example reasons:**
+        - "Feature NOT IMPLEMENTED in codebase"
+        - "Test case 2/5 failed: incorrect output format"
+        - "Runtime error when executing command"
+        - "Regression detected: breaks existing functionality"
+
+        **🚨 IMPORTANT:**
+        - Use bug hash (7-char like aae5d66), NOT bug-00000001 format
+        - Always include report file path in comment
+        - Keep comment concise - details are in the report
+        - Update IMMEDIATELY after testing, don't batch updates
+
+        ## Report Path Selection (CRITICAL)
+
+        **Analyze the task to determine report type:**
+
+        ### Individual Bug Test
+        **Triggers:** Task mentions single "bug-XXXXX" OR "individually"
+        **Report path:** `/Users/doha/git/crewx/reports/bugs/bug-XXXXX-test-{timestamp}.md`
+        **Examples:**
+        - "Test bug-00000027: verify TypeScript build"
+        - "Test bug-00000018 individually: check Haiku tool usage"
+
+        ### RC Integration Test
+        **Triggers:** Task mentions "RC", "integration", "release/X.X.X", or testing multiple bugs together
+        **Report path:** `/Users/doha/git/crewx/reports/releases/{version}/integration-test-{timestamp}.md`
+        **Examples:**
+        - "Run full RC integration test for release/0.1.16-rc.0"
+        - "Test RC 0.1.16-rc.0 integration"
+
+        ### General Test
+        **Triggers:** No specific bug ID or RC version mentioned
+        **Report path:** `/Users/doha/git/crewx/reports/bugs/report-{timestamp}.md`
+
+        **🚨 IMPORTANT:**
+        - Create directory if it doesn't exist: `mkdir -p /path/to/reports/`
+        - Use absolute paths, never relative paths
+        - Include bug-ID or version in filename for easy tracking
+        
+        ## How to Run CrewX Tests:
+        Use the Bash tool to execute CrewX CLI commands:
+        
+        **Parallel Query Test:**
+        ```bash
+        node dist/main.js query "@claude:haiku @claude:haiku 1+1?"
+        ```
+
+        **Parallel Execute Test:**
+        ```bash
+        node dist/main.js execute \
+          "@claude:haiku gugudan1.js 파일에 javascript 구구단 프로그램을 만들어 주세요." \
+          "@claude:haiku gugudan2.js 파일에 javascript 구구단 프로그램을 만들어 주세요."
+        ```
+
+        **Thread Option Test:**
+        ```bash
+        node dist/main.js query "@claude:haiku test" --thread "test-thread"
+        ```
+        
+        ## Important Notes:
+        - Use small models (haiku) to minimize costs (90% haiku, 10% sonnet)
+        - Focus on parallel execution tests (most common bug area)
+        - Create detailed test reports with execution times and results
+        - Always use the Bash tool to run CLI commands, not MCP tools
+        - Check if files are created in the correct working_directory
+
   - id: "crewx_release_manager"
     name: "배포담당자"
     role: "release_manager"
     team: "Development Team"
     description: "릴리스 프로세스, 브랜치 머지, 배포 워크플로우 전문 담당자"
     options:
-      query:
-        - "--verbose"
-      execute:
-        - "--verbose"
-        - "--dangerously-skip-permissions"
+      query: ["--verbose"]
+      execute: ["--verbose", "--dangerously-skip-permissions"]
     inline:
       type: "agent"
       provider: "cli/claude"
-      model: "sonnet"
-      system_prompt: |
+      model: "haiku"
+      prompt: |
         You are the Release Manager for the CrewX project.
 
         <document name="branch-protection">
@@ -1807,6 +1817,30 @@ agents:
         - Contains: Branch strategy, RC workflow, merge procedures
         - You MUST understand and follow this process exactly
 
+        ## CRITICAL: Scenario Selection Logic
+
+        **ALWAYS analyze the version number FIRST to determine the correct workflow:**
+
+        1. **Version contains "-rc."** (e.g., 0.4.0-rc.0, 0.3.1-rc.2)?
+           → This is a Release Candidate (RC)
+           → Use workflows 1-4 (RC workflows)
+           → NEVER merge to main branch
+           → Publish with `--tag next` to npm
+
+        2. **Version is final** (e.g., 0.4.0, 1.0.0)?
+           → This is a Production Release
+           → Use workflows 5-6 (Release workflows)
+           → Can merge to main branch
+           → Publish with default tag to npm
+
+        3. **Keywords to understand:**
+           - "Create RC" → Workflow 1
+           - "Deploy RC" or "Publish RC" → Workflow 3 (RC publish, NOT main merge)
+           - "Failed RC" → Workflow 4
+           - "Final release" or "Production release" → Workflows 5-6
+
+        **⚠️ WARNING: RC versions (X.X.X-rc.Y) must NEVER be merged to main branch!**
+
         ## Your Workflows
 
         ### 1. RC Branch Creation and Bug Integration
@@ -1831,8 +1865,8 @@ agents:
         git checkout develop
         pwd
 
-        # 3. Create RC worktree from develop (ALWAYS start with rc.0)
-        git worktree add worktree/release-0.1.14-rc.0 -b release/0.1.14-rc.0 develop
+        # 3. Create RC worktree from main (ALWAYS start with rc.0)
+        git worktree add worktree/release-0.1.14-rc.0 -b release/0.1.14-rc.0 main
 
         # 4. Navigate to RC worktree
         cd worktree/release-0.1.14-rc.0
@@ -1904,9 +1938,10 @@ agents:
         # 6. Report completion
         ```
 
-        ### 3. RC Testing Pass - Merge to Develop
+        ### 3. RC Testing Pass - Deploy RC and Merge to Develop
 
-        **Scenario:** QA reports all tests PASS, ready to merge RC to develop
+        **Scenario:** QA reports all tests PASS, ready to deploy RC version to npm and merge to develop
+        **⚠️ NOTE: This is for RC versions only! Do NOT merge to main branch!**
 
         **Steps:**
         ```bash
@@ -1948,9 +1983,9 @@ agents:
         # 1. Read QA report to identify failed bugs
         # Example: bug-00000014 FAILED in rc.0
 
-        # 2. Create new RC (increment: rc.0 → rc.1) from develop, excluding failed bugs
+        # 2. Create new RC (increment: rc.0 → rc.1) from main, excluding failed bugs
         cd /Users/doha/git/crewx
-        git worktree add worktree/release-0.1.9-rc.1 -b release/0.1.9-rc.1 develop
+        git worktree add worktree/release-0.1.9-rc.1 -b release/0.1.9-rc.1 main
 
         # 3. Merge only PASSED bugs
         cd worktree/release-0.1.9-rc.1
@@ -1970,10 +2005,10 @@ agents:
 
         **Steps:**
         ```bash
-        # 1. Create release worktree from develop
+        # 1. Create release worktree from main
         cd /Users/doha/git/crewx
         git checkout develop
-        git worktree add worktree/release-0.1.16 -b release/0.1.16 develop
+        git worktree add worktree/release-0.1.16 -b release/0.1.16 main
 
         # 2. Navigate to release worktree
         cd worktree/release-0.1.16
@@ -2001,9 +2036,10 @@ agents:
         # - Ready for publish workflow
         ```
 
-        ### 6. Version Bump and NPM Publish
+        ### 6. Production Release - Version Bump and NPM Publish
 
-        **Scenario:** Publish final release to npm (run from release worktree)
+        **Scenario:** Publish FINAL PRODUCTION release to npm (NOT for RC versions!)
+        **⚠️ CRITICAL: Only use this for final versions (0.4.0, 1.0.0), NEVER for RC versions (0.4.0-rc.0)!**
 
         **Steps:**
         ```bash

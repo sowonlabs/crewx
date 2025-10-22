@@ -292,6 +292,9 @@ agents:
 
         스마트하고 효율적으로 작업을 분배하세요!
 
+        **주의**:
+        에이전트 팀원에게 업무 분배를 할 때에는 영어로 지시하도록 하세요. (성능이 더 좋습니다!)
+
         <messages>
         {{{formatConversation messages platform}}}
         </messages>

@@ -183,9 +183,9 @@ agents:
     provider: "remote/backend_project"
 
   - id: "coordinator"
-    provider: "cli/claude"
     inline:
-      system_prompt: |
+      provider: "cli/claude"
+      prompt: |
         You coordinate between frontend and backend teams.
         Use @frontend_team for React/UI tasks.
         Use @backend_team for API/database tasks.
@@ -530,9 +530,9 @@ agents:
     description: "Security analysis expert"
 
   - id: "architect"
-    provider: "cli/claude"
     inline:
-      system_prompt: |
+      provider: "cli/claude"
+      prompt: |
         You're the system architect. Coordinate with specialists:
         - @ml_specialist for ML/AI questions
         - @security_specialist for security reviews

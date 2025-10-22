@@ -1,3 +1,4 @@
+import { PREFIX_TOOL_NAME, SERVER_NAME, getErrorMessage, getErrorStack, getTimeoutConfig, LayoutLoader, LayoutRenderer, RenderContext, AgentInfo, type ProviderResolutionResult, type ConversationMessage } from '@sowonai/crewx-sdk';
 import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
 import { McpTool } from '@sowonai/nestjs-mcp-adapter';
 import { z } from 'zod';
@@ -7,7 +8,6 @@ import * as crypto from 'crypto';
 import { AIService } from './ai.service';
 import { AIProviderService } from './ai-provider.service';
 import { ProjectService } from './project.service';
-import { PREFIX_TOOL_NAME, SERVER_NAME, AgentInfo, getErrorMessage, getErrorStack, getTimeoutConfig, LayoutLoader, LayoutRenderer, RenderContext } from '@sowonai/crewx-sdk';
 import { ParallelProcessingService } from './services/parallel-processing.service';
 import { TaskManagementService } from './services/task-management.service';
 import { ResultFormatterService } from './services/result-formatter.service';
@@ -16,7 +16,7 @@ import { DocumentLoaderService } from './services/document-loader.service';
 import { ToolCallService } from './services/tool-call.service';
 import { AgentLoaderService } from './services/agent-loader.service';
 import { RemoteAgentService } from './services/remote-agent.service';
-import type { TemplateContext } from './utils/template-processor';
+import { ProviderBridgeService, type ProviderBridgeAgentRuntime } from './services/provider-bridge.service';
 
 @Injectable()
 export class CrewXTool implements OnModuleInit {
@@ -35,7 +35,7 @@ export class CrewXTool implements OnModuleInit {
    * Build tools context for template processing
    * @returns Tools context object with list, json, and count
    */
-  private buildToolsContext(): TemplateContext['tools'] {
+  private buildToolsContext(): RenderContext['tools'] {
     const tools = this.toolCallService.list();
 
     if (!tools || tools.length === 0) {
@@ -121,6 +121,7 @@ export class CrewXTool implements OnModuleInit {
     private readonly toolCallService: ToolCallService,
     private readonly agentLoaderService: AgentLoaderService,
     private readonly remoteAgentService: RemoteAgentService,
+    private readonly providerBridgeService: ProviderBridgeService,
     @Inject('LAYOUT_LOADER') private readonly layoutLoader: LayoutLoader,
     @Inject('LAYOUT_RENDERER') private readonly layoutRenderer: LayoutRenderer,
   ) {}
@@ -144,7 +145,7 @@ export class CrewXTool implements OnModuleInit {
    */
   private async processAgentSystemPrompt(
     agent: AgentInfo,
-    templateContext: TemplateContext
+    templateContext: RenderContext
   ): Promise<string> {
     const inlineLayout = agent.inline?.layout;
     const baseSystemPrompt =
@@ -164,24 +165,93 @@ export class CrewXTool implements OnModuleInit {
           : undefined;
 
       try {
-        this.logger.debug(`Loading layout: ${layoutId} for agent ${agent.id}`);
-
         const layout = this.layoutLoader.load(layoutId, layoutProps);
 
+        const providerRaw = agent.provider;
+        const providerList = Array.isArray(providerRaw)
+          ? providerRaw
+          : (typeof providerRaw === 'string' && providerRaw.length > 0)
+            ? [providerRaw]
+            : [];
+        const providerDisplay =
+          providerList.length > 0
+            ? providerList.join(', ')
+            : (typeof providerRaw === 'string' ? providerRaw : '');
+
+        const inlineConfig = agent.inline
+          ? { ...agent.inline, prompt: baseSystemPrompt }
+          : { prompt: baseSystemPrompt };
+
+        // Since options is CLI-specific, we pass empty array for SDK TemplateContext
+        // Options are handled separately by the CLI agent configuration
+        const templateOptions: string[] = [];
+
+        const sessionInfo = {
+          mode: templateContext.mode ?? 'query',
+          platform: templateContext.platform ?? 'cli',
+          options: templateOptions,
+          env: templateContext.env ?? {},
+          vars: templateContext.vars ?? {},
+          tools: templateContext.tools ?? null,
+        };
+
+        // Load documents from DocumentLoaderService for template rendering
+        const documentsForTemplate: Record<string, { content: string; toc: string; summary: string }> = {};
+        if (this.documentLoaderService.isInitialized()) {
+          const docNames = this.documentLoaderService.getDocumentNames();
+          for (const docName of docNames) {
+            const content = await this.documentLoaderService.getDocumentContent(docName);
+            const toc = await this.documentLoaderService.getDocumentToc(docName);
+            const summary = await this.documentLoaderService.getDocumentSummary(docName);
+            documentsForTemplate[docName] = {
+              content: content || '',
+              toc: toc || '',
+              summary: summary || '',
+            };
+          }
+        }
+
         const renderContext: RenderContext & Record<string, any> = {
+          user_input: templateContext.user_input, // User query for layout rendering
           agent: {
             id: agent.id,
             name: agent.name || agent.id,
-            inline: {
-              prompt: baseSystemPrompt,
-            },
+            role: agent.role || '',
+            team: agent.team || '',
+            description: agent.description || '',
+            workingDirectory: agent.workingDirectory,
+            capabilities: agent.capabilities || [],
+            specialties: agent.specialties || [],
+            provider: providerDisplay,
+            providerList,
+            providerRaw,
+            inline: inlineConfig,
+            model: agent.inline?.model,
+            options: agent.options ?? {},
+            optionsArray: Array.isArray(agent.options) ? agent.options : undefined,
+            optionsByMode:
+              !Array.isArray(agent.options) && typeof agent.options === 'object'
+                ? agent.options
+                : undefined,
+            remote: agent.remote ?? null,
+            documents: agent.inline && 'documents' in agent.inline ? agent.inline.documents : undefined,
           },
-          documents: {},
+          documents: documentsForTemplate,
           vars: templateContext.vars || {},
           props: layoutProps ?? {},
           messages: templateContext.messages || [],
-          platform: templateContext.platform,
+          platform: templateContext.platform ?? 'cli',
           tools: templateContext.tools,
+          session: sessionInfo,
+          env: templateContext.env ?? {},
+          context: {
+            mode: templateContext.mode ?? 'query',
+            platform: templateContext.platform ?? 'cli',
+            options: templateOptions,
+            env: templateContext.env ?? {},
+            vars: templateContext.vars ?? {},
+            agent: templateContext.agent ?? null,
+          },
         };
 
         renderContext.layout = {
@@ -194,13 +264,18 @@ export class CrewXTool implements OnModuleInit {
         this.logger.debug(`Layout rendered successfully for agent ${agent.id}`);
 
         const { processDocumentTemplate } = await import('./utils/template-processor');
-        return await processDocumentTemplate(rendered, this.documentLoaderService, templateContext);
+        const finalSystemPrompt = await processDocumentTemplate(rendered, this.documentLoaderService, templateContext as any);
+
+        return finalSystemPrompt;
       } catch (error) {
         const layoutIdForLog = typeof layoutSpec === 'string' ? layoutSpec : layoutSpec.id;
+        console.error(`❌ [Layout Error] Failed to process layout (${layoutIdForLog}) for agent ${agent.id}:`, getErrorMessage(error));
         this.logger.warn(`Failed to process layout (${layoutIdForLog}) for agent ${agent.id}: ${getErrorMessage(error)}`);
         if (inlineLayout) {
+          console.log('[Layout Fallback] Using inline.system_prompt');
           this.logger.warn('Falling back to inline.system_prompt');
         } else {
+          console.log('[Layout Fallback] Using default system prompt');
           this.logger.warn('Falling back to default system prompt');
         }
       }
@@ -211,7 +286,7 @@ export class CrewXTool implements OnModuleInit {
     // Process template variables if present
     if (systemPrompt) {
       const { processDocumentTemplate } = await import('./utils/template-processor');
-      systemPrompt = await processDocumentTemplate(systemPrompt, this.documentLoaderService, templateContext);
+      systemPrompt = await processDocumentTemplate(systemPrompt, this.documentLoaderService, templateContext as any);
     }
 
     return systemPrompt;
@@ -269,12 +344,30 @@ export class CrewXTool implements OnModuleInit {
       const availableProviders = await this.aiService.checkAvailableProviders();
       const installation = await this.aiService.validateCLIInstallation();
       const recommendations = this.getInstallationRecommendations(installation);
+      const bridgeProviders = this.providerBridgeService.listAvailableProviders();
+
+      let bridgeStatus = '⚠️ ProviderBridge: no providers registered.';
+      if (bridgeProviders.length > 0) {
+        try {
+          const { resolution } = await this.providerBridgeService.createAgentRuntime({
+            provider: bridgeProviders[0],
+            defaultAgentId: 'provider-bridge-check',
+          });
+          bridgeStatus = `✅ ProviderBridge ready (${resolution.provider.name})`;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          bridgeStatus = `❌ ProviderBridge error: ${message}`;
+        }
+      }
 
       // Compose MCP response text
       const responseText = `🤖 **AI Providers Status**
 
 **Available Providers:**
 ${availableProviders.length > 0 ? availableProviders.map(p => `✅ ${p}`).join('\n') : '❌ No providers available'}
+
+**Provider Bridge:**
+${bridgeStatus}${bridgeProviders.length > 0 ? `\nRegistered: ${bridgeProviders.join(', ')}` : ''}
 
 **Installation Status:**
 • Claude CLI: ${installation.claude ? '✅ Installed' : '❌ Not Installed'}
@@ -297,6 +390,10 @@ ${recommendations.map(r => `• ${r}`).join('\n')}`;
           claude: installation.claude,
           gemini: installation.gemini,
           copilot: installation.copilot,
+        },
+        providerBridge: {
+          status: bridgeStatus,
+          providers: bridgeProviders,
         },
         recommendations,
       };
@@ -321,7 +418,11 @@ No AI providers could be verified.`
           claude: { installed: false },
           gemini: { installed: false },
           copilot: { installed: false }
-        }
+        },
+        providerBridge: {
+          status: '❌ ProviderBridge inspection skipped due to error',
+          providers: [] as string[],
+        },
       };
     }
   }
@@ -495,6 +596,7 @@ agents:
     model?: string;
     messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
     platform?: 'slack' | 'cli';
+    provider?: string; // NEW: Optional provider specification
   }) {
     // Generate task ID and start tracking
     const taskId = this.taskManagementService.createTask({
@@ -519,11 +621,12 @@ agents:
       const agents = await this.agentLoaderService.getAllAgents();
       const agent = agents.find(a => a.id === agentId);
 
+
       if (!agent) {
         return {
           content: [
-            { 
-              type: 'text', 
+            {
+              type: 'text',
               text: `❌ **Agent Not Found**
 
 **Error:** Agent '${agentId}' not found.
@@ -600,41 +703,79 @@ ${errorMessage}`,
       // For query mode, exclude current message from conversation history
       const contextMessages = messages && messages.length > 0 ? messages.slice(0, -1) : [];
 
-      const templateContext: TemplateContext = {
-        env: process.env,
+      // Load documents for template context
+      const documents: Record<string, { content: string; toc?: string }> = {};
+      const docNames = this.documentLoaderService.getDocumentNames();
+      for (const docName of docNames) {
+        const content = await this.documentLoaderService.getDocumentContent(docName);
+        const toc = await this.documentLoaderService.getDocumentToc(docName);
+        if (content) {
+          documents[docName] = { content, toc };
+        }
+      }
+
+      const templateContext: RenderContext = {
+        user_input: query, // Top-level user input (will be used by layout)
+        messages: contextMessages, // Previous conversation messages (excluding current query)
         agent: {
           id: agent.id,
           name: agent.name || agent.id,
           provider: (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude',
           model: model || agent.inline?.model,
           workingDirectory: workingDir,
+          inline: {
+            prompt: agent.inline?.prompt || agent.inline?.system_prompt || agent.systemPrompt || '',
+          },
+          specialties: agent.specialties,
+          capabilities: agent.capabilities,
+          description: agent.description,
         },
-        mode: 'query',
-        messages: contextMessages, // Previous conversation messages (excluding current query)
-        platform: platform, // Pass platform information (slack/cli)
-        tools: this.buildToolsContext(),
+        documents, // Loaded documents for layout rendering
         vars: {
           security_key: securityKey,
         },
+        props: {},
+        mode: 'query',
+        platform: platform, // Pass platform information (slack/cli)
+        env: process.env,
+        tools: this.buildToolsContext(),
       };
 
       // Process system prompt (uses SDK layout services if inline.layout is defined)
       let systemPrompt = await this.processAgentSystemPrompt(agent, templateContext);
 
-      // Add context information
-      systemPrompt += `
+      // WBS-14 Phase 2: Removed hardcoded append (specialties, capabilities, workingDirectory)
+      // These fields are now handled by agentMetadata in TemplateContext and rendered via layouts
+      // Feature flag CREWX_APPEND_LEGACY=true can re-enable for backward compatibility
+      if (process.env.CREWX_APPEND_LEGACY === 'true') {
+        this.logger.debug('[WBS-14] Legacy append mode enabled (query)', {
+          agentId: agent.id,
+          layoutId: typeof agent.inline?.layout === 'string'
+            ? agent.inline?.layout
+            : agent.inline?.layout?.id ?? 'crewx/default',
+        });
+
+        systemPrompt += `
 
 Specialties: ${agent.specialties?.join(', ') || 'General'}
 Capabilities: ${agent.capabilities?.join(', ') || 'Analysis'}
 Working Directory: ${workingDir}`;
+      } else if (process.env.CREWX_WBS14_TELEMETRY === 'true') {
+        this.logger.debug('[WBS-14] Metadata delegated to layout (query mode)', {
+          agentId: agent.id,
+          hasLayout: Boolean(agent.inline?.layout),
+          layoutId: typeof agent.inline?.layout === 'string'
+            ? agent.inline?.layout
+            : agent.inline?.layout?.id ?? 'crewx/default',
+          specialtiesCount: agent.specialties?.length ?? 0,
+          capabilitiesCount: agent.capabilities?.length ?? 0,
+          workingDirectory: workingDir,
+        });
+      }
 
-      // Wrap user query with security tag to prevent prompt injection
-      const wrappedQuery = `
-<user_query key="${securityKey}">
-${query}
-</user_query>`;
-
-      // Build the full prompt with proper conversation history formatting
+      // Build the full prompt
+      // Note: systemPrompt already includes <user_query> if layout is used (crewx_dev_layout)
+      // Legacy mode: if no layout, we need to add user query manually
       let fullPrompt = systemPrompt;
 
       // If there's conversation context, add it (already formatted by template)
@@ -642,37 +783,83 @@ ${query}
         fullPrompt += `\n\n${context}`;
       }
 
-      // Add the current query
-      fullPrompt += `\n\n${wrappedQuery}`;
-
-      // Use agent's AI provider - using queryAI wrapper
-      let response;
-      let provider: string;
-      
-      // Determine provider strategy based on agent configuration
-      if (Array.isArray(agent.provider)) {
-        // Provider is an array: use fallback mechanism (unless model is specified)
-        if (agent.inline?.model || model) {
-          // Model specified: use first provider in array as fixed provider
-          provider = agent.provider[0] || 'claude';
-        } else {
-          // No model: use fallback through the provider array
-          provider = await this.getAvailableProvider(agent.provider);
-          this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Using fallback provider: ${provider}` });
-        }
-      } else {
-        // Provider is a single string: use it as fixed provider (no fallback)
-        provider = agent.provider || 'claude';
+      // Legacy fallback: if layout didn't render user_query, add it manually
+      if (!systemPrompt.includes('<user_query')) {
+        this.logger.debug('[Legacy] Adding <user_query> wrapper manually (layout not used)');
+        fullPrompt += `\n\n<user_query key="${securityKey}">
+${query}
+</user_query>`;
       }
-      
-      // Get mode-specific options for this agent (query mode) with provider context
-      const agentOptions = this.getOptionsForAgent(agent, 'query', provider);
-      
-      // Determine model to use (priority: runtime override > inline.model)
-      const modelToUse = model || agent.inline?.model;
+
+      let runtimeResult: ProviderBridgeAgentRuntime;
+      let providerResolution: ProviderResolutionResult;
+      let providerInput: string | undefined;
+
+      if (args.provider) {
+        providerInput = args.provider;
+      } else if (Array.isArray(agent.provider)) {
+        providerInput = await this.getAvailableProvider(agent.provider);
+      } else if (typeof agent.provider === 'string' && agent.provider.trim().length > 0) {
+        providerInput = agent.provider;
+      }
+
+      try {
+        runtimeResult = await this.providerBridgeService.createAgentRuntime({
+          provider: providerInput,
+          defaultAgentId: agentId,
+          validAgents: agents.map(a => a.id),
+        });
+        providerResolution = runtimeResult.resolution;
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown provider error';
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'error',
+          message: `Provider resolution failed: ${errorMsg}`,
+        });
+        this.taskManagementService.completeTask(taskId, { success: false, error: errorMsg }, false);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `❌ **Provider Error**\n\n${errorMsg}\n\nAvailable providers: ${this.providerBridgeService.listAvailableProviders().join(', ')}`,
+            },
+          ],
+          success: false,
+          agent: agentId,
+          provider: 'none',
+          error: errorMsg,
+          taskId,
+          readOnlyMode: true,
+          readOnly: true,
+        };
+      }
+
+      const resolvedProviderName = providerResolution.provider.name;
+
+      if (args.provider) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Using CLI-specified provider: ${args.provider} (resolved to ${resolvedProviderName})`
+        });
+      } else if (providerInput) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Agent provider resolved to ${resolvedProviderName} (input: ${providerInput})`
+        });
+      } else {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Using ProviderBridge fallback provider: ${resolvedProviderName}`,
+        });
+      }
+
+      const agentOptions = this.getOptionsForAgent(agent, 'query', resolvedProviderName);
+
+      const modelToUse = model || agent.inline?.model || providerResolution.defaultModel;
       const structuredPayload = await this.buildStructuredPayload({
         agentId,
-        provider,
+        provider: resolvedProviderName,
         mode: 'query',
         prompt: fullPrompt,
         context,
@@ -681,17 +868,57 @@ ${query}
         model: modelToUse,
       });
 
-      response = await this.aiService.queryAI(fullPrompt, provider, {
-        workingDirectory: workingDir,
-        timeout: this.timeoutConfig.parallel, // Use configured timeout from timeout.config.ts
-        additionalArgs: agentOptions, // Pass mode-specific options
-        taskId, // Pass taskId to AIService
-        model: modelToUse, // Use determined model
-        agentId, // Preserve raw agent identifier for logging
-        securityKey, // Pass security key for injection protection
-        messages,
-        pipedContext: structuredPayload,
-      });
+      const runtimeMessages = this.toConversationMessages(messages);
+
+      let agentResult;
+      try {
+        agentResult = await runtimeResult.runtime.agent.query({
+          agentId,
+          prompt: fullPrompt,
+          context,
+          messages: runtimeMessages,
+          model: modelToUse,
+          options: {
+            workingDirectory: workingDir,
+            timeout: this.timeoutConfig.parallel,
+            additionalArgs: agentOptions,
+            taskId,
+            securityKey,
+            pipedContext: structuredPayload,
+          },
+        });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Agent runtime query failed';
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'error',
+          message: `Agent runtime query failed: ${errorMsg}`,
+        });
+        this.taskManagementService.completeTask(taskId, { success: false, error: errorMsg }, false);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `❌ **Provider Error**\n\n${errorMsg}\n\nAvailable providers: ${this.providerBridgeService.listAvailableProviders().join(', ')}`,
+            },
+          ],
+          success: false,
+          agent: agentId,
+          provider: resolvedProviderName,
+          error: errorMsg,
+          taskId,
+          readOnlyMode: true,
+          readOnly: true,
+        };
+      }
+
+      const response = {
+        success: agentResult.success,
+        content: agentResult.content,
+        provider: agentResult.metadata?.provider ?? resolvedProviderName,
+        taskId: agentResult.metadata?.taskId ?? taskId,
+        error: agentResult.metadata?.error,
+      };
 
       // Handle task completion
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Query completed. Success: ${response.success}` });
@@ -778,6 +1005,7 @@ Read-Only Mode: No files were modified.`
     model?: string;
     messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
     platform?: 'slack' | 'cli';
+    provider?: string; // NEW: Optional provider specification
   }) {
     // Generate task ID and start tracking
     const taskId = this.taskManagementService.createTask({
@@ -882,32 +1110,74 @@ Please check the agent ID and try again.`
       // The current task is added separately below as "Task: ${task}"
       const contextMessages = messages && messages.length > 0 ? messages.slice(0, -1) : [];
 
-      const templateContext: TemplateContext = {
-        env: process.env,
+      // Load documents for template context
+      const documentsForExecute: Record<string, { content: string; toc?: string }> = {};
+      const docNamesForExecute = this.documentLoaderService.getDocumentNames();
+      for (const docName of docNamesForExecute) {
+        const content = await this.documentLoaderService.getDocumentContent(docName);
+        const toc = await this.documentLoaderService.getDocumentToc(docName);
+        if (content) {
+          documentsForExecute[docName] = { content, toc };
+        }
+      }
+
+      const templateContext: RenderContext = {
+        user_input: task, // Top-level user input (will be used by layout)
+        messages: contextMessages, // Previous conversation messages (excluding current task)
         agent: {
           id: agent.id,
           name: agent.name || agent.id,
           provider: (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude',
           model: model || agent.inline?.model,
           workingDirectory: workingDir,
+          inline: {
+            prompt: agent.inline?.prompt || agent.inline?.system_prompt || agent.systemPrompt || '',
+          },
+          specialties: agent.specialties,
+          capabilities: agent.capabilities,
+          description: agent.description,
         },
-        mode: 'execute',
-        messages: contextMessages, // Previous conversation messages (excluding current task)
-        platform: platform, // Pass platform information (slack/cli)
-        tools: this.buildToolsContext(),
+        documents: documentsForExecute, // Loaded documents for layout rendering
         vars: {
           security_key: securityKey,
         },
+        props: {},
+        mode: 'execute',
+        platform: platform, // Pass platform information (slack/cli)
+        env: process.env,
+        tools: this.buildToolsContext(),
       };
 
       // Process system prompt (uses SDK layout services if inline.layout is defined)
       let systemPrompt = await this.processAgentSystemPrompt(agent, templateContext);
 
-      // Add context information
-      systemPrompt += `
+      // WBS-14 Phase 2: Removed hardcoded append (specialties, capabilities, workingDirectory)
+      // These fields are now handled by agentMetadata in TemplateContext and rendered via layouts
+      // Feature flag CREWX_APPEND_LEGACY=true can re-enable for backward compatibility
+      if (process.env.CREWX_APPEND_LEGACY === 'true') {
+        this.logger.debug('[WBS-14] Legacy append mode enabled (execute)', {
+          agentId: agent.id,
+          layoutId: typeof agent.inline?.layout === 'string'
+            ? agent.inline?.layout
+            : agent.inline?.layout?.id ?? 'crewx/default',
+        });
+
+        systemPrompt += `
 Specialties: ${agent.specialties?.join(', ') || 'General'}
 Capabilities: ${agent.capabilities?.join(', ') || 'Implementation'}
 Working Directory: ${workingDir}`;
+      } else if (process.env.CREWX_WBS14_TELEMETRY === 'true') {
+        this.logger.debug('[WBS-14] Metadata delegated to layout (execute mode)', {
+          agentId: agent.id,
+          hasLayout: Boolean(agent.inline?.layout),
+          layoutId: typeof agent.inline?.layout === 'string'
+            ? agent.inline?.layout
+            : agent.inline?.layout?.id ?? 'crewx/default',
+          specialtiesCount: agent.specialties?.length ?? 0,
+          capabilitiesCount: agent.capabilities?.length ?? 0,
+          workingDirectory: workingDir,
+        });
+      }
 
       // Build full prompt (context already formatted by template)
       const fullPrompt = context 
@@ -921,36 +1191,76 @@ Task: ${task}
 Task: ${task}
 `;
 
-      // Use agent's AI provider (execution mode)
-      let response;
-      let provider: string;
-      
-      // Determine provider strategy based on agent configuration
-      if (Array.isArray(agent.provider)) {
-        // Provider is an array: use fallback mechanism (unless model is specified)
-        if (agent.inline?.model || model) {
-          // Model specified: use first provider in array as fixed provider
-          provider = agent.provider[0] || 'claude';
-        } else {
-          // No model: use fallback through the provider array
-          provider = await this.getAvailableProvider(agent.provider);
-          this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Using fallback provider: ${provider}` });
-        }
-      } else {
-        // Provider is a single string: use it as fixed provider (no fallback)
-        provider = agent.provider || 'claude';
+      let runtimeResult: ProviderBridgeAgentRuntime;
+      let providerResolution: ProviderResolutionResult;
+      let providerInput: string | undefined;
+
+      if (args.provider) {
+        providerInput = args.provider;
+      } else if (Array.isArray(agent.provider)) {
+        providerInput = await this.getAvailableProvider(agent.provider);
+      } else if (typeof agent.provider === 'string' && agent.provider.trim().length > 0) {
+        providerInput = agent.provider;
       }
-      
-      this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Using provider: ${provider}` });
-      
-      // Get mode-specific options for this agent (execute mode) with provider context
-      const agentOptions = this.getOptionsForAgent(agent, 'execute', provider);
-      
-      // Determine model to use (priority: runtime override > inline.model)
-      const modelToUse = model || agent.inline?.model;
+
+      try {
+        runtimeResult = await this.providerBridgeService.createAgentRuntime({
+          provider: providerInput,
+          defaultAgentId: agentId,
+          validAgents: agents.map(a => a.id),
+          enableCallStack: true,
+        });
+        providerResolution = runtimeResult.resolution;
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown provider error';
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'error',
+          message: `Provider resolution failed: ${errorMsg}`,
+        });
+        this.taskManagementService.completeTask(taskId, { success: false, error: errorMsg }, false);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `❌ **Provider Error**\n\n${errorMsg}\n\nAvailable providers: ${this.providerBridgeService.listAvailableProviders().join(', ')}`,
+            },
+          ],
+          success: false,
+          agent: agentId,
+          provider: 'none',
+          error: errorMsg,
+          taskId,
+          readOnlyMode: false,
+          readOnly: false,
+        };
+      }
+
+      const resolvedProviderName = providerResolution.provider.name;
+
+      if (args.provider) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Using CLI-specified provider: ${args.provider} (resolved to ${resolvedProviderName})`
+        });
+      } else if (providerInput) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Agent provider resolved to ${resolvedProviderName} (input: ${providerInput})`
+        });
+      } else {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Using ProviderBridge fallback provider: ${resolvedProviderName}`,
+        });
+      }
+
+      const agentOptions = this.getOptionsForAgent(agent, 'execute', resolvedProviderName);
+
+      const modelToUse = model || agent.inline?.model || providerResolution.defaultModel;
       const structuredPayload = await this.buildStructuredPayload({
         agentId,
-        provider,
+        provider: resolvedProviderName,
         mode: 'execute',
         prompt: fullPrompt,
         context,
@@ -958,20 +1268,58 @@ Task: ${task}
         platform: platform || 'cli',
         model: modelToUse,
       });
-      
-      // Use new unified executeAI for all providers
-      // Use 20 minutes timeout for all providers to handle complex multi-turn tool calls
-      // (especially when nested tools like Task agent call other tools)
-      response = await this.aiService.executeAI(fullPrompt, provider, {
-        workingDirectory: workingDir,
-        timeout: 1200000, // 20min for all providers (bug-00000015)
-        taskId: taskId,
-        additionalArgs: agentOptions, // Pass mode-specific options
-        model: modelToUse, // Use determined model
-        agentId, // Preserve raw agent identifier for logging
-        messages,
-        pipedContext: structuredPayload,
-      });
+
+      const runtimeMessages = this.toConversationMessages(messages);
+
+      let agentResult;
+      try {
+        agentResult = await runtimeResult.runtime.agent.execute({
+          agentId,
+          prompt: fullPrompt,
+          context,
+          messages: runtimeMessages,
+          model: modelToUse,
+          options: {
+            workingDirectory: workingDir,
+            timeout: 1_200_000,
+            additionalArgs: agentOptions,
+            taskId,
+            pipedContext: structuredPayload,
+            securityKey,
+          },
+        });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Agent runtime execution failed';
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'error',
+          message: `Agent runtime execution failed: ${errorMsg}`,
+        });
+        this.taskManagementService.completeTask(taskId, { success: false, error: errorMsg }, false);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `❌ **Provider Error**\n\n${errorMsg}\n\nAvailable providers: ${this.providerBridgeService.listAvailableProviders().join(', ')}`,
+            },
+          ],
+          success: false,
+          agent: agentId,
+          provider: resolvedProviderName,
+          error: errorMsg,
+          taskId,
+          readOnlyMode: false,
+          readOnly: false,
+        };
+      }
+
+      const response = {
+        success: agentResult.success,
+        content: agentResult.content,
+        provider: agentResult.metadata?.provider ?? resolvedProviderName,
+        taskId: agentResult.metadata?.taskId ?? taskId,
+        error: agentResult.metadata?.error,
+      };
 
       // Handle task completion
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Execution completed. Success: ${response.success}` });
@@ -1066,6 +1414,45 @@ Task: ${task}
   /**
    * Get mode-specific options for a given agent and execution mode
    */
+  private toConversationMessages(
+    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>,
+  ): ConversationMessage[] {
+    if (!messages || messages.length === 0) {
+      return [];
+    }
+
+    return messages.map((message, index) => {
+      const metadata = message.metadata ?? {};
+      const rawTimestamp = (metadata as any).timestamp;
+      let timestamp: Date;
+
+      if (rawTimestamp instanceof Date) {
+        timestamp = rawTimestamp;
+      } else if (typeof rawTimestamp === 'number') {
+        timestamp = new Date(rawTimestamp);
+      } else if (typeof rawTimestamp === 'string') {
+        const parsed = new Date(rawTimestamp);
+        timestamp = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+      } else {
+        timestamp = new Date();
+      }
+
+      return {
+        id: typeof (metadata as any).id === 'string' ? (metadata as any).id : `cli-msg-${index}`,
+        userId:
+          typeof (metadata as any).userId === 'string'
+            ? (metadata as any).userId
+            : message.isAssistant
+              ? 'assistant'
+              : 'user',
+        text: message.text,
+        timestamp,
+        isAssistant: message.isAssistant,
+        metadata: metadata as Record<string, any>,
+      } satisfies ConversationMessage;
+    });
+  }
+
   private getOptionsForAgent(agent: AgentInfo, mode: 'query' | 'execute', provider?: string): string[] {
     try {
       // Handle new structure: agent.options.query / agent.options.execute

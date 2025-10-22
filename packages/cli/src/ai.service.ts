@@ -16,7 +16,7 @@ export class AIService {
 
   async queryAI(
     prompt: string,
-    provider: string = 'claude',
+    provider: string = BuiltInProviders.CLAUDE,
     options: AIQueryOptions = {},
   ): Promise<AIResponse> {
     this.logger.debug(`Querying provider ${provider}`);
@@ -25,7 +25,7 @@ export class AIService {
 
   async executeAI(
     prompt: string,
-    provider: string = 'claude',
+    provider: string = BuiltInProviders.CLAUDE,
     options: AIQueryOptions = {},
   ): Promise<AIResponse> {
     this.logger.debug(`Executing provider ${provider}`);
@@ -36,7 +36,7 @@ export class AIService {
     prompt: string,
     options: AIQueryOptions = {},
   ): Promise<AIResponse> {
-    return this.executeAI(prompt, 'gemini', options);
+    return this.executeAI(prompt, BuiltInProviders.GEMINI, options);
   }
 
   async checkAvailableProviders(): Promise<string[]> {
