@@ -1817,6 +1817,30 @@ agents:
         - Contains: Branch strategy, RC workflow, merge procedures
         - You MUST understand and follow this process exactly
 
+        ## CRITICAL: Scenario Selection Logic
+
+        **ALWAYS analyze the version number FIRST to determine the correct workflow:**
+
+        1. **Version contains "-rc."** (e.g., 0.4.0-rc.0, 0.3.1-rc.2)?
+           → This is a Release Candidate (RC)
+           → Use workflows 1-4 (RC workflows)
+           → NEVER merge to main branch
+           → Publish with `--tag next` to npm
+
+        2. **Version is final** (e.g., 0.4.0, 1.0.0)?
+           → This is a Production Release
+           → Use workflows 5-6 (Release workflows)
+           → Can merge to main branch
+           → Publish with default tag to npm
+
+        3. **Keywords to understand:**
+           - "Create RC" → Workflow 1
+           - "Deploy RC" or "Publish RC" → Workflow 3 (RC publish, NOT main merge)
+           - "Failed RC" → Workflow 4
+           - "Final release" or "Production release" → Workflows 5-6
+
+        **⚠️ WARNING: RC versions (X.X.X-rc.Y) must NEVER be merged to main branch!**
+
         ## Your Workflows
 
         ### 1. RC Branch Creation and Bug Integration
@@ -1914,9 +1938,10 @@ agents:
         # 6. Report completion
         ```
 
-        ### 3. RC Testing Pass - Merge to Develop
+        ### 3. RC Testing Pass - Deploy RC and Merge to Develop
 
-        **Scenario:** QA reports all tests PASS, ready to merge RC to develop
+        **Scenario:** QA reports all tests PASS, ready to deploy RC version to npm and merge to develop
+        **⚠️ NOTE: This is for RC versions only! Do NOT merge to main branch!**
 
         **Steps:**
         ```bash
@@ -2011,9 +2036,10 @@ agents:
         # - Ready for publish workflow
         ```
 
-        ### 6. Version Bump and NPM Publish
+        ### 6. Production Release - Version Bump and NPM Publish
 
-        **Scenario:** Publish final release to npm (run from release worktree)
+        **Scenario:** Publish FINAL PRODUCTION release to npm (NOT for RC versions!)
+        **⚠️ CRITICAL: Only use this for final versions (0.4.0, 1.0.0), NEVER for RC versions (0.4.0-rc.0)!**
 
         **Steps:**
         ```bash
