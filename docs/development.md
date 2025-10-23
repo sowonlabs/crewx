@@ -1,4 +1,4 @@
-# CrewX 개발 프로세스
+# SowonAI CrewX 개발 프로세스
 
 **Version:** 1.0 (Draft)  
 **Last Updated:** 2025-10-05  
@@ -18,7 +18,7 @@
 
 ## 개요
 
-CrewX는 AI 에이전트 협업 기반 개발을 지향합니다.
+SowonAI CrewX는 AI 에이전트 협업 기반 개발을 지향합니다.
 - **개발팀장**: GitHub Copilot (작업 분배, 조율, 의사결정)
 - **개발자 에이전트**: @claude, @copilot (분석, 구현)
 - **테스터 에이전트**: @crewx_tester (검증)

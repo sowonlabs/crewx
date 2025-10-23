@@ -1,0 +1,9 @@
+# Test fixture: minimal layout (direct template format)
+id: "crewx/minimal"
+version: "1.0.0"
+description: "Minimal test layout"
+
+template: |
+  <system_prompt>
+  {{{agent.inline.prompt}}}
+  </system_prompt>
