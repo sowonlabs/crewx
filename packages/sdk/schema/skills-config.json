@@ -1,0 +1,301 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://crewx.dev/schemas/skills-config.json",
+  "title": "CrewX Skills Configuration Schema",
+  "description": "JSON Schema for CrewX skills and agent configuration with Claude skills.md integration",
+  "type": "object",
+  "definitions": {
+    "skillMetadata": {
+      "type": "object",
+      "description": "Claude skill metadata from skills.md frontmatter",
+      "required": ["name", "description", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "maxLength": 50,
+          "description": "Skill identifier in kebab-case"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 200,
+          "description": "Short description of the skill"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version (e.g., 1.0.0)"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+(@\\d+\\.\\d+\\.\\d+)?$"
+          },
+          "description": "Array of dependent skills (name or name@version)"
+        },
+        "runtime": {
+          "type": "object",
+          "properties": {
+            "python": { "type": "string" },
+            "node": { "type": "string" }
+          },
+          "additionalProperties": { "type": "string" },
+          "description": "Runtime requirements"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["public", "private", "internal"],
+          "description": "Visibility level"
+        }
+      },
+      "additionalProperties": true
+    },
+    "skillsConfig": {
+      "type": "object",
+      "description": "Skills configuration for agents",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "description": "Explicitly include these skills"
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "description": "Explicitly exclude these skills"
+        },
+        "autoload": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-load all skills from skillsPaths"
+        }
+      },
+      "additionalProperties": false
+    },
+    "inlineConfig": {
+      "type": "object",
+      "description": "Inline agent configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "agent"
+        },
+        "model": {
+          "type": "string",
+          "description": "Default AI model"
+        },
+        "system_prompt": {
+          "type": "string",
+          "description": "System prompt for the agent"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Alternative to system_prompt"
+        },
+        "layout": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": { "type": "string" },
+                "props": { "type": "object" }
+              }
+            }
+          ],
+          "description": "Layout reference"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Agent/skill version"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Required skills for this agent"
+        },
+        "documents": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Agent-specific documents"
+        }
+      },
+      "additionalProperties": true
+    },
+    "optionsConfig": {
+      "type": "object",
+      "description": "CLI options configuration",
+      "properties": {
+        "query": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          ],
+          "description": "Read-only query mode options"
+        },
+        "execute": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          ],
+          "description": "Execute mode options (file modification)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "remoteConfig": {
+      "type": "object",
+      "description": "Remote agent configuration",
+      "required": ["type", "url"],
+      "properties": {
+        "type": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "apiKey": { "type": "string" },
+        "agentId": { "type": "string" },
+        "timeoutMs": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "agentDefinition": {
+      "type": "object",
+      "description": "Agent definition with skills support",
+      "required": ["id", "provider"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Agent identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "role": {
+          "type": "string",
+          "description": "Agent role"
+        },
+        "team": {
+          "type": "string",
+          "description": "Team name"
+        },
+        "provider": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            }
+          ],
+          "description": "AI provider or array of providers for fallback"
+        },
+        "working_directory": {
+          "type": "string",
+          "description": "Working directory path"
+        },
+        "description": {
+          "type": "string",
+          "description": "Agent description"
+        },
+        "specialties": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agent specialties"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agent capabilities"
+        },
+        "skills": {
+          "$ref": "#/definitions/skillsConfig",
+          "description": "Skills configuration for this agent"
+        },
+        "inline": {
+          "$ref": "#/definitions/inlineConfig",
+          "description": "Inline agent configuration"
+        },
+        "options": {
+          "$ref": "#/definitions/optionsConfig",
+          "description": "CLI options"
+        },
+        "remote": {
+          "$ref": "#/definitions/remoteConfig",
+          "description": "Remote agent configuration"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "properties": {
+    "skillsPaths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Global skill directories to search (default: Claude Code skills/ directory)"
+    },
+    "skills": {
+      "$ref": "#/definitions/skillsConfig",
+      "description": "Project-wide skills configuration"
+    },
+    "layouts": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Layout definitions"
+    },
+    "documents": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Document definitions"
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "slack": {
+          "type": "object",
+          "properties": {
+            "log_conversations": { "type": "boolean" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true,
+      "description": "Project settings"
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/agentDefinition"
+      },
+      "description": "Agent definitions"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,117 +1,41 @@
 {
-  "name": "crewx",
-  "version": "0.3.0",
+  "name": "crewx-monorepo",
+  "private": true,
+  "version": "0.0.1-dev.4",
   "license": "Apache-2.0",
-  "description": "Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
-  "main": "dist/main.js",
-  "module": "dist/main.js",
-  "bin": {
-    "crewx": "dist/main.js"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/main.js",
-      "require": "./dist/main.js"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "crewx.yaml",
-    "docs",
-    "templates"
+  "description": "CrewX monorepo workspace",
+  "workspaces": [
+    "packages/*"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/sowonlabs/crewx"
-  },
-  "homepage": "https://github.com/sowonlabs/crewx",
-  "bugs": {
-    "url": "https://github.com/sowonlabs/crewx/issues"
-  },
-  "author": "SowonLabs",
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
-    "build": "nest build",
-    "postbuild": "node -e \"const fs = require('fs'); let content = fs.readFileSync('dist/main.js', 'utf8'); const lines = content.split('\\n'); if (lines[0] === '#!/usr/bin/env node' && lines[1] === '#!/usr/bin/env node') { lines.shift(); content = lines.join('\\n'); fs.writeFileSync('dist/main.js', content); console.log('✅ Removed duplicate shebang'); } else if (!content.startsWith('#!/usr/bin/env node')) { fs.writeFileSync('dist/main.js', '#!/usr/bin/env node\\n' + content); console.log('✅ Added shebang to dist/main.js'); } else { console.log('✅ Shebang already present'); } fs.chmodSync('dist/main.js', 0o755); console.log('✅ Execute permission set');\"",
-    "postinstall": "node -e \"const fs = require('fs'); const path = require('path'); const binPath = path.join(__dirname, 'dist', 'main.js'); try { if (fs.existsSync(binPath)) { fs.chmodSync(binPath, 0o755); console.log('✅ Execute permission set for crewx binary'); } } catch (err) { /* Silently ignore permission errors */ }\"",
-    "build:install": "npm run build && npm install -g .",
-    "start": "node dist/main.js",
-    "start:mcp": "node dist/main.js mcp",
-    "start:slack": "caffeinate -i dotenv -e .env.slack -- node dist/main.js slack --log --agent crewx_glm_dev",
-    "dev": "dotenv -e .env.test -- nest start --watch -- --log",
-    "dev:install": "ts-node src/main.ts --install --log",
-    "debug": "dotenv -e .env.test -- nest start --debug --watch -- --log --protocol HTTP",
-    "inspector": "npx @modelcontextprotocol/inspector --config inspector.config.json --server crewx",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui",
-    "cli": "npm run build && node dist/main.js",
-    "cli:help": "npm run build && node dist/main.js",
-    "cli:init": "npm run build && node dist/main.js init",
-    "cli:doctor": "npm run build && node dist/main.js doctor",
-    "cli:query": "npm run build && node dist/main.js query",
-    "cli:execute": "npm run build && node dist/main.js execute",
-    "mcp": "npm run build && node dist/main.js mcp",
-    "mcp:log": "npm run build && node dist/main.js mcp --log",
-    "prepack": "npm run build"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
-    "@slack/bolt": "^4.4.0",
-    "@slack/web-api": "^7.10.0",
-    "@sowonai/nestjs-mcp-adapter": "^0.1.3",
-    "@types/js-yaml": "^4.0.9",
-    "@types/mdast": "^4.0.4",
-    "@types/unist": "^3.0.3",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "chalk": "^4.1.2",
-    "execa": "^8.0.1",
-    "fast-glob": "^3.3.0",
-    "handlebars": "^4.7.8",
-    "ignore": "^5.2.0",
-    "js-yaml": "^4.1.0",
-    "md-to-slack": "^1.0.0",
-    "reflect-metadata": "^0.1.13",
-    "remark-parse": "^11.0.0",
-    "remark-stringify": "^11.0.0",
-    "rxjs": "^7.8.0",
-    "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0",
-    "yargs": "^17.7.0",
-    "zod": "^3.22.0"
+    "build": "npm run build:sdk && npm run build:cli",
+    "build:cli": "npm run build --workspace @sowonai/crewx-cli",
+    "build:sdk": "npm run build --workspace @sowonai/crewx-sdk",
+    "start:slack": "caffeinate -i dotenv -e .env.slack -- node packages/cli/dist/main.js slack --log --agent crewx_glm_dev",
+    "dev:cli": "npm run dev --workspace @sowonai/crewx-cli",
+    "test": "npm run test --workspaces",
+    "test:cli": "npm run test --workspace @sowonai/crewx-cli",
+    "test:sdk": "npm run test --workspace @sowonai/crewx-sdk",
+    "test:unit": "npm run test:unit --workspaces",
+    "test:integration": "npm run test:integration --workspaces",
+    "test:coverage": "node ./scripts/run-coverage.mjs packages/cli packages/sdk",
+    "test:ci": "npm run test:unit --workspaces && npm run test:integration --workspaces --if-present && npm run test:coverage",
+    "lint": "npm run lint --workspaces",
+    "lint:cli": "npm run lint --workspace @sowonai/crewx-cli",
+    "lint:sdk": "npm run lint --workspace @sowonai/crewx-sdk",
+    "clean": "rimraf node_modules \"packages/*/node_modules\"",
+    "bump:dev": "node ./scripts/dev-bump.mjs",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "npm run build && npm run test && changeset publish",
+    "prerelease": "npm run build && npm run test"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.0",
-    "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
-    "@types/ajv": "^0.0.5",
-    "@types/express": "^5.0.3",
-    "@types/node": "^20.19.19",
-    "@types/yargs": "^17.0.0",
-    "@vitest/ui": "^1.0.0",
-    "dotenv-cli": "^6.0.0",
-    "ts-loader": "^9.0.0",
-    "ts-node": "^10.0.0",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "@changesets/cli": "^2.27.1",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
+    "rimraf": "^5.0.5"
   },
-  "keywords": [
-    "crewx",
-    "claude",
-    "gemini",
-    "copilot",
-    "mcp",
-    "ai",
-    "model-context-protocol",
-    "multi-agent",
-    "ai-collaboration"
-  ]
+  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748"
 }

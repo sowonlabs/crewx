@@ -1,10 +1,17 @@
 /dist
+/packages/*/dist
+/packages/cli/templates/
 /node_modules
 **/package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+packages/**/pnpm-lock.yaml
+packages/**/pnpm-workspace.yaml
 sowonai-*.tgz
 credentials.json
 .env*
 !.env.example
+*.tsbuildinfo
 # Code CLI logs
 .crewx/
 .crewcode/
@@ -21,3 +28,4 @@ worktree/
 .claude/settings.local.json
 .aider*
 .obsidian/
+**/node_modules

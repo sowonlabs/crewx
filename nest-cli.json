@@ -6,6 +6,8 @@
     "deleteOutDir": true,
     "assets": [
       "templates/**/*"
-    ]
+    ],
+    "webpack": false,
+    "tsConfigPath": "tsconfig.json"
   }
 }
