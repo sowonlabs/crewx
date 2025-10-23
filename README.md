@@ -1,6 +1,10 @@
-# SowonAI CrewX
+<div align="center">
+  <img src="images/crewx_logo_256x256.png" alt="CrewX Logo" width="200"/>
 
-> Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions
+  # SowonAI CrewX
+
+  > Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions
+</div>
 
 Transform Claude, Gemini, Codex and Copilot into a collaborative development team. No extra costs—just your existing AI subscriptions working together.
 
