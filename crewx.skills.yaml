@@ -1,0 +1,93 @@
+# CrewX Skills Testing Configuration
+# This file contains agents specifically for testing CrewX skills across different AI providers
+
+skills:
+  paths:
+    - ./skills
+  autoload: true
+  include:
+    - hello
+
+agents:
+  - id: "skill_tester_claude"
+    name: "Skill Test Agent (Claude)"
+    role: "tester"
+    team: "Skills Testing"
+    description: "Agent for testing CrewX skills with Claude"
+    provider: "cli/claude"
+    working_directory: "."
+    skills:
+      include:
+        - hello
+    inline:
+      type: "agent"
+      prompt: |
+        You are a skill testing agent. Your job is to demonstrate and test CrewX skills.
+        When asked to test a skill, read the skill documentation and follow its instructions exactly.
+
+  - id: "skill_tester_gemini"
+    name: "Skill Test Agent (Gemini)"
+    role: "tester"
+    team: "Skills Testing"
+    description: "Agent for testing CrewX skills with Gemini"
+    provider: "cli/gemini"
+    working_directory: "."
+    skills:
+      include:
+        - hello
+    inline:
+      type: "agent"
+      prompt: |
+        You are a skill testing agent. Your job is to demonstrate and test CrewX skills.
+        When asked to test a skill, read the skill documentation and follow its instructions exactly.
+
+  - id: "skill_tester_copilot"
+    name: "Skill Test Agent (Copilot)"
+    role: "tester"
+    team: "Skills Testing"
+    description: "Agent for testing CrewX skills with Copilot"
+    provider: "cli/copilot"
+    working_directory: "."
+    skills:
+      include:
+        - hello
+    inline:
+      type: "agent"
+      prompt: |
+        You are a skill testing agent. Your job is to demonstrate and test CrewX skills.
+        When asked to test a skill, read the skill documentation and follow its instructions exactly.
+
+  - id: "skill_tester_codex"
+    name: "Skill Test Agent (Codex)"
+    role: "tester"
+    team: "Skills Testing"
+    description: "Agent for testing CrewX skills with Codex"
+    provider: "cli/codex"
+    working_directory: "."
+    options:
+      query: ["exec", "--experimental-json"]
+      execute: ["exec", "-s", "workspace-write", "--experimental-json"]
+    skills:
+      include:
+        - hello
+    inline:
+      type: "agent"
+      prompt: |
+        You are a skill testing agent. Your job is to demonstrate and test CrewX skills.
+        When asked to test a skill, read the skill documentation and follow its instructions exactly.
+
+# Usage Examples:
+# Test with Claude:
+#   crewx query "@skill_tester_claude hello 스킬을 사용해서 인사해줘"
+#
+# Test with Gemini:
+#   crewx query "@skill_tester_gemini test the hello skill"
+#
+# Test with Copilot:
+#   crewx query "@skill_tester_copilot demonstrate hello skill"
+#
+# Test with Codex:
+#   crewx query "@skill_tester_codex use hello skill to greet"
+#
+# Test all providers:
+#   crewx query "@skill_tester_claude @skill_tester_gemini @skill_tester_copilot @skill_tester_codex hello 스킬 테스트"
