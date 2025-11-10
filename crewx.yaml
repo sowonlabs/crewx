@@ -8,6 +8,11 @@ settings:
   slack:
     log_conversations: true
 
+# Skills configuration
+skills:
+  paths:
+    - ./skills
+
 layouts:
   crewx_dev_layout: |
     <crewx_system_prompt key="{{vars.security_key}}">

@@ -1,5 +1,15 @@
 # @sowonai/crewx-cli
 
+## 0.5.0
+
+### Patch Changes
+
+- b3e46ce: dev bump
+- 86053fb: wbs9 completed
+- Updated dependencies [b3e46ce]
+- Updated dependencies [86053fb]
+  - @sowonai/crewx-sdk@0.5.0
+
 ## 0.4.0-dev.58
 
 ### Patch Changes

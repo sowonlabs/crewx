@@ -14,13 +14,15 @@ export class SlackBot {
   private defaultAgent: string;
   private botUserId: string | null = null;
   private readonly mode: 'query' | 'execute';
+  private readonly mentionOnly: boolean;
 
   constructor(
     private readonly crewXTool: CrewXTool,
     private readonly configService: ConfigService,
     private readonly aiProviderService: AIProviderService,
     defaultAgent: string = 'claude',
-    mode: 'query' | 'execute' = 'query'
+    mode: 'query' | 'execute' = 'query',
+    mentionOnly: boolean = false
   ) {
     if (mode !== 'query' && mode !== 'execute') {
       throw new Error(`Invalid Slack mode '${mode}'. Supported modes: query, execute.`);
@@ -39,6 +41,7 @@ export class SlackBot {
 
     this.defaultAgent = defaultAgent;
     this.mode = mode;
+    this.mentionOnly = mentionOnly;
     this.formatter = new SlackMessageFormatter();
     this.conversationHistory = new SlackConversationHistoryProvider();
 
@@ -51,6 +54,7 @@ export class SlackBot {
 
     this.logger.log(`🤖 Slack bot initialized with default agent: ${this.defaultAgent}`);
     this.logger.log(`⚙️  Slack bot mode: ${this.mode}`);
+    this.logger.log(`🎯 Mention-only mode: ${this.mentionOnly ? 'enabled (requires @mention)' : 'disabled (auto-respond in threads)'}`);
     this.logger.log(`📋 Built-in providers: ${builtinProviders.join(', ')}`);
     this.logger.log(`📋 Custom agents: ${customAgents.join(', ')}`);
 
@@ -89,6 +93,10 @@ export class SlackBot {
    * - Must be explicitly mentioned OR
    * - Must be the last speaker in the thread (prevents multiple bots responding) OR
    * - No mention present and not in a thread (default agent responds)
+   *
+   * When mentionOnly mode is enabled:
+   * - ONLY responds to explicit @mentions or DMs
+   * - Does NOT auto-respond in threads (even if bot was last speaker)
    */
   private async shouldRespondToMessage(message: any, client: any): Promise<boolean> {
     const botUserId = await this.getBotUserId(client);
@@ -104,6 +112,7 @@ export class SlackBot {
 ⏰ Message TS: ${message.ts}
 🤖 Bot User ID: ${botUserId}
 🎯 Default Agent: ${this.defaultAgent}
+🔒 Mention-only mode: ${this.mentionOnly}
     `);
 
     // 1. Check if bot is explicitly mentioned in this message
@@ -125,7 +134,13 @@ export class SlackBot {
       return true;
     }
 
-    // 4. Check if this is a threaded message where bot was the last speaker
+    // 4. If mention-only mode is enabled, require explicit mention in threads
+    if (this.mentionOnly && message.thread_ts) {
+      this.logger.log(`⏭️  DECISION: Mention-only mode enabled, no mention in thread → SKIP`);
+      return false;
+    }
+
+    // 5. Check if this is a threaded message where bot was the last speaker
     if (message.thread_ts) {
       this.logger.log(`🧵 Thread detected, fetching history...`);
       try {
@@ -205,7 +220,7 @@ export class SlackBot {
       }
     }
 
-    // 5. No mention present - skip in channel to avoid unsolicited replies
+    // 6. No mention present - skip in channel to avoid unsolicited replies
     this.logger.log(`⏭️  DECISION: No mention, no thread → SKIP (channel requires explicit mention)`);
     return false;
   }

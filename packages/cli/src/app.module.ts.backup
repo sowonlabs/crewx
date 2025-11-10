@@ -8,6 +8,10 @@ import { McpController } from './mcp.controller';
 import { CliOptions } from './cli-options';
 import { SERVER_NAME } from '@sowonai/crewx-sdk';
 import { AIProviderService } from './ai-provider.service';
+import { ClaudeProvider } from './providers/claude.provider';
+import { CopilotProvider } from './providers/copilot.provider';
+import { GeminiProvider } from './providers/gemini.provider';
+import { CodexProvider } from './providers/codex.provider';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ParallelProcessingService } from './services/parallel-processing.service';
 import { TaskManagementService } from './services/task-management.service';
@@ -20,6 +24,7 @@ import { InitHandler } from './cli/init.handler';
 import { DoctorHandler } from './cli/doctor.handler';
 import { HelpService } from './services/help.service';
 import { ConfigService } from './services/config.service';
+import { ContextEnhancementService } from './services/context-enhancement.service';
 import { IntelligentCompressionService } from './services/intelligent-compression.service';
 import { ConfigValidatorService } from './services/config-validator.service';
 import { ConversationProviderFactory } from './conversation';
@@ -28,12 +33,6 @@ import { BearerAuthGuard } from './guards/bearer-auth.guard';
 import { HealthController } from './health.controller';
 import { McpClientService } from './services/mcp-client.service';
 import { RemoteAgentService } from './services/remote-agent.service';
-import { ProviderBridgeService } from './services/provider-bridge.service';
-import { SkillLoaderService } from './services/skill-loader.service';
-// SDK Layout Services (WBS-13 Phase 1)
-import { LayoutLoader, LayoutRenderer, PropsValidator } from '@sowonai/crewx-sdk';
-import * as path from 'path';
-import { existsSync } from 'fs';
 
 @Module({})
 export class AppModule {
@@ -56,43 +55,14 @@ export class AppModule {
           provide: 'CLI_OPTIONS',
           useValue: options,
         },
-        // SDK Layout Services (WBS-13 Phase 1)
-        {
-          provide: 'LAYOUT_LOADER',
-          useFactory: () => {
-            // Point to templates/agents directory in the installed package
-            const candidatePaths = [
-              path.join(__dirname, '..', 'templates', 'agents'),
-              path.join(__dirname, '..', '..', '..', 'templates', 'agents'),
-              path.resolve(process.cwd(), 'templates', 'agents'),
-            ];
-
-            const templatesPath = candidatePaths.find(candidate => existsSync(candidate));
-
-            if (!templatesPath) {
-              throw new Error(`CrewX templates directory not found. Checked paths: ${candidatePaths.join(', ')}`);
-            }
-
-            return new LayoutLoader({
-              templatesPath,
-              validationMode: 'lenient',
-              fallbackLayoutId: 'crewx/default'
-            });
-          },
-        },
-        {
-          provide: 'PROPS_VALIDATOR',
-          useFactory: () => new PropsValidator(),
-        },
-        {
-          provide: 'LAYOUT_RENDERER',
-          useFactory: (propsValidator: PropsValidator) => new LayoutRenderer(propsValidator),
-          inject: ['PROPS_VALIDATOR'],
-        },
         AIService,
         ProjectService,
         CrewXTool,
         AIProviderService,
+        ClaudeProvider,
+        CopilotProvider,
+        GeminiProvider,
+        CodexProvider,
         DynamicProviderFactory,
         ParallelProcessingService,
         TaskManagementService,
@@ -101,16 +71,15 @@ export class AppModule {
         DocumentLoaderService,
         ConfigValidatorService,
         // Enhanced Context Services
+        ContextEnhancementService,
         IntelligentCompressionService,
         // Conversation System
         ConversationProviderFactory,
         // Tool System
         ToolCallService,
         AgentLoaderService,
-        SkillLoaderService,
         McpClientService,
         RemoteAgentService,
-        ProviderBridgeService,
         AuthService,
         BearerAuthGuard,
         // CLI Handlers
@@ -120,7 +89,7 @@ export class AppModule {
         ConfigService,
       ],
       controllers: [McpController, HealthController],
-      exports: [AIService, ProjectService, CrewXTool, AIProviderService, ProviderBridgeService],
+      exports: [AIService, ProjectService, CrewXTool, AIProviderService],
     };
   }
 }

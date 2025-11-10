@@ -1,7 +1,6 @@
 # SowonAI CrewX
 
 > Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions
-
 Transform Claude, Gemini, Codex and Copilot into a collaborative development team. No extra costs—just your existing AI subscriptions working together.
 
 ![CrewX usage overview](docs/diagram1.svg)
@@ -58,6 +57,62 @@ agents:
   - id: "local_llama"
     provider: "plugin/ollama"
 ```
+
+### **Claude Skills Compatible** - Reusable AI Expertise
+Share and reuse specialized AI capabilities using Claude Code skills format:
+- **100% Claude Code compatible** - Use existing Claude skills without modification
+- **Agent enhancement** - Add specialized capabilities to any agent
+- **Progressive disclosure** - Skills load metadata first, content on-demand
+- **Cross-agent sharing** - One skill, multiple agents
+- **Simple YAML + Markdown** - Easy to create and maintain
+
+```yaml
+# Enable skills for your agents
+skills:
+  paths:
+    - ./skills                    # Custom skill directories
+  include:
+    - hello                       # Specific skills to load
+    - code-reviewer
+    - api-designer
+
+agents:
+  - id: "senior_dev"
+    provider: "cli/claude"
+    skills:
+      include:
+        - code-reviewer           # Agent-specific skills
+        - api-designer
+    inline:
+      prompt: |
+        You are a senior developer with specialized skills.
+```
+
+**Create a skill** in `skills/hello/SKILL.md`:
+```markdown
+---
+name: hello
+description: Friendly greeting skill
+version: 0.0.1
+---
+
+# Hello Skill
+
+Use this skill to provide friendly greetings.
+
+## Capabilities
+- Generate personalized greetings
+- Demonstrate skill system functionality
+```
+
+**Test across providers**:
+```bash
+# Test with different AI providers
+CREWX_CONFIG=crewx.skills.yaml crewx query "@skill_tester_claude test hello skill"
+CREWX_CONFIG=crewx.skills.yaml crewx query "@skill_tester_gemini test hello skill"
+```
+
+👉 **[Skills Documentation →](./docs/skills.md)** | **[Example Skills →](./skills/)**
 
 ### Other Benefits
 - **No additional costs** - Use existing Claude Pro, Gemini, Codex or GitHub Copilot subscriptions

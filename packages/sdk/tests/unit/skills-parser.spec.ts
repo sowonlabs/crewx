@@ -27,7 +27,7 @@ describe('parseCrewxConfig', () => {
 
   it('should parse valid crewx.yaml with skills configuration', () => {
     const yaml = `
-skillsPaths:
+skills_paths:
   - "./skills"
   - "../shared-skills"
 
@@ -49,7 +49,7 @@ agents:
 
     const config = parseCrewxConfig(yaml);
 
-    expect(config.skillsPaths).toEqual(['./skills', '../shared-skills']);
+    expect(config.skills_paths).toEqual(['./skills', '../shared-skills']);
     expect(config.skills?.include).toEqual(['code-formatter', 'git-commit-generator']);
     expect(config.skills?.exclude).toEqual(['deprecated-skill']);
     expect(config.skills?.autoload).toBe(true);
@@ -70,7 +70,7 @@ agents:
     expect(config.agents).toHaveLength(1);
     expect(config.agents?.[0].id).toBe('basic_agent');
     expect(config.skills).toBeUndefined();
-    expect(config.skillsPaths).toBeUndefined();
+    expect(config.skills_paths).toBeUndefined();
   });
 
   it('should parse layouts and documents', () => {
@@ -126,28 +126,28 @@ invalid yaml: [1, 2
     expect(() => parseCrewxConfig(yaml)).toThrow(SkillLoadError);
   });
 
-  it('should handle invalid skillsPaths in strict mode', () => {
+  it('should handle invalid skills_paths in strict mode', () => {
     const yaml = `
-skillsPaths: "not an array"
+skills_paths: "not an array"
 agents: []
 `;
 
     expect(() => parseCrewxConfig(yaml, { validationMode: 'strict' })).toThrow(SkillLoadError);
   });
 
-  it('should handle invalid skillsPaths in lenient mode', () => {
+  it('should handle invalid skills_paths in lenient mode', () => {
     const yaml = `
-skillsPaths: "not an array"
+skills_paths: "not an array"
 agents: []
 `;
 
     const config = parseCrewxConfig(yaml, { validationMode: 'lenient' });
-    expect(config.skillsPaths).toBeUndefined();
+    expect(config.skills_paths).toBeUndefined();
   });
 
-  it('should filter non-string entries in skillsPaths array', () => {
+  it('should filter non-string entries in skills_paths array', () => {
     const yaml = `
-skillsPaths:
+skills_paths:
   - "./valid-path"
   - 123
   - true
@@ -155,7 +155,7 @@ skillsPaths:
 `;
 
     const config = parseCrewxConfig(yaml);
-    expect(config.skillsPaths).toEqual(['./valid-path', './another-valid']);
+    expect(config.skills_paths).toEqual(['./valid-path', './another-valid']);
   });
 
   it('should parse agent skills configuration', () => {
@@ -624,7 +624,7 @@ agents:
 describe('Validation modes', () => {
   it('should throw errors in strict mode', () => {
     const yaml = `
-skillsPaths: "invalid"
+skills_paths: "invalid"
 `;
 
     expect(() => parseCrewxConfig(yaml, { validationMode: 'strict' })).toThrow(SkillLoadError);
@@ -632,7 +632,7 @@ skillsPaths: "invalid"
 
   it('should not throw errors in lenient mode', () => {
     const yaml = `
-skillsPaths: "invalid"
+skills_paths: "invalid"
 agents: []
 `;
 

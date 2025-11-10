@@ -17,6 +17,7 @@ import { ToolCallService } from './services/tool-call.service';
 import { AgentLoaderService } from './services/agent-loader.service';
 import { RemoteAgentService } from './services/remote-agent.service';
 import { ProviderBridgeService, type ProviderBridgeAgentRuntime } from './services/provider-bridge.service';
+import { SkillLoaderService } from './services/skill-loader.service';
 
 @Injectable()
 export class CrewXTool implements OnModuleInit {
@@ -122,6 +123,7 @@ export class CrewXTool implements OnModuleInit {
     private readonly agentLoaderService: AgentLoaderService,
     private readonly remoteAgentService: RemoteAgentService,
     private readonly providerBridgeService: ProviderBridgeService,
+    private readonly skillLoaderService: SkillLoaderService,
     @Inject('LAYOUT_LOADER') private readonly layoutLoader: LayoutLoader,
     @Inject('LAYOUT_RENDERER') private readonly layoutRenderer: LayoutRenderer,
   ) {}
@@ -211,6 +213,9 @@ export class CrewXTool implements OnModuleInit {
           }
         }
 
+        // Load skills for the agent
+        const agentSkills = await this.skillLoaderService.loadAgentSkills(agent.skills);
+
         const renderContext: RenderContext & Record<string, any> = {
           user_input: templateContext.user_input, // User query for layout rendering
           agent: {
@@ -237,6 +242,7 @@ export class CrewXTool implements OnModuleInit {
             documents: agent.inline && 'documents' in agent.inline ? agent.inline.documents : undefined,
           },
           documents: documentsForTemplate,
+          skills: agentSkills,
           vars: templateContext.vars || {},
           props: layoutProps ?? {},
           messages: templateContext.messages || [],

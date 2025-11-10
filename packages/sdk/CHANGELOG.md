@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+### Patch Changes
+
+- b3e46ce: dev bump
+- 86053fb: wbs9 completed
+
 ## 0.1.0-dev.43
 
 ### Patch Changes
