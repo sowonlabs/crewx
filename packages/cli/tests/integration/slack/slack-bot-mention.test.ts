@@ -18,12 +18,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 /**
  * Helper class to simulate shouldRespondToMessage logic
- * This mirrors the actual implementation in src/slack/slack-bot.ts:78-127
+ * This mirrors the actual implementation in src/slack/slack-bot.ts:91-226
  */
 class MentionLogicSimulator {
   constructor(
     private botUserId: string,
-    private defaultAgent: string
+    private defaultAgent: string,
+    private mentionOnly: boolean = false
   ) {}
 
   /**
@@ -48,7 +49,12 @@ class MentionLogicSimulator {
       return true; // ✅ Always respond to DMs
     }
 
-    // 4. Check if in thread and bot was last speaker
+    // 4. If mention-only mode is enabled, require explicit mention in threads
+    if (this.mentionOnly && message.thread_ts) {
+      return false; // ⏭️ Mention-only mode: skip thread messages without mention
+    }
+
+    // 5. Check if in thread and bot was last speaker
     if (message.thread_ts) {
       // Find last bot message with metadata (support both event types)
       const lastBotMessage = [...threadHistory]
@@ -82,7 +88,7 @@ class MentionLogicSimulator {
       return true; // ✅ Default agent joins thread
     }
 
-    // 5. No mention present - skip in channel (require explicit mention)
+    // 6. No mention present - skip in channel (require explicit mention)
     return false; // ⏭️ Channel messages need mention
   }
 }
@@ -296,6 +302,65 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
 
       expect(shouldRespond).toBe(true); // ✅ Fallback to participation check
+    });
+  });
+
+  describe('Mention-Only Mode', () => {
+    let mentionOnlySimulator: MentionLogicSimulator;
+
+    beforeEach(() => {
+      // Create simulator with mention-only mode enabled
+      mentionOnlySimulator = new MentionLogicSimulator(BOT_CLAUDE_ID, 'claude', true);
+    });
+
+    it('should respond to explicit mentions in threads (mention-only mode)', () => {
+      const message = createMessage(`<@${BOT_CLAUDE_ID}> hello`, 'U_USER_1', '1000.001', '1000.002');
+      const threadHistory = [
+        createMessage('first message', 'U_USER_1', undefined, '1000.001'),
+        message,
+      ];
+
+      const shouldRespond = mentionOnlySimulator.shouldRespond(message, threadHistory);
+
+      expect(shouldRespond).toBe(true); // ✅ Explicit mention works
+    });
+
+    it('should NOT respond to thread messages without mention (mention-only mode)', () => {
+      const message = createMessage('tell me more', 'U_USER_1', '1000.001', '1000.003');
+      const threadHistory = [
+        createMessage(`<@${BOT_CLAUDE_ID}> hello`, 'U_USER_1', undefined, '1000.001'),
+        createBotMessage('Hi! How can I help?', 'claude', '1000.002'),
+        message, // No mention
+      ];
+
+      const shouldRespond = mentionOnlySimulator.shouldRespond(message, threadHistory);
+
+      expect(shouldRespond).toBe(false); // ⏭️ Requires mention in mention-only mode
+    });
+
+    it('should still respond to DMs (mention-only mode)', () => {
+      const dmMessage = createMessage('hello', 'U_USER_1');
+      dmMessage.channel_type = 'im'; // Direct message
+
+      const threadHistory = [dmMessage];
+      const shouldRespond = mentionOnlySimulator.shouldRespond(dmMessage, threadHistory);
+
+      expect(shouldRespond).toBe(true); // ✅ DMs always work
+    });
+
+    it('should NOT auto-respond even when bot was last speaker (mention-only mode)', () => {
+      const message = createMessage('continue', 'U_USER_1', '1000.001', '1000.004');
+      const threadHistory = [
+        createMessage(`<@${BOT_CLAUDE_ID}> start`, 'U_USER_1', undefined, '1000.001'),
+        createBotMessage('Claude response', 'claude', '1000.002'),
+        createMessage('and then?', 'U_USER_1', '1000.001', '1000.003'),
+        createBotMessage('More from Claude', 'claude', '1000.003'), // Bot was last speaker
+        message, // No mention
+      ];
+
+      const shouldRespond = mentionOnlySimulator.shouldRespond(message, threadHistory);
+
+      expect(shouldRespond).toBe(false); // ⏭️ No auto-response in mention-only mode
     });
   });
 

@@ -34,6 +34,7 @@ export interface CliOptions {
   // Slack options
   slackAgent?: string; // Default agent for Slack bot
   slackMode?: 'query' | 'execute'; // Slack bot execution mode
+  slackMentionOnly?: boolean; // Require explicit @mention in threads (prevents auto-response)
   // MCP-specific options
   http?: boolean;
   key?: string;
@@ -117,6 +118,11 @@ export function parseCliOptions(): CliOptions {
         choices: ['query', 'execute'] as const,
         default: 'query' as const,
         description: 'Slack bot mode: query (read-only) or execute (allow file changes)',
+      });
+      yargs.option('mention-only', {
+        type: 'boolean',
+        default: false,
+        description: 'Require explicit @mention in threads (prevents auto-response to thread messages)',
       });
     })
     .command('log [action]', 'Manage task logs', (yargs) => {
@@ -252,6 +258,7 @@ export function parseCliOptions(): CliOptions {
     // Slack options
     slackAgent: parsed.agent as string,
     slackMode: (parsed.mode as 'query' | 'execute' | undefined) || 'query',
+    slackMentionOnly: parsed['mention-only'] as boolean || false,
     // MCP options
     http: parsed.http as boolean,
     key: resolvedKey,
