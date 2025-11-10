@@ -106,12 +106,12 @@ export function parseCrewxConfig(
   // Build configuration object
   const config: CrewxProjectConfig = {};
 
-  // Extract skillsPaths (project-level skill directories)
-  if (parsed.skillsPaths) {
-    if (Array.isArray(parsed.skillsPaths)) {
-      config.skillsPaths = parsed.skillsPaths.filter((p: any) => typeof p === 'string');
+  // Extract skills_paths (project-level skill directories)
+  if (parsed.skills_paths) {
+    if (Array.isArray(parsed.skills_paths)) {
+      config.skills_paths = parsed.skills_paths.filter((p: any) => typeof p === 'string');
     } else if (opts.validationMode === 'strict') {
-      throw new SkillLoadError('skillsPaths must be an array of strings');
+      throw new SkillLoadError('skills_paths must be an array of strings');
     }
   }
 
@@ -146,7 +146,7 @@ export function parseCrewxConfig(
 
   // Preserve additional fields
   for (const key of Object.keys(parsed)) {
-    if (!['skillsPaths', 'skills', 'layouts', 'documents', 'settings', 'agents'].includes(key)) {
+    if (!['skills_paths', 'skills', 'layouts', 'documents', 'settings', 'agents'].includes(key)) {
       config[key] = parsed[key];
     }
   }

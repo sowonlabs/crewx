@@ -56,6 +56,11 @@
       "type": "object",
       "description": "Skills configuration for agents",
       "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Custom skill directories to search (project-level only)"
+        },
         "include": {
           "type": "array",
           "items": {
@@ -75,7 +80,7 @@
         "autoload": {
           "type": "boolean",
           "default": true,
-          "description": "Auto-load all skills from skillsPaths"
+          "description": "Auto-load all skills from paths"
         }
       },
       "additionalProperties": false
@@ -256,10 +261,10 @@
     }
   },
   "properties": {
-    "skillsPaths": {
+    "skills_paths": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Global skill directories to search (default: Claude Code skills/ directory)"
+      "description": "[DEPRECATED] Use skills.paths instead. Global skill directories to search"
     },
     "skills": {
       "$ref": "#/definitions/skillsConfig",

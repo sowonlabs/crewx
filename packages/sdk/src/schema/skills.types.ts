@@ -76,13 +76,16 @@ export interface SkillDefinition {
  * Skills configuration in CrewX YAML (agent or project level)
  */
 export interface SkillsConfig {
+  /** Custom skill directories to search (project-level only) */
+  paths?: string[];
+
   /** Explicitly include these skills */
   include?: string[];
 
   /** Explicitly exclude these skills */
   exclude?: string[];
 
-  /** Auto-load all skills from skillsPaths (default: true) */
+  /** Auto-load all skills from paths (default: true) */
   autoload?: boolean;
 }
 
@@ -91,8 +94,8 @@ export interface SkillsConfig {
  * Extends existing crewx.yaml structure with skills support
  */
 export interface CrewxProjectConfig {
-  /** Global skill directories to search */
-  skillsPaths?: string[];
+  /** @deprecated Use skills.paths instead */
+  skills_paths?: string[];
 
   /** Project-wide skills configuration */
   skills?: SkillsConfig;

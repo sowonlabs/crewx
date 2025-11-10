@@ -156,7 +156,11 @@ export class ConfigService implements OnModuleInit {
   }
 
   getSkillsPaths(): string[] {
-    return this.projectConfig?.skillsPaths ? [...this.projectConfig.skillsPaths] : [];
+    // Support both new skills.paths and legacy skills_paths (deprecated)
+    const paths = this.projectConfig?.skills?.paths
+      || this.projectConfig?.skills_paths
+      || [];
+    return [...paths];
   }
 
   /**

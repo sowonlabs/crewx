@@ -93,6 +93,22 @@ layouts:
       </document>
       {{/if}}
 
+      {{#if skills.length}}
+      <available_skills>
+        {{#each skills}}
+        <skill name="{{this.metadata.name}}" version="{{this.metadata.version}}">
+          <description>{{{this.metadata.description}}}</description>
+          <file_path>{{{this.filePath}}}</file_path>
+        </skill>
+        {{/each}}
+      </available_skills>
+
+      You have access to the skills listed above. When you need to use a skill:
+      1. Read the skill file using the file_path
+      2. Follow the instructions in the skill document
+      3. Apply the skill's guidance to the user's request
+      {{/if}}
+
       <important>
         **CREWX.md contains user's project information.**
 
@@ -156,7 +172,7 @@ layouts:
   crewx/default: *default_layout
   crewx/minimal: |
     <system_prompt key="{{vars.security_key}}">
-    {{{layout.system_prompt}}}
+    {{{agent.inline.prompt}}}
     </system_prompt>
 
     {{#if user_input}}
