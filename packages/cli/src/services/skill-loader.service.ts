@@ -34,17 +34,18 @@ export class SkillLoaderService {
       return [];
     }
 
-    const { include, exclude, autoload } = skillsConfig;
+    const { include, exclude, autoload = true } = skillsConfig;
 
-    // If no include and autoload is false, return empty
-    if (!include?.length && !autoload) {
+    // If no include and autoload is explicitly false, return empty
+    if (!include?.length && autoload === false) {
       return [];
     }
 
-    const skills: SkillDefinition[] = [];
+    let skills: SkillDefinition[] = [];
 
-    // Load included skills
+    // Load skills based on configuration
     if (include?.length) {
+      // Explicitly included skills
       for (const skillName of include) {
         try {
           const skill = await this.loadSkill(skillName);
@@ -55,11 +56,17 @@ export class SkillLoaderService {
           this.logger.warn(`Failed to load skill "${skillName}": ${error instanceof Error ? error.message : error}`);
         }
       }
+    } else if (autoload) {
+      // Autoload all available skills
+      skills = await this.listAvailableSkills();
+      this.logger.debug(`Autoloaded ${skills.length} skills from paths: ${this.skillsPaths.join(', ')}`);
     }
 
     // Apply exclusions
     if (exclude?.length) {
-      return skills.filter(skill => !exclude.includes(skill.metadata.name));
+      const filtered = skills.filter(skill => !exclude.includes(skill.metadata.name));
+      this.logger.debug(`Excluded ${skills.length - filtered.length} skills: ${exclude.join(', ')}`);
+      return filtered;
     }
 
     return skills;

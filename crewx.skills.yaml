@@ -1,5 +1,18 @@
 # CrewX Skills Testing Configuration
-# This file contains agents specifically for testing CrewX skills across different AI providers
+#
+# This file contains specialized agents for testing CrewX skills across different AI providers.
+# Use this config to verify skills work consistently with Claude, Gemini, Copilot, and Codex.
+#
+# Usage:
+#   CREWX_CONFIG=crewx.skills.yaml crewx query "@skill_tester_claude test hello skill"
+#   CREWX_CONFIG=crewx.skills.yaml crewx query "@skill_tester_gemini test hello skill"
+#
+# Test all providers at once:
+#   CREWX_CONFIG=crewx.skills.yaml crewx query \
+#     "@skill_tester_claude @skill_tester_gemini @skill_tester_copilot @skill_tester_codex \
+#     verify hello skill"
+#
+# Documentation: docs/skills.md
 
 skills:
   paths:
