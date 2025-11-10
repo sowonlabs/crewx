@@ -119,7 +119,8 @@ their own specialization, and get results in parallel.
         'crewx slack',
         'crewx slack --mode execute',
         'crewx slack --agent gemini',
-        'crewx slack --agent copilot'
+        'crewx slack --agent copilot',
+        'crewx slack --mention-only  # Require @mention (prevents auto-responses)'
       ],
     );
 

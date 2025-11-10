@@ -244,11 +244,13 @@ async function runSlackBot() {
     // Get default agent from CLI options (defaults to 'claude')
     const defaultAgent = args.slackAgent || 'claude';
     const mode = args.slackMode || 'query';
+    const mentionOnly = args.slackMentionOnly || false;
     logger.log(`Using default agent for Slack: ${defaultAgent}`);
     logger.log(`Slack bot mode: ${mode}`);
+    logger.log(`Mention-only mode: ${mentionOnly ? 'enabled' : 'disabled'}`);
 
     // Create and start Slack Bot (validates agent exists)
-    const slackBot = new SlackBot(crewXTool, configService, aiProviderService, defaultAgent, mode);
+    const slackBot = new SlackBot(crewXTool, configService, aiProviderService, defaultAgent, mode, mentionOnly);
     await slackBot.start();
 
     // Handle shutdown
