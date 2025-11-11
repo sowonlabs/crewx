@@ -11,7 +11,7 @@
     "build": "npm run build:sdk && npm run build:cli",
     "build:cli": "npm run build --workspace @sowonai/crewx-cli",
     "build:sdk": "npm run build --workspace @sowonai/crewx-sdk",
-    "start:slack": "caffeinate -i dotenv -e .env.slack -- node packages/cli/dist/main.js slack --log --agent crewx_glm_dev",
+    "start:slack": "caffeinate -i dotenv -e .env.slack -- node packages/cli/dist/main.js slack --log --agent crewx_claude_dev",
     "dev:cli": "npm run dev --workspace @sowonai/crewx-cli",
     "test": "npm run test --workspaces",
     "test:cli": "npm run test --workspace @sowonai/crewx-cli",
