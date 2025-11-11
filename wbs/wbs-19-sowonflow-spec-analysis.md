@@ -348,9 +348,9 @@ tools:
     method: POST
     url: https://api.example.com/endpoint
     headers:
-      Authorization: "Bearer ${API_KEY}"
+      Authorization: "Bearer {{env.API_KEY}}"
     body:
-      query: "${input}"
+      query: "{{input}}"
 
 agents:
   - id: agent1
@@ -1508,7 +1508,32 @@ agents:
 - `zod` v3.22.4 - Schema validation
 - `handlebars` v4.7.8 - Template engine
 
-### 11.3 Related Documents
+### 11.3 Key Differences: CrewX vs SowonFlow
+
+**IMPORTANT**: CrewX uses different terminology and structure than SowonFlow:
+
+| Aspect | SowonFlow | CrewX |
+|--------|-----------|-------|
+| **System Prompt Field** | `system_prompt` | `prompt` |
+| **Agent Framework** | LangGraph | Vercel AI SDK |
+| **Tool Interface** | LangChain StructuredTool | Vercel AI SDK tool() |
+| **MCP Configuration** | Programmatic (outside YAML) | YAML-based (mcp_servers section) |
+| **Provider Type** | `model: "openai/gpt-4o"` | `provider: "api/openai-compatible"` |
+
+**Example CrewX YAML**:
+```yaml
+agents:
+  - id: research_agent
+    provider: api/openai-compatible
+    gateway: http://localhost:4000
+    model: claude-3-5-sonnet-20241022
+    prompt: "You are a research assistant"  # ← NOT system_prompt!
+    tools:
+      - http_search
+      - github
+```
+
+### 11.4 Related Documents
 
 - **WBS-19 Phase 1:** API Provider Design Architecture
 - **WBS-20:** Base API Provider Interface Implementation

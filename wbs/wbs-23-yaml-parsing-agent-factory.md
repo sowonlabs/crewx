@@ -22,7 +22,7 @@ crewx.yaml에서 API provider 설정 파싱 및 Agent 생성
 ### Phase 2: Config 파서 확장 (1일)
 - ⬜️ `parseAPIProviderConfig()` 함수 구현
 - ⬜️ YAML → `APIProviderConfig` 변환
-- ⬜️ 환경 변수 치환 (`${VAR}` 형식)
+- ⬜️ 환경 변수 치환 (`{{env.VAR}}` 형식)
 - 파일: `packages/sdk/src/config/api-provider-parser.ts`
 
 ### Phase 3: Dynamic Provider Factory 확장 (1일)

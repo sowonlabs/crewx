@@ -104,7 +104,7 @@ mcp_servers:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-slack"]
     env:
-      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      SLACK_BOT_TOKEN: "{{env.SLACK_BOT_TOKEN}}"
 
   github:
     command: npx
@@ -117,7 +117,7 @@ tools:
     endpoint: https://api.company.com/tool
     method: POST
     headers:
-      Authorization: "Bearer ${API_TOKEN}"
+      Authorization: "Bearer {{env.API_TOKEN}}"
 
 # Agent 정의
 agents:
@@ -301,17 +301,66 @@ export const APIProviderConfigSchema = z.object({
 4. `packages/sdk/src/types/api-provider.types.ts` - TypeScript 타입
 5. `packages/sdk/src/schemas/api-provider.schema.ts` - Zod 스키마
 6. `packages/sdk/schema/api-provider-config.json` - JSON Schema
+7. `wbs/wbs-19-design-review-meeting-minutes.md` - 설계 리뷰 회의록 (3 에이전트 리뷰 결과)
 
 ## 최종 완료 조건
 
 - [ ] 4개 Phase 모두 완료
-- [ ] 6개 산출물 모두 생성
+- [ ] 7개 산출물 모두 생성
 - [ ] 아키텍처 다이어그램 승인
 - [ ] YAML 스펙 정의 완료
 - [ ] 타입 시스템 컴파일 성공
 - [ ] 설계 문서 리뷰 완료
 - [ ] @sowonflow_claude_dev 검증 통과
+- [x] 3명 에이전트 최종 리뷰 완료 → [회의록 보기](wbs-19-design-review-meeting-minutes.md)
+
+## 최종 리뷰 결과
+
+### 1차 리뷰 (2025-11-11 오전)
+**3명의 에이전트 리뷰 완료**:
+- [@crewx_claude_dev](wbs-19-design-review-meeting-minutes.md#crewx_claude_dev-technical-architecture): 🟡 YELLOW - 아키텍처 우수, Tool Context 주입 메커니즘 필요
+- [@crewx_codex_dev](wbs-19-design-review-meeting-minutes.md#crewx_codex_dev-code-quality--type-safety): 🔴 RED - 타입 시스템 불일치 발견
+- [@crewx_crush_dev](wbs-19-design-review-meeting-minutes.md#crewx_crush_dev-developer-experience): 🟡 YELLOW - 85% 명확, YAML 문법 통일 필요
+
+**조치 필요 사항**:
+1. 🔴 P0: Tools/MCP 필드 타입 결정 (simple array vs include/exclude)
+2. 🔴 P0: ToolDefinition 타입 정리 (v1 제거, v2 채택)
+3. 🔴 P0: CrewXInstance 인터페이스 추가
+
+### 수정 작업 (2025-11-11 오후)
+**✅ 모든 Critical 이슈 해결**:
+1. ✅ Tools/MCP 필드 → Simple array 채택 (`tools?: string[]`, `mcp?: string[]`)
+2. ✅ ToolDefinition 타입 정리 → v1 제거, FrameworkToolDefinition 추가
+3. ✅ CrewXInstance 인터페이스 추가 (getAgent, runAgent 메서드)
+4. ✅ TypeScript 컴파일 성공 (0 errors)
+
+**수정된 파일**:
+- [packages/sdk/src/types/api-provider.types.ts](../packages/sdk/src/types/api-provider.types.ts)
+- [packages/sdk/src/schemas/api-provider.schema.ts](../packages/sdk/src/schemas/api-provider.schema.ts)
+- [packages/sdk/src/index.ts](../packages/sdk/src/index.ts)
+
+### 2차 리뷰 (2025-11-11 오후)
+**최종 검증 완료**:
+- [@crewx_claude_dev]: 🟡 YELLOW → 경미한 문서화 개선 필요 (P2)
+- [@crewx_codex_dev]: 🔴 RED → 🟢 GREEN (타입 시스템 완전 해결)
+- [@crewx_crush_dev]: 🟡 YELLOW → 🟢 GREEN (YAML 문법 통일 완료)
+
+**상세 보고서**: [WBS-19 최종 상태 보고서](wbs-19-final-status.md)
+
+## 설계 문서
+
+- 📋 [상세 설계 문서](wbs-19-design-document.md)
+- 📝 [1차 리뷰 회의록](wbs-19-design-review-meeting-minutes.md)
+- ✅ [최종 상태 보고서](wbs-19-final-status.md)
+- 🎯 [호환성 원칙](wbs-19-compatibility-principles.md)
 
 ## 다음 단계
 
-WBS-19 완료 후 → **WBS-20 BaseAPIProvider 핵심 구현**
+**WBS-19 완료** → **WBS-20 BaseAPIProvider 핵심 구현**
+
+구현 준비 상태:
+- ✅ 아키텍처 설계 완료
+- ✅ 타입 시스템 완료 (0 compilation errors)
+- ✅ YAML 스펙 정의 완료
+- ✅ SowonFlow 패턴 검증 완료
+- ✅ 호환성 전략 수립 완료

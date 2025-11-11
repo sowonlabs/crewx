@@ -71,6 +71,18 @@ export type {
   ProviderResolutionResult,
 } from './types/provider.types';
 export type {
+  APIProviderConfig,
+  APIProviderType,
+  CrewXInstance,
+  FrameworkToolDefinition,
+  MCPServerConfig,
+  ToolExecutionContext as APIToolExecutionContext,
+} from './types/api-provider.types';
+export {
+  APIProviderConfigSchema,
+  MCPServerConfigSchema,
+} from './schemas/api-provider.schema';
+export type {
   Tool,
   ToolExecutionContext,
   ToolExecutionResult,
