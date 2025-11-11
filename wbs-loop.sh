@@ -238,11 +238,6 @@ echo ""
 echo "Coordinator Agent:"
 echo "  - @coordinator (Phase 단위 병렬 실행)"
 echo ""
-echo "개발 에이전트:"
-echo "  - @crewx_claude_dev (복잡한 작업)"
-echo "  - @crewx_codex_dev (자동화)"
-echo "  - @crewx_glm_dev (단순 작업, 20분 제한)"
-echo ""
 warn_log "⚠️ Coordinator가 자동으로 Phase를 병렬 실행합니다. 시작합니다..."
 
 # 메인 실행
