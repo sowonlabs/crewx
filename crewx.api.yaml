@@ -1,0 +1,17 @@
+# API Provider Configuration
+# Usage: CREWX_CONFIG=crewx.api.yaml crewx q '@api_test Hello'
+#
+# Supported providers: api/openai, api/anthropic, api/google, api/bedrock, api/litellm, api/ollama, api/sowonai
+# Set API key via environment variable (e.g., OPENROUTER_API_KEY, ANTHROPIC_API_KEY, etc.)
+
+agents:
+  - id: api_test
+    name: API Provider Test Agent
+    description: Test agent using API providers (OpenRouter example with free model)
+    role: assistant
+    team: API Test
+    inline:
+      provider: api/openai  # Change to api/anthropic, api/google, etc. as needed
+      url: https://openrouter.ai/api/v1
+      apiKey: "{{env.OPENROUTER_API_KEY}}"
+      model: z-ai/glm-4.5-air:free  # Free model for testing
