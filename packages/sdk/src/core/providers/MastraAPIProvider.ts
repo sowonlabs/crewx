@@ -15,9 +15,9 @@
  */
 
 import { Agent } from '@mastra/core';
-import { openai } from '@ai-sdk/openai';
-import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
+import { openai, createOpenAI } from '@ai-sdk/openai';
+import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.interface';
 import type { APIProviderConfig, ToolExecutionContext, FrameworkToolDefinition } from '../../types/api-provider.types';
 import { MastraToolAdapter } from '../../adapters/MastraToolAdapter';
@@ -45,16 +45,17 @@ export class MastraAPIProvider implements AIProvider {
   private config: APIProviderConfig;
   private tools: FrameworkToolDefinition[] = [];
   private toolContext?: ToolExecutionContext;
-  private modelInstance: any;
 
   constructor(config: APIProviderConfig) {
     this.config = config;
     this.name = config.provider;
-    this.modelInstance = this.createModel(config);
   }
 
   /**
    * Create Vercel AI SDK model instance based on provider type
+   *
+   * Uses createXXX() functions to pass custom configuration (apiKey, baseURL)
+   * instead of relying on environment variables.
    *
    * Supports:
    * - api/openai: OpenAI API
@@ -70,63 +71,19 @@ export class MastraAPIProvider implements AIProvider {
 
     switch (provider) {
       case 'api/openai': {
-        // Set environment variables for OpenAI client
-        const originalKey = process.env.OPENAI_API_KEY;
-        const originalURL = process.env.OPENAI_BASE_URL;
-        if (apiKey) process.env.OPENAI_API_KEY = apiKey;
-        if (url) process.env.OPENAI_BASE_URL = url;
-        const modelInstance = openai(model);
-        // Restore original env vars
-        if (originalKey !== undefined) process.env.OPENAI_API_KEY = originalKey;
-        else delete process.env.OPENAI_API_KEY;
-        if (originalURL !== undefined) process.env.OPENAI_BASE_URL = originalURL;
-        else delete process.env.OPENAI_BASE_URL;
-        return modelInstance;
-      }
-
-      case 'api/anthropic': {
-        const originalKey = process.env.ANTHROPIC_API_KEY;
-        const originalURL = process.env.ANTHROPIC_BASE_URL;
-        if (apiKey) process.env.ANTHROPIC_API_KEY = apiKey;
-        if (url) process.env.ANTHROPIC_BASE_URL = url;
-        const modelInstance = anthropic(model);
-        if (originalKey !== undefined) process.env.ANTHROPIC_API_KEY = originalKey;
-        else delete process.env.ANTHROPIC_API_KEY;
-        if (originalURL !== undefined) process.env.ANTHROPIC_BASE_URL = originalURL;
-        else delete process.env.ANTHROPIC_BASE_URL;
-        return modelInstance;
-      }
-
-      case 'api/google': {
-        const originalKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-        if (apiKey) process.env.GOOGLE_GENERATIVE_AI_API_KEY = apiKey;
-        const modelInstance = google(model);
-        if (originalKey !== undefined) process.env.GOOGLE_GENERATIVE_AI_API_KEY = originalKey;
-        else delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-        return modelInstance;
-      }
-
-      case 'api/bedrock': {
-        // AWS Bedrock uses Anthropic-compatible API
-        const originalKey = process.env.ANTHROPIC_API_KEY;
-        const originalURL = process.env.ANTHROPIC_BASE_URL;
-        if (apiKey) process.env.ANTHROPIC_API_KEY = apiKey;
-        process.env.ANTHROPIC_BASE_URL = url ?? 'https://bedrock-runtime.us-east-1.amazonaws.com';
-        const modelInstance = anthropic(model);
-        if (originalKey !== undefined) process.env.ANTHROPIC_API_KEY = originalKey;
-        else delete process.env.ANTHROPIC_API_KEY;
-        if (originalURL !== undefined) process.env.ANTHROPIC_BASE_URL = originalURL;
-        else delete process.env.ANTHROPIC_BASE_URL;
-        return modelInstance;
+        if (apiKey && url) {
+          const customOpenAI = createOpenAI({ apiKey, baseURL: url });
+          return customOpenAI(model);
+        } else if (apiKey) {
+          const customOpenAI = createOpenAI({ apiKey });
+          return customOpenAI(model);
+        }
+        return openai(model);
       }
 
       case 'api/litellm':
       case 'api/ollama':
       case 'api/sowonai': {
-        // All OpenAI-compatible
-        const originalKey = process.env.OPENAI_API_KEY;
-        const originalURL = process.env.OPENAI_BASE_URL;
-
         // Set provider-specific defaults
         let defaultURL = 'http://localhost:4000'; // LiteLLM default
         let defaultKey = 'dummy';
@@ -136,28 +93,47 @@ export class MastraAPIProvider implements AIProvider {
           defaultKey = 'ollama';
         } else if (provider === 'api/sowonai') {
           defaultURL = 'https://api.sowon.ai/v1';
-          defaultKey = process.env.SOWONAI_API_KEY || '';
         }
 
-        if (apiKey) process.env.OPENAI_API_KEY = apiKey;
-        else process.env.OPENAI_API_KEY = defaultKey;
-        if (url) process.env.OPENAI_BASE_URL = url;
-        else process.env.OPENAI_BASE_URL = defaultURL;
+        const customOpenAI = createOpenAI({
+          apiKey: apiKey || defaultKey,
+          baseURL: url || defaultURL,
+        });
+        return customOpenAI(model);
+      }
 
-        const modelInstance = openai(model);
+      case 'api/anthropic': {
+        if (apiKey && url) {
+          const customAnthropic = createAnthropic({ apiKey, baseURL: url });
+          return customAnthropic(model);
+        } else if (apiKey) {
+          const customAnthropic = createAnthropic({ apiKey });
+          return customAnthropic(model);
+        }
+        return anthropic(model);
+      }
 
-        // Restore original env vars
-        if (originalKey !== undefined) process.env.OPENAI_API_KEY = originalKey;
-        else delete process.env.OPENAI_API_KEY;
-        if (originalURL !== undefined) process.env.OPENAI_BASE_URL = originalURL;
-        else delete process.env.OPENAI_BASE_URL;
-        return modelInstance;
+      case 'api/bedrock': {
+        const customAnthropic = createAnthropic({
+          apiKey: apiKey || '',
+          baseURL: url || 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        });
+        return customAnthropic(model);
+      }
+
+      case 'api/google': {
+        if (apiKey) {
+          const customGoogle = createGoogleGenerativeAI({ apiKey });
+          return customGoogle(model);
+        }
+        return google(model);
       }
 
       default:
         throw new Error(`Unsupported provider: ${provider}`);
     }
   }
+
 
   /**
    * Set tools for this agent
@@ -194,10 +170,13 @@ export class MastraAPIProvider implements AIProvider {
         Object.assign(mastraTools, MastraToolAdapter.convertTools(this.tools, this.toolContext));
       }
 
+      // Create model instance with custom configuration
+      const modelInstance = this.createModel(this.config);
+
       // Create Mastra Agent for this query
       const agent = new Agent({
         name: this.config.provider,
-        model: this.modelInstance,
+        model: modelInstance,
         instructions: prompt,
         tools: mastraTools,
       });
@@ -254,6 +233,7 @@ export class MastraAPIProvider implements AIProvider {
       command: `${this.name} (Mastra)`,
       success: true,
       taskId,
+      model: this.config.model,
     };
 
     // Add tool call information if available
