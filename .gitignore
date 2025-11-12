@@ -29,3 +29,4 @@ worktree/
 .aider*
 .obsidian/
 **/node_modules
+/.env.local
