@@ -181,11 +181,27 @@ export class MastraAPIProvider implements AIProvider {
         tools: mastraTools,
       });
 
-      // Call Mastra Agent generate method
-      const result = await agent.generate(prompt);
+      // DEBUG: Log tool registration
+      console.log('[DEBUG] MastraAPIProvider.query - Tool registration complete');
+      console.log('[DEBUG] Number of tools registered:', Object.keys(mastraTools).length);
+      console.log('[DEBUG] Tool names:', Object.keys(mastraTools));
+
+      // Call Mastra Agent generate method (returns full output directly)
+      const fullOutput = await agent.generate(prompt);
+
+      // DEBUG: Log the full output received
+      console.log('[DEBUG] MastraAPIProvider.query - Full output received from generate()');
+      console.log('[DEBUG] fullOutput type:', typeof fullOutput);
+      console.log('[DEBUG] fullOutput keys:', Object.keys(fullOutput || {}));
+      console.log('[DEBUG] fullOutput.text:', fullOutput.text);
+      console.log('[DEBUG] fullOutput.text type:', typeof fullOutput.text);
+      console.log('[DEBUG] fullOutput.text length:', fullOutput.text?.length);
+      console.log('[DEBUG] fullOutput.toolCalls:', fullOutput.toolCalls);
+      console.log('[DEBUG] fullOutput.toolResults:', fullOutput.toolResults);
+      console.log('[DEBUG] Full output JSON:', JSON.stringify(fullOutput, null, 2));
 
       // Transform Mastra response to CrewX AIResponse
-      return this.convertResponse(result, taskId);
+      return this.convertResponse(fullOutput, taskId);
     } catch (error: any) {
       return {
         content: '',
@@ -216,15 +232,23 @@ export class MastraAPIProvider implements AIProvider {
   /**
    * Convert Mastra response to CrewX AIResponse
    *
-   * Transforms Mastra Agent's response format to CrewX's unified format.
+   * Transforms Mastra Agent's full output format to CrewX's unified format.
    *
-   * @param mastraResult - Mastra agent response
+   * @param fullOutput - Mastra getFullOutput() result
    * @param taskId - Task identifier
    * @returns CrewX AIResponse
    */
-  private convertResponse(mastraResult: any, taskId: string): AIResponse {
-    // Extract text content from Mastra response
-    const content = mastraResult.text || '';
+  private convertResponse(fullOutput: any, taskId: string): AIResponse {
+    // DEBUG: Log the full output structure
+    console.log('[DEBUG] convertResponse - Processing fullOutput');
+    console.log('[DEBUG] fullOutput type:', typeof fullOutput);
+    console.log('[DEBUG] fullOutput keys:', Object.keys(fullOutput || {}));
+
+    // Extract text content (should be directly available now)
+    const content = fullOutput.text || '';
+
+    console.log('[DEBUG] convertResponse - Extracted content:', content);
+    console.log('[DEBUG] convertResponse - Content length:', content.length);
 
     // Build AIResponse
     const response: AIResponse = {
@@ -237,14 +261,24 @@ export class MastraAPIProvider implements AIProvider {
     };
 
     // Add tool call information if available
-    if (mastraResult.toolCalls && mastraResult.toolCalls.length > 0) {
-      const toolCall = mastraResult.toolCalls[0]; // First tool call
+    if (fullOutput.toolCalls && fullOutput.toolCalls.length > 0) {
+      console.log('[DEBUG] convertResponse - Tool calls found:', fullOutput.toolCalls.length);
+      const toolCall = fullOutput.toolCalls[0]; // First tool call
+      console.log('[DEBUG] convertResponse - First tool call:', JSON.stringify(toolCall, null, 2));
+
+      // Find corresponding tool result
+      const toolResult = fullOutput.toolResults?.find((r: any) => r.toolCallId === toolCall.toolCallId);
+
       response.toolCall = {
-        toolName: toolCall.name,
-        toolInput: toolCall.input,
-        toolResult: toolCall.result,
+        toolName: toolCall.toolName,
+        toolInput: toolCall.args,
+        toolResult: toolResult?.result,
       };
+    } else {
+      console.log('[DEBUG] convertResponse - No tool calls found');
     }
+
+    console.log('[DEBUG] convertResponse - Final response:', JSON.stringify(response, null, 2));
 
     return response;
   }
