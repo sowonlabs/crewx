@@ -604,28 +604,35 @@ agents:
     platform?: 'slack' | 'cli';
     provider?: string; // NEW: Optional provider specification
   }) {
-    // Generate task ID and start tracking
-    const taskId = this.taskManagementService.createTask({
-      type: 'query',
-      provider: 'claude', // will be determined later
-      prompt: args.query,
-      agentId: args.agentId
-    });
-    const agentDescriptor = args.model ? `${args.agentId} (model: ${args.model})` : args.agentId;
-    this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${agentDescriptor}` });
+    const { agentId, query, context, model, messages, platform } = args;
 
+    // Load agent first to get correct provider
+    let taskId: string;
     try {
-      const { agentId, query, context, model, messages, platform } = args;
+      // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
+      const agents = await this.agentLoaderService.getAllAgents();
+      const agent = agents.find(a => a.id === agentId);
+
+      // Get provider from agent (handle array or string)
+      const agentProvider = agent
+        ? (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude'
+        : 'claude';
+
+      // Generate task ID and start tracking (now with correct provider)
+      taskId = this.taskManagementService.createTask({
+        type: 'query',
+        provider: agentProvider,
+        prompt: query,
+        agentId: agentId
+      });
+      const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
+      this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${agentDescriptor}` });
 
       this.logger.log(`[${taskId}] Querying agent ${agentId}: ${query.substring(0, 50)}...`);
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Query: ${query.substring(0, 100)}...` });
       if (model) {
         this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Model: ${model}` });
       }
-
-      // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
-      const agents = await this.agentLoaderService.getAllAgents();
-      const agent = agents.find(a => a.id === agentId);
 
 
       if (!agent) {
@@ -961,20 +968,25 @@ ${query}
 
     } catch (error) {
       const errorMessage = getErrorMessage(error);
-      this.taskManagementService.addTaskLog(taskId, { level: 'error', message: `Query failed: ${errorMessage}` });
-      this.taskManagementService.completeTask(taskId, { error: errorMessage }, false);
-      
-      this.logger.error(`[${taskId}] Agent query failed for ${args.agentId}:`, errorMessage);
+
+      // Only log to task if taskId was successfully created
+      if (taskId!) {
+        this.taskManagementService.addTaskLog(taskId, { level: 'error', message: `Query failed: ${errorMessage}` });
+        this.taskManagementService.completeTask(taskId, { error: errorMessage }, false);
+        this.logger.error(`[${taskId}] Agent query failed for ${agentId}:`, errorMessage);
+      } else {
+        this.logger.error(`Agent query failed for ${agentId} (no task ID):`, errorMessage);
+      }
+
       return {
         content: [
-          { 
-            type: 'text', 
+          {
+            type: 'text',
             text: `❌ **Agent Query Failed**
 
-**Task ID:** ${taskId}
-**Agent:** ${args.agentId}
+${taskId! ? `**Task ID:** ${taskId}\n` : ''}**Agent:** ${agentId}
 **Error:** ${errorMessage}
-**Query:** ${args.query}
+**Query:** ${query}
 
 Read-Only Mode: No files were modified.`
           }
@@ -1019,28 +1031,35 @@ Read-Only Mode: No files were modified.`
     platform?: 'slack' | 'cli';
     provider?: string; // NEW: Optional provider specification
   }) {
-    // Generate task ID and start tracking
-    const taskId = this.taskManagementService.createTask({
-      type: 'execute',
-      provider: 'claude', // will be determined later
-      prompt: args.task,
-      agentId: args.agentId
-    });
-    const agentDescriptor = args.model ? `${args.agentId} (model: ${args.model})` : args.agentId;
-    this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${agentDescriptor}` });
+    const { agentId, task, projectPath, context, model, messages, platform } = args;
 
+    // Load agent first to get correct provider
+    let taskId: string;
     try {
-      const { agentId, task, projectPath, context, model, messages, platform } = args;
+      // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
+      const agents = await this.agentLoaderService.getAllAgents();
+      const agent = agents.find(a => a.id === agentId);
+
+      // Get provider from agent (handle array or string)
+      const agentProvider = agent
+        ? (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude'
+        : 'claude';
+
+      // Generate task ID and start tracking (now with correct provider)
+      taskId = this.taskManagementService.createTask({
+        type: 'execute',
+        provider: agentProvider,
+        prompt: task,
+        agentId: agentId
+      });
+      const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
+      this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${agentDescriptor}` });
 
       this.logger.log(`[${taskId}] Executing agent ${agentId}: ${task.substring(0, 50)}...`);
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Task: ${task.substring(0, 100)}...` });
       if (model) {
         this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Model: ${model}` });
       }
-
-      // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
-      const agents = await this.agentLoaderService.getAllAgents();
-      const agent = agents.find(a => a.id === agentId);
 
       if (!agent) {
         return {
@@ -1366,10 +1385,16 @@ Task: ${task}
 
     } catch (error) {
       const errorMessage = getErrorMessage(error);
-      this.taskManagementService.addTaskLog(taskId, { level: 'error', message: `Execution failed: ${errorMessage}` });
-      this.taskManagementService.completeTask(taskId, { error: errorMessage }, false);
 
-      this.logger.error(`[${taskId}] Agent execution failed for ${args.agentId}:`, errorMessage);
+      // Only log to task if taskId was successfully created
+      if (taskId!) {
+        this.taskManagementService.addTaskLog(taskId, { level: 'error', message: `Execution failed: ${errorMessage}` });
+        this.taskManagementService.completeTask(taskId, { error: errorMessage }, false);
+        this.logger.error(`[${taskId}] Agent execution failed for ${agentId}:`, errorMessage);
+      } else {
+        this.logger.error(`Agent execution failed for ${agentId} (no task ID):`, errorMessage);
+      }
+
       return {
         content: [
           {
@@ -1379,8 +1404,8 @@ Task: ${task}
         ],
         success: false,
         // Internal metadata (not displayed in Slack, used by parallel execution)
-        taskId: taskId,
-        agent: args.agentId,
+        taskId: taskId!,
+        agent: agentId,
         provider: 'unknown',
         implementation: null,
         error: errorMessage,
