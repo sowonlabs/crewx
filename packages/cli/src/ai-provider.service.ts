@@ -14,6 +14,9 @@ import {
   type RemoteProviderConfig,
   MastraAPIProvider,
   type APIProviderConfig,
+  type APIToolExecutionContext,
+  type FrameworkToolDefinition,
+  readFileTool,
 } from '@sowonai/crewx-sdk';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ConfigService } from './services/config.service';
@@ -127,6 +130,41 @@ export class AIProviderService implements OnModuleInit {
         try {
           // Create MastraAPIProvider instance
           const provider = new MastraAPIProvider(apiConfig);
+
+          // Load tools for this agent
+          const agentConfig = this.configService.getAgentConfig(agentId);
+          const toolsArray = apiConfig.tools || [];
+
+          if (toolsArray.length > 0) {
+            // Build tool list from built-in tools
+            const tools: FrameworkToolDefinition[] = [];
+            for (const toolName of toolsArray) {
+              if (toolName === 'read_file') {
+                tools.push(readFileTool);
+                this.logger.log(`✅ Loaded tool: ${toolName} for agent ${agentId}`);
+              } else {
+                this.logger.warn(`⚠️  Unknown tool: ${toolName} for agent ${agentId}`);
+              }
+            }
+
+            // Create ToolExecutionContext (matches API provider types)
+            const context: APIToolExecutionContext = {
+              agent: {
+                id: agentId,
+                provider: apiConfig.provider,
+                model: apiConfig.model,
+                temperature: apiConfig.temperature,
+                maxTokens: apiConfig.maxTokens,
+              },
+              env: this.configService.getEnvironmentVariables() as Record<string, string>,
+              mode: 'query',
+              platform: 'cli',
+            };
+
+            // Set tools on provider
+            provider.setTools(tools, context);
+            this.logger.log(`✅ Configured ${tools.length} tool(s) for agent ${agentId}`);
+          }
 
           // Create wrapper with agent ID as name
           const wrappedProvider: AIProvider = {

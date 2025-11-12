@@ -40,6 +40,8 @@ export interface RawAgentConfig {
     temperature?: number;
     maxTokens?: number;
     prompt?: string;
+    tools?: string[];
+    mcp?: string[];
   };
 }
 
@@ -155,10 +157,11 @@ export function parseAPIProviderConfig(
     config.maxTokens = maxTokens;
   }
 
-  // Optional: tools (simple array only for API providers)
-  if (rawConfig.tools) {
-    if (Array.isArray(rawConfig.tools)) {
-      config.tools = rawConfig.tools;
+  // Optional: tools (check both top-level and inline.tools)
+  const tools = rawConfig.tools || rawConfig.inline?.tools;
+  if (tools) {
+    if (Array.isArray(tools)) {
+      config.tools = tools;
     } else {
       throw new APIProviderParseError(
         'API provider tools must be a simple array of strings (e.g., tools: [github, slack])',
@@ -166,10 +169,11 @@ export function parseAPIProviderConfig(
     }
   }
 
-  // Optional: mcp (simple array only for API providers)
-  if (rawConfig.mcp) {
-    if (Array.isArray(rawConfig.mcp)) {
-      config.mcp = rawConfig.mcp;
+  // Optional: mcp (check both top-level and inline.mcp)
+  const mcp = rawConfig.mcp || rawConfig.inline?.mcp;
+  if (mcp) {
+    if (Array.isArray(mcp)) {
+      config.mcp = mcp;
     } else {
       throw new APIProviderParseError(
         'API provider mcp must be a simple array of strings (e.g., mcp: [github, slack])',

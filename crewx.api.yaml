@@ -14,4 +14,6 @@ agents:
       provider: api/openai  # Change to api/anthropic, api/google, etc. as needed
       url: https://openrouter.ai/api/v1
       apiKey: "{{env.OPENROUTER_API_KEY}}"
-      model: z-ai/glm-4.5-air:free  # Free model for testing
+      model: openai/gpt-5-mini  # OpenAI GPT-5-mini with tool calling support
+      tools:
+        - read_file
