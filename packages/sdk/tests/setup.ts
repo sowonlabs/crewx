@@ -1,5 +1,10 @@
 import { vi } from 'vitest';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from 'fs';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env.test file for integration tests
+config({ path: resolve(__dirname, '../.env.test') });
 
 // Mock console methods to reduce noise in tests
 // global.console = {
