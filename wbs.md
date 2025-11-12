@@ -10,12 +10,13 @@
 2. [진행 현황](#진행-현황)
 3. [WBS-19: API Provider 설계](#wbs-19-api-provider-설계-및-기획--완료)
 4. [WBS-20: Mastra 통합](#wbs-20-mastra-통합-구현--완료)
-5. [WBS-23: YAML 파싱](#wbs-23-yaml-파싱-및-agent-생성--완료)
-6. [WBS-24: CLI 통합](#wbs-24-cli-통합--완료)
-7. [WBS-26: 문서화](#wbs-26-문서화-및-예제--완료)
-8. [WBS-28: Provider 스펙 설계](#wbs-28-provider-스펙-호환성-설계--진행중)
-9. [WBS-27: Coordinator Loop](#wbs-27-coordinator-loop-개선--보류)
-10. [참고 문서](#참고-문서)
+5. [WBS-21: Tool Calling 구현](#wbs-21-tool-calling-구현--진행중)
+6. [WBS-23: YAML 파싱](#wbs-23-yaml-파싱-및-agent-생성--완료)
+7. [WBS-24: CLI 통합](#wbs-24-cli-통합--완료)
+8. [WBS-26: 문서화](#wbs-26-문서화-및-예제--완료)
+9. [WBS-28: Provider 스펙 설계](#wbs-28-provider-스펙-호환성-설계--진행중)
+10. [WBS-27: Coordinator Loop](#wbs-27-coordinator-loop-개선--보류)
+11. [참고 문서](#참고-문서)
 
 ---
 
@@ -39,7 +40,7 @@
 |------|----|----|-------|------|---------|
 | ✅ | WBS-19 | API Provider 설계 | 아키텍처, YAML 스펙 | 2-3일 | P0 |
 | ✅ | WBS-20 | Mastra 통합 | 7 Providers 구현 | 3일 | P0 |
-| ✅ | ~~WBS-21~~ | ~~Tool Calling~~ | ~~Mastra 제공~~ | 0일 | - |
+| 🟡 | **WBS-21** | **Tool Calling 구현** | **Built-in Tools** | **2-3일** | **P0** |
 | ✅ | ~~WBS-22~~ | ~~MCP 통합~~ | ~~Mastra 제공~~ | 0일 | - |
 | ✅ | WBS-23 | YAML 파싱 | Provider Factory | 2-3일 | P0 |
 | ✅ | WBS-24 | CLI 통합 | CLI 명령어 지원 | 1-2일 | P0 |
@@ -69,6 +70,56 @@
 - MastraToolAdapter
 - 7 Providers 지원 (OpenAI, Anthropic, Google, Bedrock, LiteLLM, Ollama, SowonAI)
 - 36개 E2E 테스트 통과
+
+---
+
+## WBS-21: Tool Calling 구현 (🟡 진행중)
+
+**목표**: Gemini CLI의 Built-in Tools를 CrewX API Provider로 이식
+
+**현재 상태**: Phase 1 진행중 (read_file 부분 구현)
+
+### Phase 1: read_file Tool 이식 (🟡 진행중)
+
+**발견된 문제**: Mastra `createTool()` 형식 필요
+
+**근본 원인**:
+- 현재: Plain object로 tool 정의
+- Mastra 요구: `createTool()` from `@mastra/core/tools` 사용
+
+**주요 차이점**:
+1. Wrapper: `createTool({ ... })` 필요
+2. 필드명 변경:
+   - `name` → `id`
+   - `parameters` → `inputSchema`
+   - `outputSchema` 필수
+3. Execute signature:
+   - 기존: `async (args, context) => {...}`
+   - Mastra: `async ({ context }) => { const { args } = context; ... }`
+
+**작업 항목**:
+- [ ] read-file.tool.ts 수정 (createTool 사용)
+- [ ] MastraToolAdapter 단순화
+- [ ] ai-provider.service.ts 타입 수정
+- [ ] TypeScript 빌드 통과
+- [ ] 실제 GPT-4/Claude로 tool calling 검증
+
+**참고**:
+- Gemini CLI: `/Users/doha/git/gemini-cli/CREWX_MIGRATION_read_file.md`
+- Mastra 공식: https://mastra.ai/docs/agents/using-tools
+- 부분 구현: 커밋 dac8ec6, e3ba86e
+
+### Phase 2: 추가 Tools 이식 (⬜️ 대기)
+- [ ] replace (edit) tool
+- [ ] run_shell_command tool
+- [ ] ls (list_directory) tool
+- [ ] write_file tool
+- [ ] grep (search) tool
+
+### Phase 3: MCP Tools 통합 (⬜️ 대기)
+- [ ] MCP tool 로딩
+- [ ] MCP tool 실행
+- [ ] 테스트 및 검증
 
 ---
 
@@ -140,50 +191,22 @@ agents:
     tools: [file_read, file_write]  # 자동 변환: options.execute로
 ```
 
-### Phase 2: Tool 정의 수정 (🟡 진행중)
-**발견된 문제**: read_file tool이 Mastra `createTool()` 형식이 아님
-
-**근본 원인**:
-- 현재: Plain object로 tool 정의
-- Mastra 요구사항: `createTool()` from `@mastra/core/tools` 사용 필요
-
-**주요 차이점**:
-1. Wrapper: `createTool({ ... })` 필요
-2. 필드명 변경:
-   - `name` → `id`
-   - `parameters` → `inputSchema`
-   - `outputSchema` 필수 추가
-3. Execute signature 변경:
-   - 기존: `async (args, context) => {...}`
-   - Mastra: `async ({ context }) => { const { args } = context; ... }`
-
-**작업 항목**:
-- [ ] read-file.tool.ts 수정 (createTool 사용)
-- [ ] MastraToolAdapter 단순화 (변환 불필요)
-- [ ] ai-provider.service.ts 타입 수정 (any[] 사용)
-- [ ] 테스트 실행 및 확인
-- [ ] 실제 GPT-4/Claude로 tool calling 검증
-
-**참고**:
-- Mastra 공식 예제: https://mastra.ai/docs/agents/using-tools
-- 현재 커밋: dac8ec6 (부분 구현, 미완성)
-
-### Phase 3: 타입 구현 (⬜️ 대기)
+### Phase 2: 타입 구현 (⬜️ 대기)
 - [ ] TypeScript 타입 (Discriminated Union)
 - [ ] Zod 스키마
 - [ ] JSON Schema
 
-### Phase 4: Provider 구현 (⬜️ 대기)
+### Phase 3: Provider 구현 (⬜️ 대기)
 - [ ] MastraAPIProvider 수정
 - [ ] normalizeAPIProviderConfig 함수
 - [ ] 모드별 필터링 로직
 
-### Phase 5: 테스트 (⬜️ 대기)
+### Phase 4: 테스트 (⬜️ 대기)
 - [ ] 단위 테스트 (15+ tests)
 - [ ] 통합 테스트
 - [ ] 레거시 변환 테스트
 
-### Phase 6: 문서화 (⬜️ 대기)
+### Phase 5: 문서화 (⬜️ 대기)
 - [ ] API Provider 가이드 업데이트
 - [ ] 마이그레이션 가이드
 - [ ] 예제 추가
