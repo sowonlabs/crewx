@@ -2,36 +2,48 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://crewx.ai/schemas/api-provider-config.json",
   "title": "CrewX API Provider Configuration",
-  "description": "Schema describing inline API provider configuration blocks plus supporting tool/MCP definitions.",
+  "description": "API provider configuration for CrewX agents (OpenAI, Anthropic, Google, Bedrock, LiteLLM, Ollama, SowonAI)",
   "type": "object",
   "additionalProperties": false,
   "required": ["provider", "model"],
   "properties": {
     "provider": {
       "type": "string",
-      "enum": ["api/openai-compatible", "api/openai", "api/anthropic"],
-      "description": "API provider identifier. Matches SDK APIProviderType."
+      "enum": [
+        "api/openai",
+        "api/anthropic",
+        "api/google",
+        "api/bedrock",
+        "api/litellm",
+        "api/ollama",
+        "api/sowonai"
+      ],
+      "description": "API provider identifier"
     },
-    "gateway": {
+    "url": {
       "type": "string",
       "format": "uri",
-      "description": "LiteLLM or API gateway base URL (e.g., https://litellm.example.com)."
+      "description": "API base URL (e.g., https://api.openai.com/v1, http://localhost:4000)"
+    },
+    "apiKey": {
+      "type": "string",
+      "description": "API key (optional, can use environment variables via {{env.VAR}} template)"
     },
     "model": {
       "type": "string",
-      "description": "Model identifier understood by the upstream provider (e.g., claude-3-5-sonnet-20241022)."
+      "description": "Model identifier understood by the provider (e.g., gpt-4o, claude-3-5-sonnet-20241022)"
     },
     "temperature": {
       "type": "number",
       "minimum": 0,
       "maximum": 2,
       "default": 0.7,
-      "description": "Sampling temperature applied to API calls."
+      "description": "Sampling temperature applied to API calls"
     },
     "maxTokens": {
       "type": "integer",
       "minimum": 1,
-      "description": "Upper bound for completion tokens supplied to the API."
+      "description": "Maximum completion tokens"
     },
     "tools": {
       "type": "array",
@@ -39,99 +51,42 @@
         "type": "string"
       },
       "uniqueItems": true,
-      "description": "Tool identifiers that this agent can invoke. Tools must be defined separately as HTTP or MCP entries."
+      "description": "Tool names to activate (simple array - SowonFlow style)"
+    },
+    "mcp": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "MCP server names to activate (simple array - SowonFlow style)"
     }
   },
   "$defs": {
     "mcpServerConfig": {
       "type": "object",
-      "description": "Process definition for Model Context Protocol servers.",
+      "description": "Model Context Protocol server process definition",
       "required": ["command", "args"],
       "properties": {
         "command": {
           "type": "string",
-          "description": "Executable used to launch the MCP server (e.g., npx)."
+          "description": "Executable to launch the MCP server (e.g., npx, node)"
         },
         "args": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Arguments passed to the command."
+          "description": "Arguments passed to the command"
         },
         "env": {
           "type": "object",
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Environment variables injected when spawning the server."
+          "description": "Environment variables injected when spawning the server (supports {{env.VAR}} template)"
         }
       }
-    },
-    "httpToolDefinition": {
-      "type": "object",
-      "required": ["name", "type", "endpoint"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Unique identifier for the tool."
-        },
-        "type": {
-          "const": "http",
-          "description": "Tool execution type. Local filesystem helpers are not allowed for API providers."
-        },
-        "endpoint": {
-          "type": "string",
-          "format": "uri",
-          "description": "HTTP endpoint invoked when the tool is called."
-        },
-        "method": {
-          "type": "string",
-          "enum": ["GET", "POST"],
-          "description": "HTTP method used for the request (default: POST)."
-        },
-        "headers": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Optional static headers injected into the request."
-        }
-      },
-      "additionalProperties": false
-    },
-    "mcpToolDefinition": {
-      "type": "object",
-      "required": ["name", "type", "mcpServer"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Unique identifier for the tool."
-        },
-        "type": {
-          "const": "mcp",
-          "description": "Marks this tool as an MCP proxy tool."
-        },
-        "mcpServer": {
-          "type": "string",
-          "description": "Key referencing the MCP server entry that hosts the tool."
-        },
-        "headers": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Optional headers passed to the MCP transport (if supported)."
-        }
-      },
-      "additionalProperties": false
-    },
-    "toolDefinition": {
-      "description": "Discriminated union describing HTTP or MCP tool definitions (local file tools are disallowed for API providers).",
-      "oneOf": [
-        { "$ref": "#/$defs/httpToolDefinition" },
-        { "$ref": "#/$defs/mcpToolDefinition" }
-      ]
     }
   }
 }

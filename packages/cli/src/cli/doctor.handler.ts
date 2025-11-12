@@ -191,10 +191,11 @@ export class DoctorHandler {
   }
 
   private async checkAIProviders(): Promise<DiagnosticResult[]> {
-    const providers = ['claude', 'gemini', 'copilot', 'codex'];
+    const cliProviders = ['claude', 'gemini', 'copilot', 'codex'];
     const diagnostics: DiagnosticResult[] = [];
 
-    for (const provider of providers) {
+    // Check CLI providers
+    for (const provider of cliProviders) {
       try {
         const providerInstance = this.aiProviderService.getProvider(`cli/${provider}` as any);
         const isAvailable = providerInstance ? await providerInstance.isAvailable() : false;
@@ -217,7 +218,66 @@ export class DoctorHandler {
       }
     }
 
+    // Check API providers (if configured in crewx.yaml)
+    try {
+      const config = parseCrewxConfigFromFile(join(process.cwd(), 'crewx.yaml'), { validationMode: 'lenient' });
+
+      if (config?.agents) {
+        const apiAgents = config.agents.filter((agent: any) => {
+          const provider = agent.inline?.provider;
+          return typeof provider === 'string' && provider.startsWith('api/');
+        });
+
+        if (apiAgents.length > 0) {
+          diagnostics.push({
+            name: 'API Providers Configuration',
+            status: 'success',
+            message: `Found ${apiAgents.length} API provider agent(s) configured`,
+            details: `API agents: ${apiAgents.map((a: any) => a.id).join(', ')}`
+          });
+
+          // Check if required environment variables are set for API providers
+          const apiProviderTypes = new Set(
+            apiAgents.map((agent: any) => agent.inline?.provider).filter(Boolean)
+          );
+
+          for (const providerType of apiProviderTypes) {
+            const envVarName = this.getAPIKeyEnvVarName(providerType as string);
+            const isConfigured = process.env[envVarName] ? true : false;
+
+            diagnostics.push({
+              name: `${providerType} API Key`,
+              status: isConfigured ? 'success' : 'warning',
+              message: isConfigured ? 'API key configured' : 'API key not configured',
+              details: isConfigured
+                ? `Environment variable ${envVarName} is set`
+                : `Set ${envVarName} environment variable for ${providerType}`
+            });
+          }
+        }
+      }
+    } catch (error) {
+      // Ignore if crewx.yaml doesn't exist or can't be parsed
+      // This is not a critical error for doctor command
+    }
+
     return diagnostics;
+  }
+
+  /**
+   * Get the expected API key environment variable name for a provider
+   */
+  private getAPIKeyEnvVarName(provider: string): string {
+    const mapping: Record<string, string> = {
+      'api/openai': 'OPENAI_API_KEY',
+      'api/anthropic': 'ANTHROPIC_API_KEY',
+      'api/google': 'GOOGLE_API_KEY',
+      'api/bedrock': 'AWS_ACCESS_KEY_ID',
+      'api/litellm': 'LITELLM_API_KEY',
+      'api/ollama': 'OLLAMA_BASE_URL',
+      'api/sowonai': 'SOWONAI_API_KEY',
+    };
+    return mapping[provider] || 'API_KEY';
   }
 
 

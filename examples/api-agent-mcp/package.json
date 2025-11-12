@@ -1,0 +1,15 @@
+{
+  "name": "@crewx/example-api-agent-mcp",
+  "version": "0.1.0",
+  "description": "MCP Integration example for CrewX",
+  "private": true,
+  "scripts": {
+    "start:github": "crewx execute '@github_agent' -c crewx-github.yaml --",
+    "start:slack": "crewx execute '@slack_agent' -c crewx-slack.yaml --",
+    "test:github": "npx -y @modelcontextprotocol/server-github",
+    "test:slack": "npx -y @modelcontextprotocol/server-slack"
+  },
+  "keywords": ["crewx", "mcp", "model-context-protocol", "example"],
+  "author": "CrewX Team",
+  "license": "MIT"
+}

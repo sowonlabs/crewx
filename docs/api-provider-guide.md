@@ -1,0 +1,1978 @@
+# CrewX API Provider User Guide
+
+> **Version**: 0.1.x
+> **Last Updated**: 2025-11-12
+> **For**: Developers and system administrators
+
+This comprehensive guide walks you through using CrewX API Providers, from basic setup to advanced configurations with tool calling and MCP integration.
+
+---
+
+## Table of Contents
+
+1. [Quick Start](#quick-start)
+2. [LiteLLM Gateway Setup](#litellm-gateway-setup)
+3. [YAML Configuration Examples](#yaml-configuration-examples)
+4. [Tool Calling Usage](#tool-calling-usage)
+5. [MCP Server Integration](#mcp-server-integration)
+6. [CLI vs API Provider Comparison](#cli-vs-api-provider-comparison)
+7. [Troubleshooting Guide](#troubleshooting-guide)
+8. [Advanced Topics](#advanced-topics)
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+ installed
+- CrewX CLI installed (`npm install -g crewx`)
+- API keys for your chosen provider
+
+### 5-Minute Setup
+
+**Step 1: Install CrewX**
+
+```bash
+npm install -g crewx
+```
+
+**Step 2: Initialize Project**
+
+```bash
+mkdir my-crewx-project
+cd my-crewx-project
+crewx init
+```
+
+**Step 3: Configure Environment Variables**
+
+Create `.env` file:
+
+```bash
+# For OpenAI
+OPENAI_API_KEY=sk-...
+
+# For Anthropic (Claude)
+ANTHROPIC_API_KEY=sk-ant-...
+
+# For Google AI
+GOOGLE_API_KEY=...
+```
+
+**Step 4: Create crewx.yaml**
+
+```yaml
+agents:
+  - id: my_first_agent
+    name: My First Agent
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.7
+    inline:
+      prompt: |
+        You are a helpful AI assistant.
+```
+
+**Step 5: Test Your Agent**
+
+```bash
+# Query mode (read-only)
+crewx query "@my_first_agent What is the weather like today?"
+
+# Execute mode (can perform actions)
+crewx execute "@my_first_agent Create a summary report"
+```
+
+**Expected Output:**
+
+```
+Agent: my_first_agent
+Provider: api/openai
+Model: gpt-4o
+
+I'd be happy to help you check the weather! However, I don't have
+access to real-time weather data. You would need to provide me with
+a location and I can use weather tools to fetch that information.
+```
+
+### Your First API Agent
+
+Let's create a more practical agent with tool calling:
+
+```yaml
+# crewx.yaml
+agents:
+  - id: research_assistant
+    name: Research Assistant
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.7
+    tools: [web_search, company_info]
+    inline:
+      prompt: |
+        You are a research assistant specialized in finding accurate
+        information about companies and topics.
+
+        When asked about a company or topic:
+        1. Use web_search to find recent information
+        2. Use company_info for detailed company data
+        3. Synthesize the information clearly
+```
+
+**Test it:**
+
+```bash
+crewx execute "@research_assistant Tell me about OpenAI"
+```
+
+---
+
+## LiteLLM Gateway Setup
+
+LiteLLM is a unified gateway that provides a single API for 100+ AI models. It's perfect for:
+
+- **Multi-model switching**: Change models without code changes
+- **Cost optimization**: Route to cheapest provider
+- **Load balancing**: Distribute requests across providers
+- **Monitoring**: Track usage and costs
+
+### Installation
+
+**Option 1: Docker (Recommended)**
+
+```bash
+docker pull ghcr.io/berriai/litellm:latest
+
+# Run with config
+docker run -d \
+  --name litellm \
+  -p 4000:4000 \
+  -v $(pwd)/litellm_config.yaml:/app/config.yaml \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  ghcr.io/berriai/litellm:latest \
+  --config /app/config.yaml
+```
+
+**Option 2: Python**
+
+```bash
+pip install 'litellm[proxy]'
+
+# Run proxy
+litellm --config litellm_config.yaml
+```
+
+### LiteLLM Configuration
+
+Create `litellm_config.yaml`:
+
+```yaml
+model_list:
+  # OpenAI Models
+  - model_name: gpt-4
+    litellm_params:
+      model: openai/gpt-4
+      api_key: ${OPENAI_API_KEY}
+
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: ${OPENAI_API_KEY}
+
+  # Anthropic Models
+  - model_name: claude-3-5-sonnet-20241022
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: ${ANTHROPIC_API_KEY}
+
+  - model_name: claude-3-opus-20240229
+    litellm_params:
+      model: anthropic/claude-3-opus-20240229
+      api_key: ${ANTHROPIC_API_KEY}
+
+  # Google Models
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: google/gemini-1.5-pro
+      api_key: ${GOOGLE_API_KEY}
+
+  # AWS Bedrock
+  - model_name: bedrock-claude
+    litellm_params:
+      model: bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0
+      aws_access_key_id: ${AWS_ACCESS_KEY_ID}
+      aws_secret_access_key: ${AWS_SECRET_ACCESS_KEY}
+      aws_region_name: us-east-1
+
+# Router Settings
+router_settings:
+  routing_strategy: latency-based-routing  # or 'simple-shuffle', 'cost-based'
+  model_group_alias:
+    claude: [claude-3-5-sonnet-20241022, claude-3-opus-20240229]
+    gpt: [gpt-4, gpt-4o]
+
+# General Settings
+general_settings:
+  master_key: sk-1234  # For authentication
+  database_url: postgresql://...  # For logging (optional)
+```
+
+### CrewX + LiteLLM Integration
+
+**crewx.yaml:**
+
+```yaml
+# Environment variables
+vars:
+  litellm_url: http://localhost:4000
+
+agents:
+  - id: claude_agent
+    name: Claude via LiteLLM
+    provider: api/litellm
+    url: "{{vars.litellm_url}}"
+    model: claude-3-5-sonnet-20241022  # Routed by LiteLLM
+    temperature: 0.7
+    inline:
+      prompt: |
+        You are an AI assistant powered by Claude via LiteLLM gateway.
+
+  - id: gpt_agent
+    name: GPT-4 via LiteLLM
+    provider: api/litellm
+    url: "{{vars.litellm_url}}"
+    model: gpt-4o  # Routed by LiteLLM
+    temperature: 0.7
+    inline:
+      prompt: |
+        You are an AI assistant powered by GPT-4 via LiteLLM gateway.
+```
+
+**Test LiteLLM agents:**
+
+```bash
+# Test Claude
+crewx query "@claude_agent Explain quantum computing"
+
+# Test GPT
+crewx query "@gpt_agent Write a haiku about AI"
+```
+
+### Advanced LiteLLM Features
+
+**1. Fallback Configuration**
+
+```yaml
+# litellm_config.yaml
+model_list:
+  - model_name: reliable-model
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: ${ANTHROPIC_API_KEY}
+    model_info:
+      fallbacks: [gpt-4, gemini-1.5-pro]
+```
+
+**2. Load Balancing**
+
+```yaml
+# Multiple instances of same model
+model_list:
+  - model_name: claude
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: ${ANTHROPIC_API_KEY_1}
+
+  - model_name: claude
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: ${ANTHROPIC_API_KEY_2}
+
+router_settings:
+  routing_strategy: simple-shuffle  # Round-robin between instances
+```
+
+**3. Cost-Based Routing**
+
+```yaml
+router_settings:
+  routing_strategy: cost-based-routing
+  model_group_alias:
+    smart:
+      - gpt-3.5-turbo    # Cheapest
+      - gemini-1.5-flash  # Medium
+      - claude-3-haiku    # Fallback
+```
+
+### Monitoring LiteLLM
+
+**Check health:**
+
+```bash
+curl http://localhost:4000/health
+```
+
+**View logs:**
+
+```bash
+# Docker
+docker logs litellm -f
+
+# Python
+tail -f litellm.log
+```
+
+**Dashboard (if enabled):**
+
+Visit: http://localhost:4000/ui
+
+---
+
+## YAML Configuration Examples
+
+### Basic Configurations
+
+**Example 1: Simple OpenAI Agent**
+
+```yaml
+agents:
+  - id: simple_gpt
+    name: Simple GPT Agent
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.7
+    maxTokens: 2000
+    inline:
+      prompt: |
+        You are a helpful AI assistant.
+```
+
+**Example 2: Claude with Lower Temperature**
+
+```yaml
+agents:
+  - id: precise_claude
+    name: Precise Claude
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.0  # Deterministic
+    maxTokens: 4000
+    inline:
+      prompt: |
+        You are a precise code reviewer. Focus on:
+        - Code correctness
+        - Best practices
+        - Security issues
+```
+
+**Example 3: Local Ollama Agent**
+
+```yaml
+agents:
+  - id: local_llama
+    name: Local Llama
+    provider: api/ollama
+    url: http://localhost:11434/v1
+    model: llama3.2
+    temperature: 0.8
+    inline:
+      prompt: |
+        You are a local AI assistant running on Ollama.
+```
+
+### Multi-Agent Configuration
+
+```yaml
+vars:
+  company_name: MyCompany
+  api_version: v2
+
+agents:
+  # Research Agent (Claude)
+  - id: research_agent
+    name: Research Specialist
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.7
+    tools: [web_search, company_info]
+    inline:
+      prompt: |
+        You are a research specialist for {{vars.company_name}}.
+        Use web_search and company_info tools effectively.
+
+  # Coding Agent (GPT-4)
+  - id: coding_agent
+    name: Code Expert
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.0  # Deterministic for code
+    tools: [file_read, file_write, run_tests]
+    inline:
+      prompt: |
+        You are a senior software engineer for {{vars.company_name}}.
+        Write clean, tested, production-ready code.
+
+  # Data Analyst (Gemini)
+  - id: data_analyst
+    name: Data Analyst
+    provider: api/google
+    model: gemini-1.5-pro
+    temperature: 0.5
+    tools: [query_database, generate_chart]
+    inline:
+      prompt: |
+        You are a data analyst for {{vars.company_name}}.
+        Analyze data and create visualizations.
+```
+
+### Environment-Based Configuration
+
+```yaml
+vars:
+  # Different configs per environment
+  api_url: "{{env.NODE_ENV == 'production' ? 'https://api.prod.com' : 'http://localhost:4000'}}"
+  debug_mode: "{{env.DEBUG == 'true'}}"
+
+agents:
+  - id: adaptive_agent
+    name: Adaptive Agent
+    provider: api/litellm
+    url: "{{vars.api_url}}"
+    model: claude-3-5-sonnet-20241022
+    temperature: "{{vars.debug_mode ? 0.0 : 0.7}}"
+    inline:
+      prompt: |
+        You are an adaptive agent.
+        Environment: {{env.NODE_ENV}}
+        Debug Mode: {{vars.debug_mode}}
+```
+
+### Provider-Specific Configurations
+
+**AWS Bedrock:**
+
+```yaml
+agents:
+  - id: bedrock_agent
+    name: AWS Bedrock Claude
+    provider: api/bedrock
+    url: https://bedrock-runtime.us-east-1.amazonaws.com
+    model: anthropic.claude-3-5-sonnet-20241022-v2:0
+    temperature: 0.7
+    inline:
+      prompt: |
+        You are an enterprise AI assistant running on AWS Bedrock.
+```
+
+**Google Gemini:**
+
+```yaml
+agents:
+  - id: gemini_agent
+    name: Google Gemini
+    provider: api/google
+    model: gemini-2.0-flash-exp
+    temperature: 0.9  # Creative
+    maxTokens: 8000
+    inline:
+      prompt: |
+        You are Google's Gemini AI, specialized in analysis and creativity.
+```
+
+### Complex Multi-Tool Configuration
+
+```yaml
+vars:
+  company_name: TechCorp
+  github_org: techcorp
+  slack_team: T123456
+
+mcp_servers:
+  github:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_TOKEN: "{{env.GITHUB_TOKEN}}"
+      GITHUB_OWNER: "{{vars.github_org}}"
+
+  slack:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-slack"]
+    env:
+      SLACK_BOT_TOKEN: "{{env.SLACK_BOT_TOKEN}}"
+      SLACK_TEAM_ID: "{{vars.slack_team}}"
+
+agents:
+  - id: devops_agent
+    name: DevOps Engineer
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.3
+    mcp: [github, slack]
+    tools: [deploy_service, check_logs, alert_team]
+    inline:
+      prompt: |
+        You are a DevOps engineer for {{vars.company_name}}.
+
+        Available tools:
+        - GitHub (via MCP): manage repositories, create issues, review PRs
+        - Slack (via MCP): send notifications, check channels
+        - deploy_service: Deploy services to production
+        - check_logs: Check application logs
+        - alert_team: Alert team about issues
+
+        Always notify team via Slack after critical operations.
+```
+
+### Conditional Tool Activation
+
+```yaml
+vars:
+  production_mode: "{{env.NODE_ENV == 'production'}}"
+
+agents:
+  - id: smart_agent
+    name: Environment-Aware Agent
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.7
+    # Only enable dangerous tools in non-production
+    tools: "{{vars.production_mode ? ['read_only_tool'] : ['read_only_tool', 'write_tool', 'delete_tool']}}"
+    inline:
+      prompt: |
+        Production Mode: {{vars.production_mode}}
+
+        {{#if vars.production_mode}}
+        ⚠️ Running in PRODUCTION - read-only mode
+        {{else}}
+        Running in DEVELOPMENT - full access
+        {{/if}}
+```
+
+---
+
+## Tool Calling Usage
+
+### Overview
+
+CrewX uses **function injection** for tool calling, inspired by SowonFlow. Tools are defined in TypeScript code and injected via the framework API.
+
+### Architecture
+
+```
+User Code (tools defined)
+    ↓
+CrewX Framework (tools injected)
+    ↓
+MastraAPIProvider (tools converted)
+    ↓
+Mastra Agent (tools executed)
+```
+
+### Step 1: Define Tools
+
+Create `tools/weather.tool.ts`:
+
+```typescript
+import { z } from 'zod';
+import { FrameworkToolDefinition } from '@crewx/sdk';
+
+export const weatherTool: FrameworkToolDefinition = {
+  name: 'weather',
+  description: 'Get current weather for a city. Returns temperature, humidity, and conditions.',
+
+  // Zod schema for input validation
+  parameters: z.object({
+    city: z.string().min(1).describe('City name (e.g., "Seoul", "Tokyo")'),
+    units: z.enum(['celsius', 'fahrenheit'])
+      .optional()
+      .default('celsius')
+      .describe('Temperature units'),
+  }),
+
+  // Execute function with context
+  execute: async ({ city, units }, context) => {
+    // Access environment variables
+    const apiKey = context.env.WEATHER_API_KEY;
+    if (!apiKey) {
+      throw new Error('WEATHER_API_KEY not configured');
+    }
+
+    // Log with agent info
+    console.log(`[${context.agent.id}] Weather request for ${city}`);
+
+    // Make API call
+    try {
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${units}&appid=${apiKey}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Weather API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      return {
+        city: data.name,
+        temperature: data.main.temp,
+        humidity: data.main.humidity,
+        conditions: data.weather[0].description,
+        units,
+      };
+    } catch (error) {
+      console.error(`Weather tool error: ${error.message}`);
+      return {
+        error: true,
+        message: `Failed to fetch weather: ${error.message}`
+      };
+    }
+  },
+};
+```
+
+### Step 2: Create More Tools
+
+Create `tools/company.tool.ts`:
+
+```typescript
+import { z } from 'zod';
+import { FrameworkToolDefinition } from '@crewx/sdk';
+
+export const companySearchTool: FrameworkToolDefinition = {
+  name: 'company_search',
+  description: 'Search company database for information about companies.',
+
+  parameters: z.object({
+    query: z.string().describe('Company name or search query'),
+    limit: z.number().int().positive().optional().default(5),
+  }),
+
+  execute: async ({ query, limit }, context) => {
+    // Access custom variables from YAML
+    const apiVersion = context.vars?.apiVersion || 'v1';
+    const companyName = context.vars?.companyName;
+
+    console.log(`[${context.agent.id}] Company search: "${query}"`);
+    console.log(`Using API version: ${apiVersion}`);
+
+    // Audit logging
+    if (context.request) {
+      await logToolUsage({
+        agentId: context.agent.id,
+        toolName: 'company_search',
+        query,
+        timestamp: context.request.timestamp,
+      });
+    }
+
+    // Mock API call
+    const companies = await searchCompanyAPI({
+      query,
+      limit,
+      apiVersion,
+    });
+
+    return {
+      results: companies,
+      count: companies.length,
+      query,
+    };
+  },
+};
+```
+
+### Step 3: Inject Tools
+
+Create `index.ts`:
+
+```typescript
+import { CrewX } from '@crewx/sdk';
+import { weatherTool } from './tools/weather.tool';
+import { companySearchTool } from './tools/company.tool';
+
+// Initialize CrewX with tool injection
+const crewx = new CrewX({
+  configPath: 'crewx.yaml',
+
+  // Function injection: tools defined in TypeScript
+  tools: [
+    weatherTool,
+    companySearchTool,
+    // Add more tools here
+  ],
+});
+
+// Run agent
+async function main() {
+  const response = await crewx.runAgent('research_agent', {
+    input: 'What is the weather in Seoul?',
+  });
+
+  console.log(response.content);
+}
+
+main();
+```
+
+### Step 4: Activate Tools in YAML
+
+```yaml
+# crewx.yaml
+agents:
+  - id: research_agent
+    name: Research Agent
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.7
+    tools: [weather, company_search]  # Activate injected tools
+    inline:
+      prompt: |
+        You are a research agent with access to:
+        - weather: Get weather information
+        - company_search: Search company database
+```
+
+### Step 5: Test Tool Calling
+
+```bash
+# Query with tool calling
+crewx execute "@research_agent What's the weather in Seoul?"
+
+# Expected behavior:
+# 1. Agent receives query
+# 2. Agent calls weather tool with { city: "Seoul" }
+# 3. Tool executes and returns weather data
+# 4. Agent synthesizes response
+```
+
+**Expected Output:**
+
+```
+Agent: research_agent
+Provider: api/openai
+Model: gpt-4o
+
+The current weather in Seoul is 15°C (59°F) with clear skies.
+Humidity is at 60%.
+
+[Tool Calls]
+- weather(city="Seoul", units="celsius")
+  Result: { temperature: 15, conditions: "clear sky", humidity: 60 }
+```
+
+### Advanced Tool Examples
+
+**File Operations Tool:**
+
+```typescript
+import fs from 'fs/promises';
+import { z } from 'zod';
+
+export const fileReadTool: FrameworkToolDefinition = {
+  name: 'file_read',
+  description: 'Read contents of a file',
+
+  parameters: z.object({
+    path: z.string().describe('File path to read'),
+  }),
+
+  execute: async ({ path }, context) => {
+    // Security: Check execution mode
+    if (context.mode !== 'execute' && context.mode !== 'query') {
+      throw new Error('Invalid execution mode');
+    }
+
+    // Security: Validate path
+    if (path.includes('..')) {
+      throw new Error('Invalid path: .. not allowed');
+    }
+
+    try {
+      const content = await fs.readFile(path, 'utf-8');
+      return {
+        path,
+        content,
+        size: content.length,
+      };
+    } catch (error) {
+      return {
+        error: true,
+        message: `Failed to read ${path}: ${error.message}`,
+      };
+    }
+  },
+};
+```
+
+**Database Query Tool:**
+
+```typescript
+import { z } from 'zod';
+
+export const queryDatabaseTool: FrameworkToolDefinition = {
+  name: 'query_database',
+  description: 'Execute SQL query on database',
+
+  parameters: z.object({
+    query: z.string().describe('SQL query (SELECT only)'),
+  }),
+
+  execute: async ({ query }, context) => {
+    // Security: Only allow SELECT queries
+    if (!query.trim().toLowerCase().startsWith('select')) {
+      throw new Error('Only SELECT queries allowed');
+    }
+
+    // Access database connection from context
+    const dbUrl = context.env.DATABASE_URL;
+    if (!dbUrl) {
+      throw new Error('DATABASE_URL not configured');
+    }
+
+    console.log(`[${context.agent.id}] Database query: ${query}`);
+
+    // Execute query (pseudo-code)
+    try {
+      const results = await executeQuery(dbUrl, query);
+      return {
+        rows: results,
+        count: results.length,
+      };
+    } catch (error) {
+      return {
+        error: true,
+        message: `Query failed: ${error.message}`,
+      };
+    }
+  },
+};
+```
+
+**Inter-Agent Communication Tool:**
+
+```typescript
+import { z } from 'zod';
+
+export const agentCallTool: FrameworkToolDefinition = {
+  name: 'agent_call',
+  description: 'Call another agent for specialized tasks',
+
+  parameters: z.object({
+    agentId: z.string().describe('Target agent ID'),
+    input: z.string().describe('Input for the agent'),
+  }),
+
+  execute: async ({ agentId, input }, context) => {
+    // Access CrewX instance from context
+    if (!context.crewx) {
+      throw new Error('CrewX instance not available');
+    }
+
+    console.log(`[${context.agent.id}] Calling agent: ${agentId}`);
+
+    try {
+      // Call another agent
+      const result = await context.crewx.runAgent(agentId, {
+        input,
+        mode: context.mode,
+      });
+
+      return {
+        agentId,
+        success: result.success,
+        content: result.content,
+      };
+    } catch (error) {
+      return {
+        error: true,
+        message: `Agent call failed: ${error.message}`,
+      };
+    }
+  },
+};
+```
+
+### Multi-Step Tool Calling
+
+Agents can call multiple tools in sequence:
+
+```typescript
+// Agent receives: "Get weather in Seoul and translate to Korean"
+//
+// Step 1: Agent calls weather tool
+// Step 2: Agent calls translation tool
+// Step 3: Agent synthesizes final response
+```
+
+**Control max steps:**
+
+```typescript
+const response = await crewx.runAgent('research_agent', {
+  input: 'Complex multi-step task',
+  maxSteps: 10,  // Limit to 10 tool calls
+});
+```
+
+---
+
+## MCP Server Integration
+
+### What is MCP?
+
+Model Context Protocol (MCP) is a standardized protocol for connecting AI models to external tools and data sources. CrewX integrates MCP seamlessly via Mastra.
+
+### MCP Architecture
+
+```
+┌──────────────────┐
+│  CrewX Agent     │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│  MCP Client      │
+└────────┬─────────┘
+         │ (stdio)
+         ▼
+┌──────────────────┐
+│  MCP Server      │  ← GitHub, Slack, Filesystem, etc.
+└──────────────────┘
+```
+
+### Available MCP Servers
+
+**Official MCP Servers:**
+
+- `@modelcontextprotocol/server-github` - GitHub integration
+- `@modelcontextprotocol/server-slack` - Slack integration
+- `@modelcontextprotocol/server-filesystem` - File system access
+- `@modelcontextprotocol/server-postgres` - PostgreSQL database
+- `@modelcontextprotocol/server-google-drive` - Google Drive
+- `@modelcontextprotocol/server-puppeteer` - Browser automation
+
+### Step 1: Configure MCP Servers
+
+**crewx.yaml:**
+
+```yaml
+mcp_servers:
+  # GitHub MCP Server
+  github:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_TOKEN: "{{env.GITHUB_TOKEN}}"
+      GITHUB_OWNER: "myorg"
+
+  # Slack MCP Server
+  slack:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-slack"]
+    env:
+      SLACK_BOT_TOKEN: "{{env.SLACK_BOT_TOKEN}}"
+      SLACK_TEAM_ID: "{{env.SLACK_TEAM_ID}}"
+
+  # Filesystem MCP Server
+  filesystem:
+    command: npx
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-filesystem"
+      - "/workspace"  # Allowed directory
+    env:
+      ALLOWED_DIRS: "/workspace,/tmp"
+
+  # PostgreSQL MCP Server
+  postgres:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-postgres"]
+    env:
+      POSTGRES_URL: "{{env.DATABASE_URL}}"
+```
+
+### Step 2: Activate MCP in Agents
+
+```yaml
+agents:
+  - id: github_agent
+    name: GitHub Manager
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.7
+    mcp: [github]  # Activate GitHub MCP server
+    inline:
+      prompt: |
+        You are a GitHub manager. Use GitHub tools to:
+        - Search repositories
+        - Create issues
+        - Review pull requests
+        - Manage branches
+
+  - id: slack_agent
+    name: Slack Bot
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.7
+    mcp: [slack]  # Activate Slack MCP server
+    inline:
+      prompt: |
+        You are a Slack bot. Use Slack tools to:
+        - Send messages to channels
+        - List channels
+        - Read messages
+        - React to messages
+```
+
+### Step 3: Use MCP Tools
+
+**GitHub Operations:**
+
+```bash
+crewx execute "@github_agent Search for repositories about machine learning"
+
+# Agent uses: github:search_repositories
+```
+
+```bash
+crewx execute "@github_agent Create issue: Bug in authentication module"
+
+# Agent uses: github:create_issue
+```
+
+**Slack Operations:**
+
+```bash
+crewx execute "@slack_agent Send message to #engineering: Deploy completed"
+
+# Agent uses: slack:send_message
+```
+
+### MCP Tool Naming Convention
+
+MCP tools are prefixed with server name:
+
+```
+github:search_repositories
+github:create_issue
+github:get_pull_request
+slack:send_message
+slack:list_channels
+filesystem:read_file
+filesystem:write_file
+postgres:query
+```
+
+### Combining MCP + Injected Tools
+
+```yaml
+mcp_servers:
+  github:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_TOKEN: "{{env.GITHUB_TOKEN}}"
+
+agents:
+  - id: devops_agent
+    name: DevOps Agent
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.5
+    mcp: [github]
+    tools: [deploy_service, check_logs, alert_team]  # Custom tools
+    inline:
+      prompt: |
+        You are a DevOps engineer. Available tools:
+
+        GitHub (MCP):
+        - github:search_repositories
+        - github:create_issue
+
+        Custom:
+        - deploy_service: Deploy to production
+        - check_logs: Check application logs
+        - alert_team: Send alerts
+```
+
+**Usage:**
+
+```typescript
+const response = await crewx.runAgent('devops_agent', {
+  input: 'Deploy the latest changes and create a GitHub issue if deployment fails',
+});
+
+// Agent workflow:
+// 1. Calls deploy_service (custom tool)
+// 2. If failure, calls github:create_issue (MCP tool)
+// 3. Calls alert_team (custom tool)
+```
+
+### Advanced MCP Configuration
+
+**Custom MCP Server:**
+
+```yaml
+mcp_servers:
+  custom_api:
+    command: node
+    args: ["./mcp-servers/custom-api-server.js"]
+    env:
+      API_KEY: "{{env.CUSTOM_API_KEY}}"
+      API_URL: "{{env.CUSTOM_API_URL}}"
+```
+
+**Multiple GitHub Organizations:**
+
+```yaml
+mcp_servers:
+  github_org1:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_TOKEN: "{{env.GITHUB_TOKEN_ORG1}}"
+      GITHUB_OWNER: "org1"
+
+  github_org2:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_TOKEN: "{{env.GITHUB_TOKEN_ORG2}}"
+      GITHUB_OWNER: "org2"
+
+agents:
+  - id: multi_org_agent
+    name: Multi-Org GitHub Agent
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    mcp: [github_org1, github_org2]
+    inline:
+      prompt: |
+        You manage GitHub across multiple organizations:
+        - github_org1:* tools for org1
+        - github_org2:* tools for org2
+```
+
+### MCP Troubleshooting
+
+**Check MCP server status:**
+
+```bash
+# Test GitHub MCP server
+npx -y @modelcontextprotocol/server-github
+
+# Should output available tools
+```
+
+**Debug MCP connection:**
+
+```typescript
+// Enable debug logging
+process.env.DEBUG = 'mcp:*';
+
+const crewx = new CrewX({
+  configPath: 'crewx.yaml',
+  debug: true,
+});
+```
+
+**Common Issues:**
+
+1. **MCP server not starting**
+   - Check command and args are correct
+   - Verify environment variables are set
+   - Test server independently
+
+2. **Tools not available**
+   - Check mcp field in agent config
+   - Verify server name matches mcp_servers key
+   - Check server logs
+
+3. **Authentication errors**
+   - Verify tokens/keys in environment
+   - Check token permissions
+   - Test API access independently
+
+---
+
+## CLI vs API Provider Comparison
+
+### Architectural Differences
+
+**CLI Provider (Spawn-based):**
+
+```
+User → CLI → Spawn Process → Claude CLI/Gemini CLI → AI Model
+```
+
+**API Provider (HTTP-based):**
+
+```
+User → CLI → MastraAPIProvider → Vercel AI SDK → AI Model API
+```
+
+### Feature Comparison
+
+| Feature | CLI Provider | API Provider |
+|---------|-------------|--------------|
+| **Deployment** | Local only | Local + Server |
+| **Tool Calling** | Spawn-based tools | HTTP + Function injection |
+| **Mode Distinction** | query vs execute (spawn flags) | No distinction (same HTTP call) |
+| **Performance** | Slower (process spawn) | Faster (HTTP) |
+| **Streaming** | Yes (stdio) | Yes (HTTP SSE) |
+| **MCP Support** | Limited | Full support |
+| **Multi-model** | Via provider array | Via LiteLLM gateway |
+| **Cost** | Provider cost only | Provider cost + gateway (if used) |
+
+### When to Use CLI Provider
+
+✅ **Use CLI Provider when:**
+
+- Local development with Claude CLI/Gemini CLI/Copilot CLI
+- Need spawn-based tool execution
+- File system operations required
+- IDE integration (MCP mode)
+- Permission-based security model needed
+
+**Example:**
+
+```yaml
+agents:
+  - id: local_claude
+    name: Local Claude CLI
+    provider: cli/claude
+    inline:
+      model: sonnet
+      prompt: |
+        You are a local coding assistant with file system access.
+```
+
+### When to Use API Provider
+
+✅ **Use API Provider when:**
+
+- Server/cloud deployment
+- HTTP-based tool calling
+- Multi-model routing via LiteLLM
+- Need 7+ different providers
+- Advanced tool calling (function injection)
+- MCP server integration
+
+**Example:**
+
+```yaml
+agents:
+  - id: api_claude
+    name: API Claude
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    tools: [web_search, company_info]
+    mcp: [github, slack]
+    inline:
+      prompt: |
+        You are an API-based agent with tool calling and MCP integration.
+```
+
+### Migration Path
+
+**Phase 1: Start with CLI Provider (Local Dev)**
+
+```yaml
+agents:
+  - id: dev_agent
+    provider: cli/claude
+    inline:
+      model: sonnet
+      prompt: |
+        Development agent
+```
+
+**Phase 2: Add API Provider (Parallel Testing)**
+
+```yaml
+agents:
+  - id: dev_agent
+    provider: cli/claude  # Keep for local dev
+    inline:
+      model: sonnet
+      prompt: |
+        Development agent
+
+  - id: prod_agent
+    provider: api/anthropic  # Add for production
+    model: claude-3-5-sonnet-20241022
+    tools: [web_search]
+    inline:
+      prompt: |
+        Production agent
+```
+
+**Phase 3: Full Migration (Production)**
+
+```yaml
+agents:
+  - id: prod_agent
+    provider: api/litellm  # Use LiteLLM gateway
+    url: https://gateway.mycompany.com
+    model: claude-3-5-sonnet-20241022
+    tools: [web_search, company_info]
+    mcp: [github, slack]
+    inline:
+      prompt: |
+        Production agent with full features
+```
+
+### Hybrid Configuration
+
+Use both CLI and API providers together:
+
+```yaml
+agents:
+  # CLI Provider for local file operations
+  - id: file_agent
+    name: File Manager
+    provider: cli/claude
+    inline:
+      model: sonnet
+      prompt: |
+        You manage local files. Use file system tools.
+
+  # API Provider for HTTP-based operations
+  - id: api_agent
+    name: API Agent
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    tools: [web_search, company_info]
+    mcp: [github, slack]
+    inline:
+      prompt: |
+        You handle API calls and external integrations.
+```
+
+**Usage:**
+
+```bash
+# Use file_agent for local operations
+crewx execute "@file_agent Read project files and summarize"
+
+# Use api_agent for API operations
+crewx execute "@api_agent Search GitHub for similar projects"
+```
+
+---
+
+## Troubleshooting Guide
+
+### Common Issues
+
+#### 1. API Key Not Found
+
+**Error:**
+
+```
+Error: Provider api/openai not available - check API key
+```
+
+**Solution:**
+
+```bash
+# Check environment variables
+echo $OPENAI_API_KEY
+
+# Set in .env file
+echo "OPENAI_API_KEY=sk-..." >> .env
+
+# Load .env
+export $(cat .env | xargs)
+
+# Verify with doctor
+crewx doctor
+```
+
+#### 2. Model Not Found
+
+**Error:**
+
+```
+Error: Model 'gpt-5' not found
+```
+
+**Solution:**
+
+Check model name matches provider's supported models:
+
+```yaml
+# ❌ Wrong
+provider: api/openai
+model: gpt-5  # Doesn't exist
+
+# ✅ Correct
+provider: api/openai
+model: gpt-4o  # Valid model
+```
+
+#### 3. Tool Not Available
+
+**Error:**
+
+```
+Agent called tool 'weather' but tool not found
+```
+
+**Solution:**
+
+1. Check tool is injected:
+
+```typescript
+const crewx = new CrewX({
+  configPath: 'crewx.yaml',
+  tools: [weatherTool],  // Must inject tool
+});
+```
+
+2. Check tool is activated in YAML:
+
+```yaml
+agents:
+  - id: my_agent
+    tools: [weather]  # Must activate
+```
+
+#### 4. MCP Server Connection Failed
+
+**Error:**
+
+```
+Error: Failed to connect to MCP server 'github'
+```
+
+**Solution:**
+
+1. Test MCP server independently:
+
+```bash
+npx -y @modelcontextprotocol/server-github
+```
+
+2. Check environment variables:
+
+```bash
+echo $GITHUB_TOKEN
+```
+
+3. Check server configuration:
+
+```yaml
+mcp_servers:
+  github:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_TOKEN: "{{env.GITHUB_TOKEN}}"  # Check this
+```
+
+#### 5. LiteLLM Gateway Not Responding
+
+**Error:**
+
+```
+Error: Connection refused to http://localhost:4000
+```
+
+**Solution:**
+
+1. Check LiteLLM is running:
+
+```bash
+curl http://localhost:4000/health
+```
+
+2. Start LiteLLM:
+
+```bash
+# Docker
+docker start litellm
+
+# Python
+litellm --config litellm_config.yaml
+```
+
+3. Check URL in config:
+
+```yaml
+agents:
+  - id: my_agent
+    provider: api/litellm
+    url: http://localhost:4000  # Verify URL
+```
+
+#### 6. Rate Limit Exceeded
+
+**Error:**
+
+```
+Error: Rate limit exceeded (429)
+```
+
+**Solution:**
+
+1. Add retry logic:
+
+```typescript
+async function queryWithRetry(provider, prompt, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await provider.query(prompt);
+    } catch (error) {
+      if (error.status === 429) {
+        // Wait exponentially
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+```
+
+2. Use LiteLLM for load balancing:
+
+```yaml
+# litellm_config.yaml
+model_list:
+  - model_name: gpt-4
+    litellm_params:
+      model: openai/gpt-4
+      api_key: ${KEY_1}
+
+  - model_name: gpt-4
+    litellm_params:
+      model: openai/gpt-4
+      api_key: ${KEY_2}  # Second key for load balancing
+```
+
+#### 7. Tool Execution Timeout
+
+**Error:**
+
+```
+Error: Tool execution timed out after 30000ms
+```
+
+**Solution:**
+
+1. Increase timeout in tool:
+
+```typescript
+const myTool: FrameworkToolDefinition = {
+  name: 'slow_tool',
+  // ...
+  execute: async (args, context) => {
+    // Add timeout handling
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout')), 60000)
+    );
+
+    return Promise.race([
+      actualOperation(args),
+      timeoutPromise,
+    ]);
+  },
+};
+```
+
+2. Set timeout in query options:
+
+```typescript
+const response = await provider.query(prompt, {
+  timeout: 60000,  // 60 seconds
+});
+```
+
+### Debugging Tips
+
+**1. Enable Debug Logging:**
+
+```bash
+export DEBUG=crewx:*
+crewx query "@my_agent test"
+```
+
+**2. Check Provider Status:**
+
+```bash
+crewx doctor
+```
+
+**Expected Output:**
+
+```
+CrewX System Check
+==================
+
+✅ API Providers:
+  ✅ api/openai (OPENAI_API_KEY found)
+  ✅ api/anthropic (ANTHROPIC_API_KEY found)
+  ❌ api/google (GOOGLE_API_KEY not found)
+
+✅ CLI Providers:
+  ✅ cli/claude (claude CLI found)
+
+✅ Configuration:
+  ✅ crewx.yaml found
+  ✅ 3 agents configured
+  ✅ 2 MCP servers configured
+```
+
+**3. Test Tools Independently:**
+
+```typescript
+// test-tool.ts
+import { weatherTool } from './tools/weather.tool';
+
+async function testTool() {
+  const result = await weatherTool.execute(
+    { city: 'Seoul', units: 'celsius' },
+    {
+      agent: { id: 'test', provider: 'api/openai', model: 'gpt-4' },
+      env: process.env,
+      vars: {},
+    }
+  );
+
+  console.log('Tool result:', result);
+}
+
+testTool();
+```
+
+**4. Validate YAML:**
+
+```bash
+# Check YAML syntax
+crewx config validate
+
+# View parsed config
+crewx config show
+```
+
+**5. Test MCP Servers:**
+
+```bash
+# Test GitHub server
+GITHUB_TOKEN=xxx npx -y @modelcontextprotocol/server-github
+
+# Should list available tools
+```
+
+### Performance Optimization
+
+**1. Reduce Token Usage:**
+
+```yaml
+agents:
+  - id: efficient_agent
+    provider: api/openai
+    model: gpt-4
+    maxTokens: 1000  # Limit response length
+    temperature: 0.3  # More focused
+```
+
+**2. Use Cheaper Models for Simple Tasks:**
+
+```yaml
+# Expensive (complex reasoning)
+- id: architect_agent
+  provider: api/anthropic
+  model: claude-3-opus-20240229  # Most expensive
+
+# Balanced (general tasks)
+- id: general_agent
+  provider: api/anthropic
+  model: claude-3-5-sonnet-20241022  # Recommended
+
+# Cheap (simple tasks)
+- id: simple_agent
+  provider: api/anthropic
+  model: claude-3-haiku-20240307  # Cheapest
+```
+
+**3. Cache Tool Results:**
+
+```typescript
+const cachedTool: FrameworkToolDefinition = {
+  name: 'cached_search',
+  // ...
+  execute: async ({ query }, context) => {
+    const cacheKey = `search:${query}`;
+
+    // Check cache
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // Execute and cache
+    const result = await expensiveSearch(query);
+    await redis.set(cacheKey, JSON.stringify(result), 'EX', 3600);
+
+    return result;
+  },
+};
+```
+
+**4. Limit Tool Calling Steps:**
+
+```typescript
+const response = await provider.query(prompt, {
+  maxSteps: 5,  // Prevent infinite loops
+});
+```
+
+---
+
+## Advanced Topics
+
+### Custom Provider URLs
+
+Override default provider URLs:
+
+```yaml
+agents:
+  # Custom OpenAI-compatible endpoint
+  - id: custom_openai
+    provider: api/openai
+    url: https://my-proxy.com/v1
+    model: gpt-4
+    inline:
+      prompt: |
+        Custom OpenAI endpoint
+
+  # Self-hosted LiteLLM
+  - id: self_hosted_litellm
+    provider: api/litellm
+    url: https://litellm.mycompany.com
+    model: claude-3-5-sonnet-20241022
+```
+
+### Dynamic Configuration
+
+Load configuration at runtime:
+
+```typescript
+import { CrewX } from '@crewx/sdk';
+
+// Load different configs per environment
+const configPath = process.env.NODE_ENV === 'production'
+  ? 'crewx.prod.yaml'
+  : 'crewx.dev.yaml';
+
+const crewx = new CrewX({
+  configPath,
+  tools: [...],
+});
+```
+
+### Security Best Practices
+
+**1. Environment Variable Management:**
+
+```yaml
+# ✅ Good: Use environment variables
+agents:
+  - id: secure_agent
+    provider: api/anthropic
+    # apiKey from ANTHROPIC_API_KEY env var
+
+# ❌ Bad: Hardcode API keys
+agents:
+  - id: insecure_agent
+    provider: api/anthropic
+    apiKey: sk-hardcoded-key  # Never do this!
+```
+
+**2. Tool Input Validation:**
+
+```typescript
+const secureTool: FrameworkToolDefinition = {
+  name: 'secure_file_read',
+  parameters: z.object({
+    path: z.string().refine(
+      (path) => !path.includes('..'),
+      { message: 'Path traversal not allowed' }
+    ),
+  }),
+  execute: async ({ path }, context) => {
+    // Additional security checks
+    if (path.startsWith('/etc/') || path.startsWith('/root/')) {
+      throw new Error('Access denied');
+    }
+
+    return fs.readFile(path, 'utf-8');
+  },
+};
+```
+
+**3. Rate Limiting:**
+
+```typescript
+import { RateLimiter } from 'limiter';
+
+const limiter = new RateLimiter({ tokensPerInterval: 10, interval: 'minute' });
+
+const rateLimitedTool: FrameworkToolDefinition = {
+  name: 'rate_limited_api',
+  // ...
+  execute: async (args, context) => {
+    // Check rate limit
+    const allowed = await limiter.removeTokens(1);
+    if (!allowed) {
+      throw new Error('Rate limit exceeded');
+    }
+
+    return apiCall(args);
+  },
+};
+```
+
+### Multi-Model Strategies
+
+**Strategy 1: Routing by Task Type**
+
+```yaml
+agents:
+  # Coding tasks → GPT-4
+  - id: coder
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.0
+
+  # Writing tasks → Claude
+  - id: writer
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.8
+
+  # Analysis tasks → Gemini
+  - id: analyst
+    provider: api/google
+    model: gemini-1.5-pro
+    temperature: 0.5
+```
+
+**Strategy 2: Cost-Based Routing**
+
+```yaml
+# Route through LiteLLM with cost-based strategy
+agents:
+  - id: cost_optimizer
+    provider: api/litellm
+    url: http://localhost:4000
+    model: smart-router  # LiteLLM router
+```
+
+**litellm_config.yaml:**
+
+```yaml
+router_settings:
+  routing_strategy: cost-based-routing
+  model_group_alias:
+    smart-router:
+      - claude-3-haiku-20240307     # Cheapest first
+      - claude-3-sonnet-20240229     # Medium
+      - claude-3-5-sonnet-20241022  # Fallback
+```
+
+### Monitoring and Logging
+
+**Tool Usage Logging:**
+
+```typescript
+const monitoredTool: FrameworkToolDefinition = {
+  name: 'monitored_tool',
+  // ...
+  execute: async (args, context) => {
+    const startTime = Date.now();
+
+    try {
+      const result = await actualToolExecution(args);
+
+      // Log success
+      await logToolUsage({
+        agentId: context.agent.id,
+        toolName: 'monitored_tool',
+        args,
+        duration: Date.now() - startTime,
+        success: true,
+      });
+
+      return result;
+    } catch (error) {
+      // Log failure
+      await logToolUsage({
+        agentId: context.agent.id,
+        toolName: 'monitored_tool',
+        args,
+        duration: Date.now() - startTime,
+        success: false,
+        error: error.message,
+      });
+
+      throw error;
+    }
+  },
+};
+```
+
+**Agent Call Logging:**
+
+```typescript
+const crewx = new CrewX({
+  configPath: 'crewx.yaml',
+  tools: [...],
+
+  // Hook for logging
+  onAgentCall: async (agentId, input) => {
+    console.log(`[${new Date().toISOString()}] Agent call: ${agentId}`);
+    await logToDatabase({ agentId, input, timestamp: new Date() });
+  },
+
+  onAgentResponse: async (agentId, response) => {
+    console.log(`[${new Date().toISOString()}] Agent response: ${agentId}`);
+    await logToDatabase({ agentId, response, timestamp: new Date() });
+  },
+});
+```
+
+---
+
+## Conclusion
+
+This guide covered the essentials of CrewX API Providers:
+
+- ✅ Quick Start (5 minutes to first agent)
+- ✅ LiteLLM Gateway (unified multi-model interface)
+- ✅ YAML Configuration (flexible, powerful)
+- ✅ Tool Calling (function injection pattern)
+- ✅ MCP Integration (standardized external tools)
+- ✅ CLI vs API Comparison (when to use each)
+- ✅ Troubleshooting (common issues and solutions)
+- ✅ Advanced Topics (security, monitoring, multi-model)
+
+### Next Steps
+
+1. **Read API Reference**: [docs/api-provider-reference.md](./api-provider-reference.md)
+2. **Try Examples**: [examples/](../examples/)
+3. **Migration Guide**: [docs/migration-to-api-provider.md](./migration-to-api-provider.md)
+
+### Support
+
+- GitHub Issues: https://github.com/sowonai/crewx/issues
+- Documentation: https://crewx.dev/docs
+- Community: https://discord.gg/crewx
+
+---
+
+**End of API Provider User Guide**

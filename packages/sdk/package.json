@@ -36,6 +36,8 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
+    "@mastra/core": "^0.24.0",
+    "ai": "^5.0.92",
     "js-yaml": "^4.1.0",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",

@@ -806,7 +806,13 @@ ${query}
       } else if (Array.isArray(agent.provider)) {
         providerInput = await this.getAvailableProvider(agent.provider);
       } else if (typeof agent.provider === 'string' && agent.provider.trim().length > 0) {
-        providerInput = agent.provider;
+        // WBS-24 Phase 3: For API providers, use agent ID as provider key
+        // API providers are registered by agent ID, not by provider type
+        if (agent.provider.startsWith('api/')) {
+          providerInput = agentId; // Use agent ID for API providers
+        } else {
+          providerInput = agent.provider;
+        }
       }
 
       try {
@@ -1206,7 +1212,13 @@ Task: ${task}
       } else if (Array.isArray(agent.provider)) {
         providerInput = await this.getAvailableProvider(agent.provider);
       } else if (typeof agent.provider === 'string' && agent.provider.trim().length > 0) {
-        providerInput = agent.provider;
+        // WBS-24 Phase 3: For API providers, use agent ID as provider key
+        // API providers are registered by agent ID, not by provider type
+        if (agent.provider.startsWith('api/')) {
+          providerInput = agentId; // Use agent ID for API providers
+        } else {
+          providerInput = agent.provider;
+        }
       }
 
       try {

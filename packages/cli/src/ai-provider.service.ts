@@ -12,6 +12,8 @@ import {
   BuiltInProviders,
   type PluginProviderConfig,
   type RemoteProviderConfig,
+  MastraAPIProvider,
+  type APIProviderConfig,
 } from '@sowonai/crewx-sdk';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ConfigService } from './services/config.service';
@@ -43,6 +45,7 @@ export class AIProviderService implements OnModuleInit {
     }
 
     await this.loadPluginProviders();
+    await this.loadAPIProviders(); // WBS-24 Phase 2: Load API providers
   }
 
   private createBuiltInProviders(): BaseAIProvider[] {
@@ -108,11 +111,53 @@ export class AIProviderService implements OnModuleInit {
   }
 
   /**
+   * Load API providers from YAML configuration (WBS-24 Phase 2)
+   * Creates MastraAPIProvider instances for agents configured with API providers
+   */
+  private async loadAPIProviders(): Promise<void> {
+    try {
+      const apiProviderConfigs = this.configService.getAllAPIProviderConfigs();
+
+      if (!apiProviderConfigs || apiProviderConfigs.size === 0) {
+        this.logger.log('No API providers defined in config');
+        return;
+      }
+
+      for (const [agentId, apiConfig] of apiProviderConfigs) {
+        try {
+          // Create MastraAPIProvider instance
+          const provider = new MastraAPIProvider(apiConfig);
+
+          // Create wrapper with agent ID as name
+          const wrappedProvider: AIProvider = {
+            name: agentId, // Use agent ID as provider name
+            isAvailable: provider.isAvailable.bind(provider),
+            query: provider.query.bind(provider),
+            execute: provider.execute.bind(provider),
+            getToolPath: provider.getToolPath?.bind(provider),
+          };
+
+          this.registerProvider(wrappedProvider);
+          this.logger.log(`✅ Registered API provider for agent: ${agentId} (${apiConfig.provider}/${apiConfig.model})`);
+        } catch (error: any) {
+          this.logger.error(
+            `Failed to load API provider for agent '${agentId}': ${error.message}`,
+            error.stack
+          );
+        }
+      }
+    } catch (error: any) {
+      this.logger.error('Failed to load API providers:', error);
+    }
+  }
+
+  /**
    * Reload plugin providers after config change
    * Public method to support --config option
+   * WBS-24 Phase 2: Also reload API providers
    */
   async reloadPluginProviders(): Promise<void> {
-    // Clear existing plugin providers (keep built-in CLI providers)
+    // Clear existing plugin providers and API providers (keep built-in CLI providers)
     for (const [name] of this.providers) {
       if (!this.builtInProviderNames.has(name)) {
         this.providers.delete(name);
@@ -121,6 +166,7 @@ export class AIProviderService implements OnModuleInit {
 
     // Reload from config
     await this.loadPluginProviders();
+    await this.loadAPIProviders(); // WBS-24 Phase 2
   }
 
   private registerProvider(provider: AIProvider): void {

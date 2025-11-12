@@ -1,0 +1,11 @@
+agents:
+  - id: local_llama
+    name: Local Llama
+    provider: api/ollama
+    url: http://localhost:11434/v1
+    model: llama3.2
+    temperature: 0.8
+    inline:
+      prompt: |
+        You are a locally-running AI assistant.
+        No external API calls are made.

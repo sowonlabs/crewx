@@ -14,6 +14,17 @@ export {
 // Configuration
 export type { TimeoutConfig } from './config/timeout.config';
 export { getTimeoutConfig, getDefaultTimeoutConfig } from './config/timeout.config';
+export {
+  parseAPIProviderConfig,
+  parseMCPServers,
+  parseCrewXConfig,
+  validateAPIProviderConfig,
+  substituteEnvVars,
+  APIProviderParseError,
+  type RawAgentConfig,
+  type RawYAMLConfig,
+  type RawMCPServerConfig,
+} from './config/api-provider-parser';
 
 // Conversation contracts
 export type {
@@ -45,6 +56,8 @@ export type {
   AIResponse,
 } from './core/providers/ai-provider.interface';
 export { BaseAIProvider } from './core/providers/base-ai.provider';
+export { MastraAPIProvider } from './core/providers/MastraAPIProvider';
+export { MastraToolAdapter } from './adapters/MastraToolAdapter';
 export {
   ClaudeProvider,
   GeminiProvider,

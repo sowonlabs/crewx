@@ -279,7 +279,7 @@ export class AgentLoaderService {
             name: agent.name || agent.id,
             role: agent.role || 'AI Agent',
             team: agent.team,
-            provider: parsedProvider,
+            provider: parsedProvider as AgentInfo['provider'], // WBS-24: Type cast to support api/* providers
             workingDirectory: agent.working_directory || './',
             capabilities: agent.capabilities || [],
             description: systemPrompt ? this.extractDescription(systemPrompt) : `${agent.name || agent.id} agent`,
@@ -369,7 +369,7 @@ export class AgentLoaderService {
             name: agent.name || agent.id,
             role: agent.role || 'AI Agent',
             team: agent.team,
-            provider: parsedProvider,
+            provider: parsedProvider as AgentInfo['provider'], // WBS-24: Type cast to support api/* providers
             workingDirectory: agent.working_directory || './',
             capabilities: agent.capabilities || [],
             description: systemPrompt ? this.extractDescription(systemPrompt) : `${agent.name || agent.id} agent`,
@@ -602,8 +602,9 @@ export class AgentLoaderService {
   /**
    * Parse provider from agent configuration
    * Supports both single string and array formats
+   * Now supports API providers (api/openai, api/anthropic, etc.) - WBS-24 Phase 2
    */
-  private parseProviderConfig(agent: any): 'claude' | 'gemini' | 'copilot' | 'remote' | ('claude' | 'gemini' | 'copilot')[] {
+  private parseProviderConfig(agent: any): AgentInfo['provider'] {
     if (this.parseRemoteConfig(agent)) {
       return 'remote';
     }
@@ -615,8 +616,9 @@ export class AgentLoaderService {
       // Already an array: use as-is
       return configProvider as ('claude' | 'gemini' | 'copilot')[];
     } else if (typeof configProvider === 'string') {
-      // Single string: use as-is
-      return configProvider as 'claude' | 'gemini' | 'copilot';
+      // WBS-24 Phase 2: Support API providers (api/*)
+      // Return as-is for both CLI providers (claude, gemini, copilot) and API providers (api/*)
+      return configProvider as AgentInfo['provider'];
     } else {
       // No provider specified: default to 'claude'
       return 'claude';
@@ -688,5 +690,33 @@ export class AgentLoaderService {
     }
 
     return 'AI Agent';
+  }
+
+  /**
+   * Check if an agent is configured as an API provider (WBS-24 Phase 2)
+   * @param agentId - Agent ID to check
+   * @returns true if agent uses API provider (api/*), false otherwise
+   */
+  isAPIProvider(agentId: string): boolean {
+    if (!this.configService) {
+      return false;
+    }
+    return this.configService.isAPIProvider(agentId);
+  }
+
+  /**
+   * Check if a provider string is an API provider (WBS-24 Phase 2)
+   * @param provider - Provider string to check
+   * @returns true if provider starts with 'api/', false otherwise
+   */
+  private isAPIProviderString(provider: string | string[] | undefined): boolean {
+    if (typeof provider === 'string') {
+      return provider.startsWith('api/');
+    }
+    if (Array.isArray(provider) && provider.length > 0) {
+      const firstProvider = provider[0];
+      return firstProvider ? firstProvider.startsWith('api/') : false;
+    }
+    return false;
   }
 }
