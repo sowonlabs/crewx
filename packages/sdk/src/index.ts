@@ -43,6 +43,14 @@ export {
 // Knowledge utilities
 export { DocumentManager } from './knowledge/DocumentManager';
 
+// Tools
+export { readFileTool } from './tools';
+export type {
+  FileSystemService,
+  ProcessedFileReadResult,
+  ToolErrorType,
+} from './tools';
+
 // Provider contracts
 export {
   ProviderNamespace,
