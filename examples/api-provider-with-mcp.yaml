@@ -1,0 +1,231 @@
+# Provider Options Examples
+
+## api-provider-with-mcp.yaml
+
+This example demonstrates how to use Provider Options with MCP (Model Context Protocol) servers for different access levels in query vs execute modes.
+
+```yaml
+# Example: MCP Integration with Provider Options
+mcp_servers:
+  github:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    env:
+      GITHUB_TOKEN: "{{env.GITHUB_TOKEN}}"
+      GITHUB_OWNER: "sowonai"
+
+  filesystem:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"]
+    env:
+      ALLOWED_DIRS: "/workspace,/tmp"
+
+  slack:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-slack"]
+    env:
+      SLACK_BOT_TOKEN: "{{env.SLACK_BOT_TOKEN}}"
+      SLACK_TEAM_ID: "T123456"
+
+  docker:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-docker"]
+    env:
+      DOCKER_HOST: "unix:///var/run/docker.sock"
+
+agents:
+  - id: project_manager
+    name: Project Manager
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:                     # Status and analysis mode
+        tools: [analyze, report]    # Internal tools
+        mcp: [github_read, filesystem_read]  # Read-only MCP
+      execute:                   # Action and update mode
+        tools: [notify, schedule]   # Action tools
+        mcp: [github_write, slack, filesystem_write]  # Write MCP
+    inline:
+      prompt: |
+        You are a project manager with controlled system access.
+        
+        QUERY MODE (Analysis & Status):
+        - Read GitHub repositories and issues
+        - Check project files and documentation
+        - Analyze project status and progress
+        - Generate reports and summaries
+        - No system modifications
+        
+        EXECUTE MODE (Actions & Updates):
+        - Create GitHub issues and PRs
+        - Send Slack notifications
+        - Update project files
+        - Schedule meetings and tasks
+        - Communicate with team
+
+  - id: devops_monitor
+    name: DevOps Monitor
+    provider: api/openai
+    model: gpt-4o
+    options:
+      query:
+        tools: [status_check, log_analyzer]  # Monitoring tools
+        mcp: [docker_read, filesystem_read]  # Read-only containers
+      execute:
+        tools: [restart_service, scale]        # Control tools
+        mcp: [docker_write, slack]            # Container control + notify
+    inline:
+      prompt: |
+        You are a DevOps monitoring agent with infrastructure access.
+        
+        QUERY MODE (Monitoring):
+        - Check Docker container status
+        - Analyze system logs
+        - Monitor resource usage
+        - Read configuration files
+        - Generate health reports
+        
+        EXECUTE MODE (Infrastructure):
+        - Restart Docker containers
+        - Scale services up/down
+        - Send alerts via Slack
+        - Update configurations
+        - Deploy emergency fixes
+
+  - id: documentation_specialist
+    name: Documentation Specialist
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [analyze, search, extract]        # Content analysis
+        mcp: [github_read, filesystem_read]     # Read docs and repos
+      execute:
+        tools: [write_doc, generate_examples]  # Documentation tools
+        mcp: [github_write, filesystem_write]  # Update docs and files
+    inline:
+      prompt: |
+        You are a documentation specialist with repository access.
+        
+        QUERY MODE (Research & Analysis):
+        - Read existing documentation
+        - Analyze code for documentation needs
+        - Check GitHub issues for doc requirements
+        - Search for documentation gaps
+        - Review API changes
+        
+        EXECUTE MODE (Writing & Updates):
+        - Write and update documentation files
+        - Generate code examples
+        - Create GitHub wiki pages
+        - Update README files
+        - Add API documentation
+
+  - id: security_auditor
+    name: Security Auditor
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [scan, analyze_vulnerabilities]  # Security scanning
+        mcp: [github_read, filesystem_read]    # Read code and configs
+      execute:
+        tools: [generate_report, notify]         # Reporting tools
+        mcp: [github_write, slack]              # Create issues + notify
+    inline:
+      prompt: |
+        You are a security auditor with read-first approach.
+        
+        QUERY MODE (Security Analysis):
+        - Scan code for vulnerabilities
+        - Analyze security configurations
+        - Check GitHub security settings
+        - Review dependency files
+        - Identify potential risks
+        
+        EXECUTE MODE (Reporting & Fixes):
+        - Generate security reports
+        - Create GitHub security issues
+        - Notify security team via Slack
+        - Document security findings
+        - Recommend remediation steps
+```
+
+## MCP Server Access Patterns
+
+### Read-Only Access (Query Mode)
+```yaml
+mcp: [github_read, filesystem_read]  # Safe analysis operations
+```
+
+### Write Access (Execute Mode)
+```yaml
+mcp: [github_write, filesystem_write, slack]  # Full modification rights
+```
+
+### Mixed Access (Security Model)
+```yaml
+options:
+  query:
+    mcp: [github_read]              # Read-only for analysis
+  execute:
+    mcp: [github_write, slack]      # Write + notification
+```
+
+## Usage Examples
+
+```bash
+# Query mode - Analysis and monitoring
+crewx query "@project_manager check project status and open issues"
+crewx query "@devops_monitor analyze Docker container health"
+crewx query "@documentation_specialist review documentation coverage"
+crewx query "@security_auditor scan for security vulnerabilities"
+
+# Execute mode - Actions and updates
+crewx execute "@project_manager create issue for new feature request"
+crewx execute "@devops_monitor restart failed container and notify team"
+crewx execute "@documentation_specialist update API documentation"
+crewx execute "@security_auditor create security report and alert team"
+```
+
+## Security Model Benefits
+
+1. **Principle of Least Privilege**: MCP access matches operation mode
+2. **Audit Trail**: Clear separation between read analysis and write actions
+3. **Risk Mitigation**: Prevents accidental modifications in analysis mode
+4. **User Control**: Explicit mode selection for different operation types
+
+## Advanced Configuration Tips
+
+### MCP Server Naming Convention
+```yaml
+# Use prefixes for clarity
+mcp_servers:
+  github_prod:
+    command: npx -y @modelcontextprotocol/server-github
+    env: { GITHUB_TOKEN: "{{env.GITHUB_PROD_TOKEN}}" }
+  github_staging:
+    command: npx -y @modelcontextprotocol/server-github
+    env: { GITHUB_TOKEN: "{{env.GITHUB_STAGING_TOKEN}}" }
+
+# Reference with prefixes
+agents:
+  - name: production_manager
+    options:
+      execute:
+        mcp: [github_prod, slack_prod]    # Production MCP
+  - name: staging_manager
+    options:
+      execute:
+        mcp: [github_staging, slack_staging]  # Staging MCP
+```
+
+### Environment-Specific MCP
+```yaml
+# Different MCP per environment
+agents:
+  - name: adaptive_agent
+    options:
+      execute:
+        mcp: "{{env.NODE_ENV == 'production' ? 'github_prod' : 'github_dev'}}"
+```

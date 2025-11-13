@@ -5,7 +5,13 @@
  * Supports environment variable substitution ({{env.VAR}} format) and validation.
  */
 
-import { APIProviderConfig, APIProviderType, MCPServerConfig } from '../types/api-provider.types';
+import {
+  APIProviderConfig,
+  APIProviderType,
+  MCPServerConfig,
+  ProviderOptions,
+} from '../types/api-provider.types';
+import { ProviderOptionsSchema } from '../schemas/api-provider.schema';
 
 /**
  * Error thrown when API provider configuration parsing fails
@@ -43,6 +49,7 @@ export interface RawAgentConfig {
     tools?: string[];
     mcp?: string[];
   };
+  options?: ProviderOptions;
 }
 
 /**
@@ -181,7 +188,27 @@ export function parseAPIProviderConfig(
     }
   }
 
+  // Optional: mode-specific options (query/execute)
+  if (rawConfig.options) {
+    const parsedOptions = parseProviderOptions(rawConfig.options);
+    if (parsedOptions) {
+      config.options = parsedOptions;
+    }
+  }
+
   return config;
+}
+
+function parseProviderOptions(rawOptions: ProviderOptions): ProviderOptions | undefined {
+  const result = ProviderOptionsSchema.safeParse(rawOptions);
+  if (!result.success) {
+    throw new APIProviderParseError(
+      `Invalid provider options configuration: ${result.error.message}`,
+      result.error,
+    );
+  }
+
+  return result.data ?? undefined;
 }
 
 /**

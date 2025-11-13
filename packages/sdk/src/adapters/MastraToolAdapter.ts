@@ -41,37 +41,31 @@ export class MastraToolAdapter {
   /**
    * Convert multiple CrewX tools to Mastra tools
    *
-   * Transforms an array of FrameworkToolDefinition to Mastra-compatible tools
-   * with injected ToolExecutionContext.
+   * NOTE: If tools are already created with createTool() from @mastra/core/tools,
+   * they don't need conversion - just return them as-is.
    *
-   * @param crewxTools - Array of CrewX tool definitions
+   * @param crewxTools - Array of tool definitions (can be Mastra tools or custom format)
    * @param context - Execution context to inject into each tool
    * @returns Object mapping tool names to Mastra tool definitions
    *
    * @example
    * ```typescript
-   * const tools: FrameworkToolDefinition[] = [
-   *   {
-   *     name: 'search',
-   *     description: 'Search the web',
-   *     parameters: z.object({ query: z.string() }),
-   *     execute: async (args, ctx) => { ... },
-   *   }
-   * ];
-   *
+   * // Tools created with createTool() are already Mastra-compatible
    * const mastraTools = MastraToolAdapter.convertTools(tools, context);
-   * // Returns: { search: { description, parameters, execute } }
+   * // Returns: { read_file: <Mastra Tool>, ... }
    * ```
    */
   static convertTools(
-    crewxTools: FrameworkToolDefinition[],
+    crewxTools: any[],
     context: ToolExecutionContext
   ): Record<string, any> {
     const mastraTools: Record<string, any> = {};
 
-    for (const crewxTool of crewxTools) {
-      const mastraTool = this.convertTool(crewxTool, context);
-      mastraTools[crewxTool.name] = mastraTool;
+    for (const tool of crewxTools) {
+      // If tool has an 'id' property, it's likely already a Mastra tool (from createTool())
+      // In this case, just use it directly
+      const toolId = tool.id || tool.name;
+      mastraTools[toolId] = tool;
     }
 
     return mastraTools;

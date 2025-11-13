@@ -1,0 +1,320 @@
+# Provider Options: Query vs Execute Modes Example
+
+This example demonstrates the difference between query (read-only) and execute (read/write) modes using Provider Options.
+
+```yaml
+# Example: Understanding Query vs Execute Modes
+agents:
+  # Example 1: File System Agent
+  - id: file_system_agent
+    name: File System Manager
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.3
+    options:
+      query:                     # QUERY MODE: Read-only operations
+        tools: [file_read, grep, glob, ls]  # Browse, search, read
+        mcp: [filesystem_read]               # Read-only file access
+      execute:                   # EXECUTE MODE: Read/write operations
+        tools: [file_read, file_write, file_delete, mkdir, run_shell]  # Full control
+        mcp: [filesystem_write]              # Write file access
+    inline:
+      prompt: |
+        You are a file system manager with mode-aware capabilities.
+
+        **QUERY MODE** (Safe Analysis):
+        - List directory contents
+        - Read file contents
+        - Search for patterns with grep
+        - Find files with glob patterns
+        - Analyze file structures
+        - NO modifications allowed
+
+        **EXECUTE MODE** (Full Control):
+        - Read AND write files
+        - Create directories
+        - Delete files/folders
+        - Run shell commands
+        - Modify file permissions
+        - Perform file operations
+
+        Always indicate which mode you're operating in.
+
+  # Example 2: GitHub Manager
+  - id: github_manager
+    name: GitHub Operations Manager
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [search_repos, analyze_code]  # Analysis tools
+        mcp: [github]                         # Read-only GitHub access
+      execute:
+        tools: [create_issue, create_pr, merge, comment]  # Write operations
+        mcp: [github, slack]                              # GitHub + notifications
+    inline:
+      prompt: |
+        You are a GitHub operations manager.
+
+        **QUERY MODE** (Analysis & Review):
+        - Search repositories
+        - Read issues and pull requests
+        - Analyze code and commits
+        - Review repository settings
+        - Generate reports on repo status
+        - Read-only GitHub operations
+
+        **EXECUTE MODE** (Actions & Updates):
+        - Create issues and pull requests
+        - Merge pull requests
+        - Add comments to issues/PRs
+        - Create branches and tags
+        - Send Slack notifications
+        - Write GitHub operations
+
+  # Example 3: Database Administrator
+  - id: database_admin
+    name: Database Administrator
+    provider: api/openai
+    model: gpt-4o
+    options:
+      query:
+        tools: [run_select_query, explain_query, analyze_schema]  # Read-only SQL
+        mcp: [postgres_read]                                       # Read-only DB
+      execute:
+        tools: [run_insert_query, run_update_query, run_delete_query, migrate]  # Write SQL
+        mcp: [postgres_write]                                                     # Write DB
+    inline:
+      prompt: |
+        You are a database administrator with strict mode separation.
+
+        **QUERY MODE** (Safe Database Analysis):
+        - Run SELECT queries (read data)
+        - Explain query plans
+        - Analyze database schema
+        - Generate performance reports
+        - Review table structures
+        - NO data modifications
+
+        **EXECUTE MODE** (Database Modifications):
+        - INSERT new records
+        - UPDATE existing data
+        - DELETE records
+        - Run database migrations
+        - Modify schema
+        - Execute DDL/DML statements
+
+  # Example 4: API Integration Agent
+  - id: api_integration_agent
+    name: API Integration Manager
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [fetch_api_data, parse_response, validate]  # GET requests
+        mcp: []                                             # No external MCP
+      execute:
+        tools: [post_data, put_data, delete_data, webhook]  # POST/PUT/DELETE
+        mcp: [slack, email]                                 # Notifications
+    inline:
+      prompt: |
+        You are an API integration manager.
+
+        **QUERY MODE** (Read-Only API Calls):
+        - Make GET requests to external APIs
+        - Parse and validate API responses
+        - Retrieve data from third-party services
+        - Check API status and health
+        - Read-only operations
+
+        **EXECUTE MODE** (API Write Operations):
+        - POST data to external APIs
+        - PUT/UPDATE resources
+        - DELETE resources
+        - Trigger webhooks
+        - Send notifications via Slack/Email
+
+  # Example 5: Research vs Automation Agent
+  - id: dual_purpose_agent
+    name: Dual Purpose Agent
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [web_search, company_info, analyze, summarize]  # Research
+        mcp: []                                                 # No MCP
+      execute:
+        tools: [generate_report, send_email, schedule, notify]  # Actions
+        mcp: [slack, email, calendar]                           # Communication
+    inline:
+      prompt: |
+        You are a dual-purpose agent optimized for different modes.
+
+        **QUERY MODE** (Research & Analysis):
+        - Search the web for information
+        - Research companies and topics
+        - Analyze data and patterns
+        - Summarize findings
+        - Generate insights
+        - Purely informational
+
+        **EXECUTE MODE** (Actions & Automation):
+        - Generate and send reports
+        - Send emails to stakeholders
+        - Schedule meetings
+        - Send Slack notifications
+        - Execute automation workflows
+
+  # Example 6: Code Quality Agent
+  - id: code_quality_agent
+    name: Code Quality Enforcer
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [read_file, lint, analyze, test_dry_run]  # Static analysis
+        mcp: [github_read]                                # Read code
+      execute:
+        tools: [write_file, format, fix_lint, commit]  # Code modifications
+        mcp: [github_write, slack]                      # Commit + notify
+    inline:
+      prompt: |
+        You are a code quality enforcer with strict mode boundaries.
+
+        **QUERY MODE** (Static Analysis):
+        - Read and analyze code files
+        - Run linting checks (no fixes)
+        - Analyze code quality metrics
+        - Run tests in dry-run mode
+        - Generate quality reports
+        - Read GitHub pull requests
+        - No code modifications
+
+        **EXECUTE MODE** (Automated Fixes):
+        - Format code files
+        - Apply automated lint fixes
+        - Commit changes to repository
+        - Create pull requests
+        - Notify team via Slack
+        - Write code modifications
+```
+
+## Mode Comparison Table
+
+| Aspect | Query Mode | Execute Mode |
+|--------|------------|--------------|
+| **Purpose** | Analysis, review, research | Actions, modifications, deployments |
+| **Risk Level** | Low (read-only) | High (write operations) |
+| **Tools** | Read-only tools | Read + write tools |
+| **MCP Access** | Read-only servers | Write-enabled servers |
+| **User Intent** | "Tell me about X" | "Do X for me" |
+| **Undo Capability** | N/A (no changes) | May require rollback |
+
+## Usage Examples
+
+### Query Mode Usage
+```bash
+# File system analysis
+crewx query "@file_system_agent list all TypeScript files in src/"
+crewx query "@file_system_agent show me the contents of README.md"
+
+# GitHub analysis
+crewx query "@github_manager find open issues labeled 'bug'"
+crewx query "@github_manager analyze the recent commit history"
+
+# Database analysis
+crewx query "@database_admin show me all users with active status"
+crewx query "@database_admin explain the performance of this query"
+
+# API research
+crewx query "@api_integration_agent fetch current weather data"
+
+# Research mode
+crewx query "@dual_purpose_agent research the latest AI frameworks"
+
+# Code review
+crewx query "@code_quality_agent analyze code quality in main.ts"
+```
+
+### Execute Mode Usage
+```bash
+# File operations
+crewx execute "@file_system_agent create a new directory called 'tests'"
+crewx execute "@file_system_agent delete the old backup folder"
+
+# GitHub operations
+crewx execute "@github_manager create an issue for the bug we found"
+crewx execute "@github_manager merge PR #123"
+
+# Database modifications
+crewx execute "@database_admin insert new user record with email test@example.com"
+crewx execute "@database_admin update user status to 'inactive' for user ID 42"
+
+# API actions
+crewx execute "@api_integration_agent post this data to the webhook"
+
+# Automation mode
+crewx execute "@dual_purpose_agent generate report and email to team"
+
+# Code fixes
+crewx execute "@code_quality_agent format all files and commit changes"
+```
+
+## Security Best Practices
+
+1. **Default to Query Mode**: Use query mode for analysis and research
+2. **Explicit Execute**: Only use execute mode when modifications are needed
+3. **Minimal Tools**: Grant only necessary tools for each mode
+4. **Audit Trail**: Log execute mode operations for compliance
+5. **Review Changes**: Always review execute mode changes before applying
+
+## Mode Selection Guidelines
+
+### Use Query Mode When:
+- ✅ Analyzing data or code
+- ✅ Researching information
+- ✅ Reviewing pull requests
+- ✅ Checking system status
+- ✅ Generating reports (read-only)
+- ✅ Learning about systems
+
+### Use Execute Mode When:
+- ✅ Creating or modifying files
+- ✅ Deploying services
+- ✅ Sending notifications
+- ✅ Database writes
+- ✅ Git commits
+- ✅ External API writes
+
+## Transitioning Between Modes
+
+Some agents can operate in both modes for different tasks:
+
+```bash
+# Step 1: Query mode to analyze
+crewx query "@code_quality_agent analyze code quality issues"
+
+# Step 2: Review output, then execute fixes
+crewx execute "@code_quality_agent apply all automated fixes"
+```
+
+## Testing Mode Behavior
+
+```bash
+# Test query mode restrictions
+echo "test" > /tmp/test.txt
+crewx query "@file_system_agent delete /tmp/test.txt"
+# Expected: Should explain it cannot delete in query mode
+
+# Test execute mode capabilities
+crewx execute "@file_system_agent delete /tmp/test.txt"
+# Expected: Should successfully delete the file
+```
+
+## Conclusion
+
+Provider Options with query/execute modes provide:
+- **Security**: Prevent accidental modifications
+- **Clarity**: Clear separation of read vs write
+- **Control**: Granular tool and MCP permissions
+- **Flexibility**: Same agent, different capabilities per mode

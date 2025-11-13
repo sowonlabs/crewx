@@ -125,6 +125,28 @@ describe('parseAPIProviderConfig', () => {
         expect(result.provider).toBe(provider);
       });
     });
+
+    it('should parse mode-scoped tool permissions via options', () => {
+      const rawConfig: RawAgentConfig = {
+        provider: 'api/anthropic',
+        model: 'claude-3-sonnet',
+        options: {
+          query: {
+            tools: ['read_file', 'grep'],
+            mcp: ['filesystem'],
+          },
+          execute: {
+            tools: ['write_file'],
+          },
+        } as any,
+      };
+
+      const result = parseAPIProviderConfig(rawConfig);
+
+      expect(result.options?.query?.tools).toEqual(['read_file', 'grep']);
+      expect(result.options?.query?.mcp).toEqual(['filesystem']);
+      expect(result.options?.execute?.tools).toEqual(['write_file']);
+    });
   });
 
   describe('Environment Variable Substitution', () => {

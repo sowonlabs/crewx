@@ -1,0 +1,122 @@
+# Provider Options Examples
+
+## api-provider-with-tools.yaml
+
+This example demonstrates how to use Provider Options with different tool configurations for query vs execute modes.
+
+```yaml
+# Example: Secure API Provider with Tools
+agents:
+  - id: secure_developer
+    name: Secure Development Assistant
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.3
+    options:
+      query:                     # Read-only analysis mode
+        tools: [file_read, grep, glob, search]  # Analysis tools
+        mcp: []                                  # No MCP for security
+      execute:                   # Modification mode
+        tools: [file_read, file_write, git, test]  # Full development tools
+        mcp: [github, filesystem]                    # Infrastructure access
+    inline:
+      prompt: |
+        You are a secure development assistant with mode-specific capabilities:
+        
+        QUERY MODE (analysis only):
+        - Read and analyze files
+        - Search code patterns
+        - Review file structures
+        - No file modification or external access
+        
+        EXECUTE MODE (full access):
+        - Modify files and directories
+        - Execute git operations
+        - Run tests and commands
+        - Access GitHub and file system via MCP
+        
+        Always check the mode before performing operations.
+
+  - id: research_specialist
+    name: Research Specialist
+    provider: api/openai
+    model: gpt-4o
+    options:
+      query:
+        tools: [web_search, company_info, analyze]  # Research tools
+        mcp: []                                      # No infrastructure access
+      execute:
+        tools: [notify, report]                       # Communication tools only
+        mcp: [slack, email]                          # Notification MCP
+    inline:
+      prompt: |
+        You are a research specialist focused on analysis and reporting.
+        
+        QUERY MODE: 
+        - Conduct web research
+        - Analyze companies and data
+        - Search for information
+        - Create analysis reports
+        
+        EXECUTE MODE:
+        - Send notifications via Slack/Email
+        - Generate and distribute reports
+        - Communicate findings to stakeholders
+
+  - id: code_reviewer
+    name: Code Review Assistant
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [file_read, grep, lint, analyze]     # Code analysis
+        mcp: [github_read]                         # Read-only GitHub
+      execute:
+        tools: [file_read, file_write, format]   # Code modification
+        mcp: [github_write]                       # Write GitHub access
+    inline:
+      prompt: |
+        You are a code review assistant with security-first design.
+        
+        QUERY MODE (Code Review):
+        - Read and analyze code files
+        - Check code patterns and quality
+        - Review for bugs and issues
+        - Read GitHub PRs and issues
+        - Provide detailed analysis
+        
+        EXECUTE MODE (Code Fixes):
+        - Apply code formatting
+        - Fix identified issues
+        - Create GitHub comments
+        - Submit code changes
+        - Update documentation
+```
+
+## Key Features Demonstrated
+
+1. **Mode-Specific Security**: Different tool access for query vs execute
+2. **Granular Control**: Precise tool and MCP server permissions
+3. **Legacy Compatibility**: Shows both new format and legacy auto-conversion
+4. **Practical Use Cases**: Real-world agent configurations
+
+## Usage
+
+```bash
+# Test query mode (analysis only)
+crewx query "@secure_developer analyze the codebase structure"
+crewx query "@research_specialist research CrewX project on GitHub"
+crewx query "@code_reviewer review this pull request"
+
+# Test execute mode (modification allowed)
+crewx execute "@secure_developer fix the bug in main.ts"
+crewx execute "@research_specialist notify team about findings"
+crewx execute "@code_reviewer apply formatting fixes"
+```
+
+## Security Benefits
+
+- **Least Privilege**: Agents only have necessary permissions
+- **Mode Awareness**: Different capabilities based on execution context
+- **Audit Trail**: Clear separation between read and write operations
+- **Error Prevention**: Prevents accidental modifications in query mode

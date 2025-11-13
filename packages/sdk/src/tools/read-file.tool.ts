@@ -1,11 +1,12 @@
 /**
  * read_file tool for CrewX API Provider
- * Adapted from Gemini CLI for Vercel AI SDK
+ * Adapted from Gemini CLI for Mastra framework
  */
 
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import path from 'node:path';
-import type { ToolExecutionContext, FrameworkToolDefinition } from '../types/api-provider.types.js';
+import type { ToolExecutionContext } from '../types/api-provider.types.js';
 import type { FileSystemService } from './types.js';
 import {
   processSingleFileContent,
@@ -20,11 +21,11 @@ import { StandardFileSystemService } from './file-system.service.js';
  * Reads and returns the content of a specified file.
  * Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), and PDF files.
  */
-export const readFileTool: FrameworkToolDefinition = {
-  name: 'read_file',
+export const readFileTool = createTool({
+  id: 'read_file',
   description: `Reads and returns the content of a specified file. If the file is large, the content will be truncated. The tool's response will clearly indicate if truncation has occurred and will provide details on how to read more of the file using the 'offset' and 'limit' parameters. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), and PDF files. For text files, it can read specific line ranges.`,
 
-  parameters: z.object({
+  inputSchema: z.object({
     file_path: z
       .string()
       .describe('The path to the file to read.'),
@@ -46,7 +47,10 @@ export const readFileTool: FrameworkToolDefinition = {
       ),
   }),
 
-  execute: async ({ file_path, offset, limit }, context: ToolExecutionContext) => {
+  outputSchema: z.string().describe('The file content or error message'),
+
+  execute: async ({ context }) => {
+    const { file_path, offset, limit } = context;
     // Validation
     if (file_path.trim() === '') {
       throw new Error("The 'file_path' parameter must be non-empty.");
@@ -105,4 +109,4 @@ Size: ${Buffer.from(inlineData.data, 'base64').length} bytes
 Note: Binary content (image/PDF) has been loaded. The agent can work with this file.
 Base64 data: ${inlineData.data.substring(0, 100)}...`;
   },
-};
+});

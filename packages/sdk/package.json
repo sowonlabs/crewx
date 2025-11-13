@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@mastra/core": "^0.24.0",
+    "@openrouter/ai-sdk-provider": "^1.2.2",
     "ai": "^5.0.92",
     "js-yaml": "^4.1.0",
     "remark-parse": "^11.0.0",

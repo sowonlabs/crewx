@@ -37,19 +37,19 @@
 
 ## 진행 현황
 
-| 상태 | ID | 작업명 | 산출물 | 소요 | 우선순위 |
-|------|----|----|-------|------|---------|
-| ✅ | WBS-19 | API Provider 설계 | 아키텍처, YAML 스펙 | 2-3일 | P0 |
-| ✅ | WBS-20 | Mastra 통합 | 7 Providers 구현 | 3일 | P0 |
-| ✅ | **WBS-21** | **Tool Calling 구현** | **Built-in Tools** | **2-3일** | **P0** |
-| ✅ | ~~WBS-22~~ | ~~MCP 통합~~ | ~~Mastra 제공~~ | 0일 | - |
-| ✅ | WBS-23 | YAML 파싱 | Provider Factory | 2-3일 | P0 |
-| ✅ | WBS-24 | CLI 통합 | CLI 명령어 지원 | 1-2일 | P0 |
-| ✅ | WBS-26 | 문서화 | 가이드, 예제 | 2-3일 | P1 |
-| 🟡 | **WBS-28** | **Provider 스펙 설계** | **options 통합** | **3-4일** | **P0** |
-| 🔄 | WBS-27 | Coordinator Loop | 로그 기반 추적 (보류) | 3-5일 | P1 |
-| ⬜️ | WBS-29 | Slack Bot Network Isolation | Codex 네트워크 제한 해결 | 1-2일 | P1 |
-| ⬜️ | WBS-25 | 고급 기능 | Streaming, Cost | 3일 | P2 |
+| 상태  | ID         | 작업명                         | 산출물                | 소요       | 우선순위   |
+| --- | ---------- | --------------------------- | ------------------ | -------- | ------ |
+| ✅   | WBS-19     | API Provider 설계             | 아키텍처, YAML 스펙      | 2-3일     | P0     |
+| ✅   | WBS-20     | Mastra 통합                   | 7 Providers 구현     | 3일       | P0     |
+| ✅   | **WBS-21** | **Tool Calling 구현**         | **Built-in Tools** | **2-3일** | **P0** |
+| ✅   | ~~WBS-22~~ | ~~MCP 통합~~                  | ~~Mastra 제공~~      | 0일       | -      |
+| ✅   | WBS-23     | YAML 파싱                     | Provider Factory   | 2-3일     | P0     |
+| ✅   | WBS-24     | CLI 통합                      | CLI 명령어 지원         | 1-2일     | P0     |
+| ✅   | WBS-26     | 문서화                         | 가이드, 예제            | 2-3일     | P1     |
+| ✅   | WBS-28     | Provider 스펙 설계              | options 통합         | 3-4일     | P0     |
+| 🔄  | WBS-27     | Coordinator Loop            | 로그 기반 추적 (보류)      | 3-5일     | P1     |
+| ⬜️  | WBS-29     | Slack Bot Network Isolation | Codex 네트워크 제한 해결   | 1-2일     | P1     |
+| ⬜️  | WBS-25     | 고급 기능                       | Streaming, Cost    | 3일       | P2     |
 
 ---
 
@@ -79,7 +79,20 @@
 
 **목표**: Gemini CLI의 Built-in Tools를 CrewX API Provider로 이식
 
-**현재 상태**: All phases completed ✅
+**현재 상태**: All phases completed ✅ (2025-01-13)
+
+### 🔧 중요 해결: OpenRouter Tool Calling 이슈
+
+**문제**: OpenRouter 사용 시 tool calling 동작 안함
+- `createOpenAI()` + baseURL로 OpenRouter 연결 시 tool 무시
+- `tool_choice: "required"` 전달해도 효과 없음
+
+**해결**: `@openrouter/ai-sdk-provider` 전용 SDK 사용
+- MastraAPIProvider가 URL에서 `openrouter.ai` 감지 시 자동으로 OpenRouter SDK 사용
+- 패키지 추가: `@openrouter/ai-sdk-provider`
+- 검증: `gpt-4o-mini`, `gpt-oss-20b` 모두 tool calling 성공
+
+**관련**: WBS-28 (Provider Options 설계 문서에 상세 기록)
 
 ### Phase 1: read_file Tool 이식 (✅ 완료)
 
@@ -153,12 +166,12 @@
 
 ---
 
-## WBS-28: Provider 스펙 호환성 설계 (🟡 진행중)
+## WBS-28: Provider 스펙 호환성 설계 (✅ 완료)
 > 📄 [wbs/wbs-28-provider-options-design.md](wbs/wbs-28-provider-options-design.md)
 
 **목표**: CLI/API Provider options 스펙 통합 및 Tool 권한 제어
 
-**현재 상태**: Phase 1 완료, 의사결정 완료
+**현재 상태**: 전체 Phase 완료 (설계, 타입, 구현, 테스트, 문서화)
 
 ### Phase 1: 설계 (✅ 완료)
 - ✅ 문제 정의
@@ -195,20 +208,24 @@ agents:
 - ✅ Zod 스키마
 - ✅ JSON Schema
 
-### Phase 3: Provider 구현 (⬜️ 대기)
-- [ ] MastraAPIProvider 수정
-- [ ] normalizeAPIProviderConfig 함수
-- [ ] 모드별 필터링 로직
+### Phase 3: Provider 구현 (✅ 완료)
+- ✅ MastraAPIProvider 수정
+- ✅ normalizeAPIProviderConfig 함수
+- ✅ 모드별 필터링 로직
 
-### Phase 4: 테스트 (⬜️ 대기)
-- [ ] 단위 테스트 (15+ tests)
-- [ ] 통합 테스트
-- [ ] 레거시 변환 테스트
+### Phase 4: 테스트 (✅ 완료)
+- ✅ 단위 테스트 (106 tests - 목표 15+ 초과 달성)
+  - api-provider-types.spec.ts: 33 tests (타입 가드, 레거시 감지, 변환)
+  - api-provider-schema.spec.ts: 33 tests (Zod 스키마 검증)
+  - api-provider-normalizer.spec.ts: 28 tests (정규화, 모드 필터링)
+- ✅ 통합 테스트 (api-provider-integration.spec.ts: 12 tests)
+- ✅ 레거시 변환 테스트
+- ✅ 엣지 케이스 및 에러 처리
 
-### Phase 5: 문서화 (⬜️ 대기)
-- [ ] API Provider 가이드 업데이트
-- [ ] 마이그레이션 가이드
-- [ ] 예제 추가
+### Phase 5: 문서화 (✅ 완료)
+- ✅ API Provider 가이드 업데이트 (Provider Options 섹션)
+- ✅ 마이그레이션 가이드 (tools/mcp 필드 변환 예제)
+- ✅ 예제 추가 (api-provider-with-tools.yaml, api-provider-with-mcp.yaml, api-provider-modes.yaml)
 
 ---
 

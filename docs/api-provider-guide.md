@@ -17,7 +17,8 @@ This comprehensive guide walks you through using CrewX API Providers, from basic
 5. [MCP Server Integration](#mcp-server-integration)
 6. [CLI vs API Provider Comparison](#cli-vs-api-provider-comparison)
 7. [Troubleshooting Guide](#troubleshooting-guide)
-8. [Advanced Topics](#advanced-topics)
+8. [Provider Options](#provider-options)
+9. [Advanced Topics](#advanced-topics)
 
 ---
 
@@ -1733,6 +1734,251 @@ const response = await provider.query(prompt, {
 
 ---
 
+## Provider Options
+
+### Overview
+
+Provider Options is a powerful feature that allows fine-grained control over tool and MCP server access based on execution mode (query vs execute). This provides enhanced security and functionality control for API providers.
+
+### Key Features
+
+- **Mode-specific configuration**: Different tool sets for query vs execute modes
+- **Enhanced security**: Restrict dangerous operations to execute mode only
+- **Legacy compatibility**: Automatic conversion from root-level tools/mcp fields
+- **Flexible configuration**: Support for both array and object formats
+
+### Configuration Format
+
+#### New Format (Recommended)
+
+```yaml
+agents:
+  - name: secure_agent
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:                     # Read-only operations
+        tools: [file_read, grep, glob]
+        mcp: [filesystem]
+      execute:                   # Write operations allowed
+        tools: [file_read, file_write, run_shell]
+        mcp: [filesystem, git, database]
+```
+
+#### Legacy Format (Auto-converted)
+
+```yaml
+agents:
+  - name: simple_agent
+    provider: api/anthropic
+    tools: [file_read, file_write]       # Auto-converts to execute.tools
+    mcp_servers: [filesystem]            # Auto-converts to execute.mcp
+```
+
+### Mode Distinction
+
+#### Query Mode (Read-Only)
+- **Purpose**: Analysis, research, code review
+- **Tools**: Read-only operations (file_read, grep, web_search)
+- **MCP**: Read-only servers (filesystem read, GitHub read)
+- **Security**: Safest mode, minimal risk
+
+#### Execute Mode (Read/Write)
+- **Purpose**: File modification, deployment, automation
+- **Tools**: All operations including write (file_write, run_shell)
+- **MCP**: All servers including write operations
+- **Security**: Requires explicit user confirmation
+
+### Practical Examples
+
+#### Development Agent with Security
+
+```yaml
+agents:
+  - name: dev_assistant
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [file_read, grep, glob]           # Code analysis only
+        mcp: [github]                           # Read GitHub data
+      execute:
+        tools: [file_read, file_write, git]      # Full development tools
+        mcp: [github, filesystem]                # Write to GitHub and files
+    inline:
+      prompt: |
+        You are a development assistant.
+        In query mode: Analyze and review code
+        In execute mode: Make changes and deploy
+```
+
+#### Research Agent (Query-Only)
+
+```yaml
+agents:
+  - name: research_bot
+    provider: api/openai
+    model: gpt-4o
+    options:
+      query:
+        tools: [web_search, company_info]      # Research tools
+        mcp: []                                 # No MCP needed
+      execute:
+        tools: []                               # No write tools
+        mcp: []                                 # No MCP access
+    inline:
+      prompt: |
+        You are a research specialist.
+        Only perform analysis and research tasks.
+```
+
+#### DevOps Agent (Full Access)
+
+```yaml
+agents:
+  - name: devops_engineer
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    options:
+      query:
+        tools: [check_logs, status_check]       # Monitoring tools
+        mcp: [kubernetes]                        # Read cluster status
+      execute:
+        tools: [deploy_service, restart_service] # Deployment tools
+        mcp: [kubernetes, docker]               # Full cluster control
+    inline:
+      prompt: |
+        You are a DevOps engineer with infrastructure access.
+```
+
+### Migration from Legacy Format
+
+#### Before (Legacy)
+
+```yaml
+agents:
+  - name: my_agent
+    provider: api/anthropic
+    tools: [file_read, file_write, grep]
+    mcp_servers: [filesystem, github]
+```
+
+#### After (Auto-converted)
+
+```yaml
+agents:
+  - name: my_agent
+    provider: api/anthropic
+    options:
+      execute:
+        tools: [file_read, file_write, grep]
+        mcp: [filesystem, github]
+```
+
+**Note**: Legacy format automatically converts to execute mode only, maintaining backward compatibility.
+
+### Best Practices
+
+#### 1. Security-First Configuration
+
+```yaml
+# ✅ Good: Restrictive query mode
+options:
+  query:
+    tools: [file_read]          # Minimal read-only tools
+    mcp: [github]               # Read-only MCP
+  execute:
+    tools: [file_read, file_write]  # Full access when needed
+    mcp: [github, filesystem]       # Write access when needed
+
+# ❌ Bad: Overly permissive
+options:
+  query:
+    tools: [file_read, file_write, run_shell]  # Too permissive
+    mcp: [github, filesystem, docker]          # Too permissive
+```
+
+#### 2. Explicit Mode Declaration
+
+```yaml
+# ✅ Good: Clear mode separation
+agents:
+  - name: analyzer
+    options:
+      query: { tools: [read_tools] }
+      execute: { tools: [write_tools] }
+
+# ❌ Bad: Ambiguous configuration
+agents:
+  - name: analyzer
+    tools: [read_tools, write_tools]  # Unclear mode assignment
+```
+
+#### 3. Tool Organization
+
+```yaml
+# ✅ Good: Logical grouping
+options:
+  query:
+    tools: [file_read, grep, search]          # Analysis tools
+    mcp: [github_read, database_read]         # Read-only MCP
+  execute:
+    tools: [file_write, deploy, notify]       # Action tools
+    mcp: [github_write, database_write]       # Write MCP
+```
+
+### Troubleshooting
+
+#### Provider Options Not Working
+
+1. **Check YAML syntax**:
+   ```bash
+   crewx config validate
+   ```
+
+2. **Verify tool names**:
+   ```bash
+   crewx doctor  # Shows available tools
+   ```
+
+3. **Test mode-specific behavior**:
+   ```bash
+   # Test query mode
+   crewx query "@agent analyze this file"
+   
+   # Test execute mode
+   crewx execute "@agent modify this file"
+   ```
+
+#### Legacy Conversion Issues
+
+1. **Check conversion logs**:
+   ```bash
+   DEBUG=crewx:* crewx query "@agent test"
+   ```
+
+2. **Manual conversion**:
+   ```yaml
+   # Convert manually for clarity
+   tools: [old_tools]      # ❌ Legacy
+   mcp_servers: [old_mcp]  # ❌ Legacy
+   
+   options:
+     execute:
+       tools: [old_tools]  # ✅ New format
+       mcp: [old_mcp]      # ✅ New format
+   ```
+
+### Integration with Existing Features
+
+Provider Options work seamlessly with:
+- **LiteLLM Gateway**: Mode-specific routing
+- **MCP Servers**: Granular server access control
+- **Tool Injection**: Dynamic tool availability
+- **Environment Variables**: Context-aware configuration
+
+---
+
 ## Advanced Topics
 
 ### Custom Provider URLs
@@ -1959,7 +2205,7 @@ This guide covered the essentials of CrewX API Providers:
 - ✅ MCP Integration (standardized external tools)
 - ✅ CLI vs API Comparison (when to use each)
 - ✅ Troubleshooting (common issues and solutions)
-- ✅ Advanced Topics (security, monitoring, multi-model)
+- ✅ Provider Options - Enhanced API provider configuration
 
 ### Next Steps
 

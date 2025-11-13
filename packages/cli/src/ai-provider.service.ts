@@ -16,8 +16,16 @@ import {
   type APIProviderConfig,
   type APIToolExecutionContext,
   type FrameworkToolDefinition,
-  readFileTool,
+  normalizeAPIProviderConfig,
 } from '@sowonai/crewx-sdk';
+import {
+  readFileTool,
+  writeFileTool,
+  replaceTool,
+  lsTool,
+  grepTool,
+  runShellCommandTool,
+} from '@sowonai/crewx-sdk/tools';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ConfigService } from './services/config.service';
 import { ToolCallService } from './services/tool-call.service';
@@ -128,22 +136,42 @@ export class AIProviderService implements OnModuleInit {
 
       for (const [agentId, apiConfig] of apiProviderConfigs) {
         try {
+          const normalizedConfig = normalizeAPIProviderConfig(apiConfig);
           // Create MastraAPIProvider instance
-          const provider = new MastraAPIProvider(apiConfig);
+          const provider = new MastraAPIProvider(normalizedConfig.config);
 
           // Load tools for this agent
           const agentConfig = this.configService.getAgentConfig(agentId);
-          const toolsArray = apiConfig.tools || [];
+          const allowedToolNames = new Set<string>();
+          for (const permissions of Object.values(normalizedConfig.permissionsByMode)) {
+            for (const toolName of permissions.tools) {
+              allowedToolNames.add(toolName);
+            }
+          }
 
-          if (toolsArray.length > 0) {
+          if (allowedToolNames.size > 0) {
             // Build tool list from built-in tools
-            const tools: FrameworkToolDefinition[] = [];
-            for (const toolName of toolsArray) {
-              if (toolName === 'read_file') {
-                tools.push(readFileTool);
+            // Note: Tools can be either FrameworkToolDefinition or Mastra Tool (from createTool())
+            const tools: any[] = [];
+
+            // Map of available built-in tools
+            const builtInTools: Record<string, any> = {
+              read_file: readFileTool,
+              write_file: writeFileTool,
+              replace: replaceTool,
+              ls: lsTool,
+              grep: grepTool,
+              run_shell_command: runShellCommandTool,
+            };
+
+            for (const toolName of allowedToolNames) {
+              const tool = builtInTools[toolName];
+              if (tool) {
+                tools.push(tool);
                 this.logger.log(`✅ Loaded tool: ${toolName} for agent ${agentId}`);
               } else {
                 this.logger.warn(`⚠️  Unknown tool: ${toolName} for agent ${agentId}`);
+                this.logger.debug(`Available tools: ${Object.keys(builtInTools).join(', ')}`);
               }
             }
 

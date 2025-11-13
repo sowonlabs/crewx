@@ -137,6 +137,14 @@ describe('WBS-20 Phase 5 - Mastra Integration', () => {
     provider: 'api/openai',
     model: 'gpt-4o-mini',
     apiKey: 'sk-test-openai',
+    options: {
+      query: {
+        tools: ['weather', 'alpha', 'beta', 'context_probe', 'unstable'],
+      },
+      execute: {
+        tools: ['weather', 'alpha', 'beta', 'context_probe', 'unstable'],
+      },
+    },
   };
 
   beforeEach(() => {

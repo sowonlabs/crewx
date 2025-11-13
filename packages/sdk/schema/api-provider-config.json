@@ -45,13 +45,28 @@
       "minimum": 1,
       "description": "Maximum completion tokens"
     },
+    "options": {
+      "type": "object",
+      "description": "Mode-specific permissions. Define tools/MCP servers per execution mode (query/execute).",
+      "properties": {
+        "query": {
+          "$ref": "#/$defs/providerModeOptions"
+        },
+        "execute": {
+          "$ref": "#/$defs/providerModeOptions"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/providerModeOptions"
+      }
+    },
     "tools": {
       "type": "array",
       "items": {
         "type": "string"
       },
       "uniqueItems": true,
-      "description": "Tool names to activate (simple array - SowonFlow style)"
+      "description": "Legacy root-level tool list (SowonFlow style). Prefer options.<mode>.tools instead."
     },
     "mcp": {
       "type": "array",
@@ -59,10 +74,41 @@
         "type": "string"
       },
       "uniqueItems": true,
-      "description": "MCP server names to activate (simple array - SowonFlow style)"
+      "description": "Legacy root-level MCP reference list. Prefer options.<mode>.mcp instead."
+    },
+    "mcp_servers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Legacy alias for MCP references (mirrors SowonFlow snake_case). Prefer options.<mode>.mcp instead."
     }
   },
   "$defs": {
+    "providerModeOptions": {
+      "type": "object",
+      "description": "Mode-specific permissions for tools and MCP servers",
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "Tool names enabled in this mode"
+        },
+        "mcp": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "MCP server references enabled in this mode"
+        }
+      }
+    },
     "mcpServerConfig": {
       "type": "object",
       "description": "Model Context Protocol server process definition",

@@ -18,9 +18,18 @@ import { Agent } from '@mastra/core';
 import { openai, createOpenAI } from '@ai-sdk/openai';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.interface';
-import type { APIProviderConfig, ToolExecutionContext, FrameworkToolDefinition } from '../../types/api-provider.types';
+import type {
+  APIProviderConfig,
+  ToolExecutionContext,
+  ProviderExecutionMode,
+} from '../../types/api-provider.types';
 import { MastraToolAdapter } from '../../adapters/MastraToolAdapter';
+import {
+  normalizeAPIProviderConfig,
+  type ModePermissionBuckets,
+} from '../../utils/api-provider-normalizer';
 
 /**
  * MastraAPIProvider
@@ -43,12 +52,18 @@ import { MastraToolAdapter } from '../../adapters/MastraToolAdapter';
 export class MastraAPIProvider implements AIProvider {
   readonly name: string;
   private config: APIProviderConfig;
-  private tools: FrameworkToolDefinition[] = [];
+  private tools: any[] = [];
   private toolContext?: ToolExecutionContext;
+  private filteredToolSets: Record<string, any[]> = {};
+  private readonly permissionsByMode: Record<string, ModePermissionBuckets>;
+  private readonly defaultMode: ProviderExecutionMode;
 
-  constructor(config: APIProviderConfig) {
-    this.config = config;
-    this.name = config.provider;
+  constructor(config: APIProviderConfig, mode: ProviderExecutionMode = 'query') {
+    const normalizedConfig = normalizeAPIProviderConfig(config);
+    this.config = normalizedConfig.config;
+    this.permissionsByMode = normalizedConfig.permissionsByMode;
+    this.defaultMode = mode;
+    this.name = this.config.provider;
   }
 
   /**
@@ -58,7 +73,7 @@ export class MastraAPIProvider implements AIProvider {
    * instead of relying on environment variables.
    *
    * Supports:
-   * - api/openai: OpenAI API
+   * - api/openai: OpenAI API (or OpenRouter when URL contains openrouter.ai)
    * - api/anthropic: Anthropic API
    * - api/google: Google AI API
    * - api/bedrock: AWS Bedrock (Anthropic-compatible)
@@ -71,6 +86,16 @@ export class MastraAPIProvider implements AIProvider {
 
     switch (provider) {
       case 'api/openai': {
+        // Detect OpenRouter and use dedicated SDK
+        if (url && url.includes('openrouter.ai')) {
+          console.log('[MastraAPIProvider] Detected OpenRouter, using @openrouter/ai-sdk-provider');
+          const openrouter = createOpenRouter({
+            apiKey: apiKey || '',
+          });
+          return openrouter(model);
+        }
+
+        // Standard OpenAI
         if (apiKey && url) {
           const customOpenAI = createOpenAI({ apiKey, baseURL: url });
           return customOpenAI(model);
@@ -138,15 +163,88 @@ export class MastraAPIProvider implements AIProvider {
   /**
    * Set tools for this agent
    *
-   * Converts CrewX FrameworkToolDefinition to Mastra tools
-   * and injects ToolExecutionContext for each tool.
+   * Accepts both FrameworkToolDefinition (old format) and Mastra Tool (from createTool()).
+   * MastraToolAdapter handles conversion and injects ToolExecutionContext.
    *
-   * @param tools - Array of tool definitions
+   * @param tools - Array of tool definitions (FrameworkToolDefinition or Mastra Tool)
    * @param context - Execution context to inject into tools
    */
-  setTools(tools: FrameworkToolDefinition[], context: ToolExecutionContext): void {
+  setTools(tools: any[], context: ToolExecutionContext): void {
     this.tools = tools;
-    this.toolContext = context;
+    this.toolContext = this.applyDefaultModeToContext(context);
+    this.filteredToolSets = this.buildModeAwareToolSets(tools);
+  }
+
+  private applyDefaultModeToContext(
+    context?: ToolExecutionContext,
+  ): ToolExecutionContext | undefined {
+    if (!context) {
+      return undefined;
+    }
+
+    if (context.mode) {
+      return context;
+    }
+
+    return { ...context, mode: this.defaultMode };
+  }
+
+  private buildModeAwareToolSets(tools: any[]): Record<string, any[]> {
+    const lookup = new Map<string, any>();
+
+    for (const tool of tools) {
+      const identifier = this.getToolIdentifier(tool);
+      if (identifier) {
+        lookup.set(identifier, tool);
+      } else {
+        console.warn('[MastraAPIProvider] Ignoring tool without name/id during registration');
+      }
+    }
+
+    const filtered: Record<string, any[]> = {};
+    for (const [mode, permissions] of Object.entries(this.permissionsByMode)) {
+      if (!permissions.tools.length) {
+        filtered[mode] = [];
+        continue;
+      }
+
+      filtered[mode] = permissions.tools
+        .map((toolName) => {
+          if (!lookup.has(toolName)) {
+            console.warn(
+              `[MastraAPIProvider] Tool '${toolName}' referenced in ${mode} mode but not registered`,
+            );
+          }
+          return lookup.get(toolName);
+        })
+        .filter(Boolean);
+    }
+
+    return filtered;
+  }
+
+  private getToolIdentifier(tool: any): string | undefined {
+    if (tool && typeof tool.id === 'string') {
+      return tool.id;
+    }
+    if (tool && typeof tool.name === 'string') {
+      return tool.name;
+    }
+    return undefined;
+  }
+
+  private createMastraToolsForMode(mode: ProviderExecutionMode): Record<string, any> {
+    if (!this.toolContext) {
+      return {};
+    }
+
+    const registeredTools = this.filteredToolSets[mode] ?? [];
+    if (registeredTools.length === 0) {
+      return {};
+    }
+
+    const contextWithMode: ToolExecutionContext = { ...this.toolContext, mode };
+    return MastraToolAdapter.convertTools(registeredTools, contextWithMode);
   }
 
   /**
@@ -160,58 +258,7 @@ export class MastraAPIProvider implements AIProvider {
    * @returns AI response
    */
   async query(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
-    const taskId = options.taskId || `${this.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    try {
-      // Convert tools to Mastra format using MastraToolAdapter
-      const mastraTools: Record<string, any> = {};
-      if (this.tools.length > 0 && this.toolContext) {
-        // Use MastraToolAdapter to convert CrewX tools to Mastra format
-        Object.assign(mastraTools, MastraToolAdapter.convertTools(this.tools, this.toolContext));
-      }
-
-      // Create model instance with custom configuration
-      const modelInstance = this.createModel(this.config);
-
-      // Create Mastra Agent for this query
-      const agent = new Agent({
-        name: this.config.provider,
-        model: modelInstance,
-        instructions: prompt,
-        tools: mastraTools,
-      });
-
-      // DEBUG: Log tool registration
-      console.log('[DEBUG] MastraAPIProvider.query - Tool registration complete');
-      console.log('[DEBUG] Number of tools registered:', Object.keys(mastraTools).length);
-      console.log('[DEBUG] Tool names:', Object.keys(mastraTools));
-
-      // Call Mastra Agent generate method (returns full output directly)
-      const fullOutput = await agent.generate(prompt);
-
-      // DEBUG: Log the full output received
-      console.log('[DEBUG] MastraAPIProvider.query - Full output received from generate()');
-      console.log('[DEBUG] fullOutput type:', typeof fullOutput);
-      console.log('[DEBUG] fullOutput keys:', Object.keys(fullOutput || {}));
-      console.log('[DEBUG] fullOutput.text:', fullOutput.text);
-      console.log('[DEBUG] fullOutput.text type:', typeof fullOutput.text);
-      console.log('[DEBUG] fullOutput.text length:', fullOutput.text?.length);
-      console.log('[DEBUG] fullOutput.toolCalls:', fullOutput.toolCalls);
-      console.log('[DEBUG] fullOutput.toolResults:', fullOutput.toolResults);
-      console.log('[DEBUG] Full output JSON:', JSON.stringify(fullOutput, null, 2));
-
-      // Transform Mastra response to CrewX AIResponse
-      return this.convertResponse(fullOutput, taskId);
-    } catch (error: any) {
-      return {
-        content: '',
-        provider: this.name,
-        command: `${this.name} query`,
-        success: false,
-        error: error.message || 'Unknown error',
-        taskId,
-      };
-    }
+    return this.runWithMode('query', prompt, options);
   }
 
   /**
@@ -225,8 +272,69 @@ export class MastraAPIProvider implements AIProvider {
    * @returns AI response
    */
   async execute(prompt: string, options: AIQueryOptions = {}): Promise<AIResponse> {
-    // API Provider has no query/execute distinction
-    return this.query(prompt, options);
+    return this.runWithMode('execute', prompt, options);
+  }
+
+  private async runWithMode(
+    mode: ProviderExecutionMode,
+    prompt: string,
+    options: AIQueryOptions,
+  ): Promise<AIResponse> {
+    const taskId =
+      options.taskId || `${this.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      const mastraTools = this.createMastraToolsForMode(mode);
+
+      console.log('[DEBUG] MastraAPIProvider.runWithMode - Tool registration complete');
+      console.log('[DEBUG] Mode:', mode);
+      console.log('[DEBUG] Number of tools registered:', Object.keys(mastraTools).length);
+      console.log('[DEBUG] Tool names:', Object.keys(mastraTools));
+
+      // Allow runtime model override via options.model
+      const configToUse = options.model
+        ? { ...this.config, model: options.model }
+        : this.config;
+
+      console.log('[DEBUG] Using model:', configToUse.model);
+
+      const modelInstance = this.createModel(configToUse);
+
+      const agent = new Agent({
+        name: this.config.provider,
+        model: modelInstance,
+        instructions: prompt,
+        tools: mastraTools,
+      });
+
+      // Force tool calling with 'required' when tools are available
+      const generateOptions = Object.keys(mastraTools).length > 0
+        ? { toolChoice: 'required' as const }
+        : {};
+
+      const fullOutput = await agent.generate(prompt, generateOptions);
+
+      console.log('[DEBUG] MastraAPIProvider.runWithMode - Full output received from generate()');
+      console.log('[DEBUG] fullOutput type:', typeof fullOutput);
+      console.log('[DEBUG] fullOutput keys:', Object.keys(fullOutput || {}));
+      console.log('[DEBUG] fullOutput.text:', fullOutput.text);
+      console.log('[DEBUG] fullOutput.text type:', typeof fullOutput.text);
+      console.log('[DEBUG] fullOutput.text length:', fullOutput.text?.length);
+      console.log('[DEBUG] fullOutput.toolCalls:', fullOutput.toolCalls);
+      console.log('[DEBUG] fullOutput.toolResults:', fullOutput.toolResults);
+      console.log('[DEBUG] Full output JSON:', JSON.stringify(fullOutput, null, 2));
+
+      return this.convertResponse(fullOutput, taskId);
+    } catch (error: any) {
+      return {
+        content: '',
+        provider: this.name,
+        command: `${this.name} ${mode}`,
+        success: false,
+        error: error.message || 'Unknown error',
+        taskId,
+      };
+    }
   }
 
   /**
@@ -245,7 +353,7 @@ export class MastraAPIProvider implements AIProvider {
     console.log('[DEBUG] fullOutput keys:', Object.keys(fullOutput || {}));
 
     // Extract text content (should be directly available now)
-    const content = fullOutput.text || '';
+    let content = fullOutput.text || '';
 
     console.log('[DEBUG] convertResponse - Extracted content:', content);
     console.log('[DEBUG] convertResponse - Content length:', content.length);
@@ -263,17 +371,29 @@ export class MastraAPIProvider implements AIProvider {
     // Add tool call information if available
     if (fullOutput.toolCalls && fullOutput.toolCalls.length > 0) {
       console.log('[DEBUG] convertResponse - Tool calls found:', fullOutput.toolCalls.length);
-      const toolCall = fullOutput.toolCalls[0]; // First tool call
-      console.log('[DEBUG] convertResponse - First tool call:', JSON.stringify(toolCall, null, 2));
+      const firstToolCall = fullOutput.toolCalls[0];
+      console.log('[DEBUG] convertResponse - First tool call:', JSON.stringify(firstToolCall, null, 2));
+
+      // Extract tool info from Mastra format
+      const toolName = firstToolCall.payload?.toolName || firstToolCall.toolName;
+      const toolArgs = firstToolCall.payload?.args || firstToolCall.args;
 
       // Find corresponding tool result
-      const toolResult = fullOutput.toolResults?.find((r: any) => r.toolCallId === toolCall.toolCallId);
+      const firstResult = fullOutput.toolResults?.[0];
+      const toolResultValue = firstResult?.payload?.result || firstResult?.result;
 
       response.toolCall = {
-        toolName: toolCall.toolName,
-        toolInput: toolCall.args,
-        toolResult: toolResult?.result,
+        toolName,
+        toolInput: toolArgs,
+        toolResult: toolResultValue,
       };
+
+      // If content is empty but we have tool results, use the tool result as content
+      if (!content && toolResultValue) {
+        content = `Tool '${toolName}' executed successfully:\n\n${toolResultValue}`;
+        response.content = content;
+        console.log('[DEBUG] convertResponse - Using tool result as content');
+      }
     } else {
       console.log('[DEBUG] convertResponse - No tool calls found');
     }

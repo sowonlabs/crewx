@@ -121,6 +121,28 @@ describe('parseAPIProviderConfig', () => {
       expect(result.temperature).toBe(0.5);
     });
 
+    it('should parse mode-specific tool permissions via options', () => {
+      const rawConfig: RawAgentConfig = {
+        provider: 'api/anthropic',
+        model: 'claude-3-sonnet',
+        options: {
+          query: {
+            tools: ['read_file', 'grep'],
+            mcp: ['filesystem'],
+          },
+          execute: {
+            tools: ['write_file'],
+          },
+        } as any,
+      };
+
+      const result = parseAPIProviderConfig(rawConfig, mockEnv);
+
+      expect(result.options?.query?.tools).toEqual(['read_file', 'grep']);
+      expect(result.options?.query?.mcp).toEqual(['filesystem']);
+      expect(result.options?.execute?.tools).toEqual(['write_file']);
+    });
+
     it('should parse inline provider configuration', () => {
       const rawConfig: RawAgentConfig = {
         inline: {

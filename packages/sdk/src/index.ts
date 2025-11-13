@@ -44,7 +44,14 @@ export {
 export { DocumentManager } from './knowledge/DocumentManager';
 
 // Tools
-export { readFileTool } from './tools';
+export {
+  readFileTool,
+  writeFileTool,
+  replaceTool,
+  lsTool,
+  grepTool,
+  runShellCommandTool,
+} from './tools';
 export type {
   FileSystemService,
   ProcessedFileReadResult,
@@ -94,14 +101,25 @@ export type {
 export type {
   APIProviderConfig,
   APIProviderType,
+  ProviderExecutionMode,
+  ProviderModeOptions,
+  ProviderOptions,
+  LegacyProviderPermissionConfig,
   CrewXInstance,
   FrameworkToolDefinition,
   MCPServerConfig,
   ToolExecutionContext as APIToolExecutionContext,
 } from './types/api-provider.types';
 export {
+  isLegacyProviderPermissionConfig,
+  isProviderModeOptions,
+  isProviderOptions,
+  convertLegacyPermissionsToProviderOptions,
+} from './types/api-provider.types';
+export {
   APIProviderConfigSchema,
   MCPServerConfigSchema,
+  APIProviderConfigJsonSchema,
 } from './schemas/api-provider.schema';
 export type {
   Tool,
@@ -109,6 +127,16 @@ export type {
   ToolExecutionResult,
   ToolCallHandler,
 } from './core/providers/tool-call.types';
+export {
+  normalizeAPIProviderConfig,
+  getModePermissions,
+  isAPIProviderConfig,
+  assertAPIProviderConfig,
+} from './utils/api-provider-normalizer';
+export type {
+  NormalizedAPIProviderConfigResult,
+  ModePermissionBuckets,
+} from './utils/api-provider-normalizer';
 
 // Agent domain types
 export type {
