@@ -23,8 +23,11 @@ import {
   writeFileTool,
   replaceTool,
   lsTool,
+  treeTool,
   grepTool,
   runShellCommandTool,
+  findTool,
+  globTool,
 } from '@sowonai/crewx-sdk/tools';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ConfigService } from './services/config.service';
@@ -143,11 +146,16 @@ export class AIProviderService implements OnModuleInit {
           // Load tools for this agent
           const agentConfig = this.configService.getAgentConfig(agentId);
           const allowedToolNames = new Set<string>();
+
+          this.logger.debug(`[Tool Loading] normalizedConfig.permissionsByMode: ${JSON.stringify(normalizedConfig.permissionsByMode, null, 2)}`);
+
           for (const permissions of Object.values(normalizedConfig.permissionsByMode)) {
             for (const toolName of permissions.tools) {
               allowedToolNames.add(toolName);
             }
           }
+
+          this.logger.debug(`[Tool Loading] allowedToolNames: ${Array.from(allowedToolNames).join(', ')}`);
 
           if (allowedToolNames.size > 0) {
             // Build tool list from built-in tools
@@ -160,7 +168,10 @@ export class AIProviderService implements OnModuleInit {
               write_file: writeFileTool,
               replace: replaceTool,
               ls: lsTool,
+              tree: treeTool,
               grep: grepTool,
+              find: findTool,
+              glob: globTool,
               run_shell_command: runShellCommandTool,
             };
 

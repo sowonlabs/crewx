@@ -891,21 +891,43 @@ ${query}
 
       let agentResult;
       try {
-        agentResult = await runtimeResult.runtime.agent.query({
-          agentId,
-          prompt: fullPrompt,
-          context,
-          messages: runtimeMessages,
-          model: modelToUse,
-          options: {
-            workingDirectory: workingDir,
-            timeout: this.timeoutConfig.parallel,
-            additionalArgs: agentOptions,
-            taskId,
-            securityKey,
-            pipedContext: structuredPayload,
-          },
-        });
+        // Intercept console.log during provider execution to capture logs
+        const originalLog = console.log;
+        console.log = (...args: any[]) => {
+          const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+
+          // Write to task log if it starts with [INFO]
+          if (message.includes('[INFO]')) {
+            this.taskManagementService.addTaskLog(taskId, {
+              level: 'info',
+              message: message.replace('[INFO] ', ''),
+            });
+          }
+
+          // Still output to console for debugging
+          originalLog.apply(console, args);
+        };
+
+        try {
+          agentResult = await runtimeResult.runtime.agent.query({
+            agentId,
+            prompt: fullPrompt,
+            context,
+            messages: runtimeMessages,
+            model: modelToUse,
+            options: {
+              workingDirectory: workingDir,
+              timeout: this.timeoutConfig.parallel,
+              additionalArgs: agentOptions,
+              taskId,
+              securityKey,
+              pipedContext: structuredPayload,
+            },
+          });
+        } finally {
+          // Restore original console.log
+          console.log = originalLog;
+        }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Agent runtime query failed';
         this.taskManagementService.addTaskLog(taskId, {
@@ -1310,21 +1332,43 @@ Task: ${task}
 
       let agentResult;
       try {
-        agentResult = await runtimeResult.runtime.agent.execute({
-          agentId,
-          prompt: fullPrompt,
-          context,
-          messages: runtimeMessages,
-          model: modelToUse,
-          options: {
-            workingDirectory: workingDir,
-            timeout: 1_200_000,
-            additionalArgs: agentOptions,
-            taskId,
-            pipedContext: structuredPayload,
-            securityKey,
-          },
-        });
+        // Intercept console.log during provider execution to capture logs
+        const originalLog = console.log;
+        console.log = (...args: any[]) => {
+          const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+
+          // Write to task log if it starts with [INFO]
+          if (message.includes('[INFO]')) {
+            this.taskManagementService.addTaskLog(taskId, {
+              level: 'info',
+              message: message.replace('[INFO] ', ''),
+            });
+          }
+
+          // Still output to console for debugging
+          originalLog.apply(console, args);
+        };
+
+        try {
+          agentResult = await runtimeResult.runtime.agent.execute({
+            agentId,
+            prompt: fullPrompt,
+            context,
+            messages: runtimeMessages,
+            model: modelToUse,
+            options: {
+              workingDirectory: workingDir,
+              timeout: 1_200_000,
+              additionalArgs: agentOptions,
+              taskId,
+              pipedContext: structuredPayload,
+              securityKey,
+            },
+          });
+        } finally {
+          // Restore original console.log
+          console.log = originalLog;
+        }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Agent runtime execution failed';
         this.taskManagementService.addTaskLog(taskId, {

@@ -48,6 +48,7 @@ export interface RawAgentConfig {
     prompt?: string;
     tools?: string[];
     mcp?: string[];
+    options?: ProviderOptions;
   };
   options?: ProviderOptions;
 }
@@ -189,8 +190,10 @@ export function parseAPIProviderConfig(
   }
 
   // Optional: mode-specific options (query/execute)
-  if (rawConfig.options) {
-    const parsedOptions = parseProviderOptions(rawConfig.options);
+  // Check both top-level and inline.options
+  const options = rawConfig.options || rawConfig.inline?.options;
+  if (options) {
+    const parsedOptions = parseProviderOptions(options);
     if (parsedOptions) {
       config.options = parsedOptions;
     }

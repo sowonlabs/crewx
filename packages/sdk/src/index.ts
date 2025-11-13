@@ -51,6 +51,9 @@ export {
   lsTool,
   grepTool,
   runShellCommandTool,
+  treeTool,
+  findTool,
+  globTool,
 } from './tools';
 export type {
   FileSystemService,

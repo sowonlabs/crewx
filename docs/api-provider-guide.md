@@ -1,7 +1,7 @@
 # CrewX API Provider User Guide
 
 > **Version**: 0.1.x
-> **Last Updated**: 2025-11-12
+> **Last Updated**: 2025-11-13
 > **For**: Developers and system administrators
 
 This comprehensive guide walks you through using CrewX API Providers, from basic setup to advanced configurations with tool calling and MCP integration.
@@ -11,14 +11,15 @@ This comprehensive guide walks you through using CrewX API Providers, from basic
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [LiteLLM Gateway Setup](#litellm-gateway-setup)
-3. [YAML Configuration Examples](#yaml-configuration-examples)
-4. [Tool Calling Usage](#tool-calling-usage)
-5. [MCP Server Integration](#mcp-server-integration)
-6. [CLI vs API Provider Comparison](#cli-vs-api-provider-comparison)
-7. [Troubleshooting Guide](#troubleshooting-guide)
-8. [Provider Options](#provider-options)
-9. [Advanced Topics](#advanced-topics)
+2. [Supported Providers](#supported-providers)
+3. [LiteLLM Gateway Setup](#litellm-gateway-setup)
+4. [YAML Configuration Examples](#yaml-configuration-examples)
+5. [Tool Calling Usage](#tool-calling-usage)
+6. [MCP Server Integration](#mcp-server-integration)
+7. [CLI vs API Provider Comparison](#cli-vs-api-provider-comparison)
+8. [Troubleshooting Guide](#troubleshooting-guide)
+9. [Provider Options](#provider-options)
+10. [Advanced Topics](#advanced-topics)
 
 ---
 
@@ -68,7 +69,7 @@ agents:
   - id: my_first_agent
     name: My First Agent
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     temperature: 0.7
     inline:
       prompt: |
@@ -90,7 +91,7 @@ crewx execute "@my_first_agent Create a summary report"
 ```
 Agent: my_first_agent
 Provider: api/openai
-Model: gpt-4o
+Model: gpt-5.1-chat-latest
 
 I'd be happy to help you check the weather! However, I don't have
 access to real-time weather data. You would need to provide me with
@@ -107,7 +108,7 @@ agents:
   - id: research_assistant
     name: Research Assistant
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     temperature: 0.7
     tools: [web_search, company_info]
     inline:
@@ -126,6 +127,309 @@ agents:
 ```bash
 crewx execute "@research_assistant Tell me about OpenAI"
 ```
+
+---
+
+## Supported Providers
+
+CrewX API Provider supports 7 different AI providers with unified configuration. Each provider has its own characteristics and use cases.
+
+### 1. OpenAI (`api/openai`)
+
+**Models:**
+- `gpt-5.1-chat-latest` - Latest GPT-4 Omni model (recommended)
+- `gpt-4-turbo` - GPT-4 Turbo with 128K context
+- `gpt-4` - Original GPT-4
+- `gpt-3.5-turbo` - Fast and cost-effective
+
+**Features:**
+- Function calling / tool use
+- JSON mode
+- Vision capabilities (gpt-5.1-chat-latest, gpt-4-turbo)
+- 128K context window (gpt-4-turbo)
+
+**Environment Variable:** `OPENAI_API_KEY`
+
+**Example:**
+```yaml
+agents:
+  - id: "gpt_assistant"
+    name: "GPT-4 Assistant"
+    inline:
+      provider: "api/openai"
+      model: "gpt-5.1-chat-latest"
+      temperature: 0.7
+      maxTokens: 4000
+      prompt: |
+        You are a helpful AI assistant powered by GPT-4.
+```
+
+**Use Cases:**
+- General-purpose tasks
+- Code generation and review
+- Creative writing
+- Complex reasoning
+
+---
+
+### 2. Anthropic (`api/anthropic`)
+
+**Models:**
+- `claude-sonnet-4-5-20250929` - Latest Sonnet (recommended)
+- `claude-3-opus-20240229` - Most capable, slower
+- `claude-3-haiku-20240307` - Fast and cost-effective
+
+**Features:**
+- 200K context window (all models)
+- Extended thinking (Claude 3.5)
+- Tool use / function calling
+- Strong reasoning and analysis
+
+**Environment Variable:** `ANTHROPIC_API_KEY`
+
+**Example:**
+```yaml
+agents:
+  - id: "claude_assistant"
+    name: "Claude Assistant"
+    inline:
+      provider: "api/anthropic"
+      model: "claude-sonnet-4-5-20250929"
+      temperature: 0.7
+      maxTokens: 4000
+      prompt: |
+        You are a thoughtful AI assistant powered by Claude.
+```
+
+**Use Cases:**
+- Long-context analysis (200K tokens)
+- Code review and refactoring
+- Research and summarization
+- Complex reasoning tasks
+
+---
+
+### 3. Google (`api/google`)
+
+**Models:**
+- `gemini-2.5-pro` - Latest experimental (fastest)
+- `gemini-1.5-pro` - Most capable (1M context)
+- `gemini-1.5-flash` - Fast and efficient
+
+**Features:**
+- 1M+ context window (Gemini 1.5 Pro)
+- Multimodal (text, image, video, audio)
+- Function calling
+- Real-time information (with Google Search integration)
+
+**Environment Variable:** `GOOGLE_API_KEY`
+
+**Example:**
+```yaml
+agents:
+  - id: "gemini_assistant"
+    name: "Gemini Assistant"
+    inline:
+      provider: "api/google"
+      model: "gemini-2.5-pro"
+      temperature: 0.9
+      maxTokens: 8000
+      prompt: |
+        You are an AI assistant powered by Google Gemini.
+```
+
+**Use Cases:**
+- Massive context analysis (1M+ tokens)
+- Multimodal tasks (image/video/audio)
+- Fast responses with Gemini Flash
+- Research with real-time data
+
+---
+
+### 4. AWS Bedrock (`api/bedrock`)
+
+**Models:**
+- `anthropic.claude-sonnet-4-5-20250929-v2:0` - Claude 3.5 Sonnet on Bedrock
+- `anthropic.claude-3-opus-20240229-v1:0` - Claude 3 Opus on Bedrock
+- `anthropic.claude-3-haiku-20240307-v1:0` - Claude 3 Haiku on Bedrock
+
+**Features:**
+- AWS infrastructure integration
+- Enterprise security and compliance
+- VPC deployment
+- AWS CloudWatch logging
+
+**Environment Variables:** `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
+
+**Example:**
+```yaml
+agents:
+  - id: "bedrock_assistant"
+    name: "AWS Bedrock Claude"
+    inline:
+      provider: "api/bedrock"
+      url: "https://bedrock-runtime.us-east-1.amazonaws.com"
+      model: "anthropic.claude-sonnet-4-5-20250929-v2:0"
+      temperature: 0.7
+      prompt: |
+        You are an enterprise AI assistant running on AWS Bedrock.
+```
+
+**Use Cases:**
+- Enterprise deployments
+- AWS-native applications
+- Compliance-sensitive workloads
+- VPC-isolated environments
+
+---
+
+### 5. LiteLLM Gateway (`api/litellm`)
+
+**Models:** Any model supported by LiteLLM (100+ models)
+- Routes to OpenAI, Anthropic, Google, etc.
+- Unified interface for all providers
+- Cost-based routing and load balancing
+
+**Features:**
+- Multi-provider routing
+- Cost optimization
+- Load balancing and failover
+- Usage tracking and monitoring
+- Rate limiting
+
+**Environment Variable:** `LITELLM_API_KEY` (if auth enabled)
+
+**Example:**
+```yaml
+agents:
+  - id: "litellm_assistant"
+    name: "LiteLLM Gateway"
+    inline:
+      provider: "api/litellm"
+      url: "http://localhost:4000"
+      model: "claude-sonnet-4-5-20250929"  # Routed by LiteLLM
+      temperature: 0.7
+      prompt: |
+        You are an AI assistant using LiteLLM gateway.
+```
+
+**Use Cases:**
+- Multi-model applications
+- Cost optimization across providers
+- Load balancing multiple API keys
+- A/B testing different models
+- Monitoring and logging
+
+---
+
+### 6. Ollama (`api/ollama`)
+
+**Models:** Any model available on Ollama
+- `llama3.2` - Latest Llama 3.2
+- `mistral` - Mistral models
+- `codellama` - Code-specialized Llama
+- `deepseek-coder` - DeepSeek Coder models
+- And 100+ more on ollama.ai/library
+
+**Features:**
+- Fully local LLM server
+- No internet required (after model download)
+- Privacy-focused (data never leaves your machine)
+- GPU acceleration support
+- Free to use
+
+**Environment Variable:** None (local server)
+
+**Example:**
+```yaml
+agents:
+  - id: "ollama_assistant"
+    name: "Local Ollama"
+    inline:
+      provider: "api/ollama"
+      url: "http://localhost:11434/v1"
+      model: "llama3.2"
+      temperature: 0.8
+      prompt: |
+        You are a local AI assistant running on Ollama.
+```
+
+**Use Cases:**
+- Local development without API costs
+- Privacy-sensitive applications
+- Offline environments
+- Custom fine-tuned models
+- Experimentation without rate limits
+
+**Setup:**
+```bash
+# Install Ollama
+curl https://ollama.ai/install.sh | sh
+
+# Download a model
+ollama pull llama3.2
+
+# Verify it's running
+curl http://localhost:11434/api/tags
+```
+
+---
+
+### 7. SowonAI (`api/sowonai`)
+
+**Models:** Models available on Sowon.ai
+- Check Sowon.ai documentation for available models
+
+**Features:**
+- Sowon.ai platform integration
+- Specialized models and capabilities
+
+**Environment Variable:** `SOWONAI_API_KEY`
+
+**Example:**
+```yaml
+agents:
+  - id: "sowonai_assistant"
+    name: "SowonAI Assistant"
+    inline:
+      provider: "api/sowonai"
+      url: "https://api.sowon.ai/v1"
+      model: "your-model-name"
+      temperature: 0.7
+      prompt: |
+        You are an AI assistant powered by SowonAI.
+```
+
+**Use Cases:**
+- SowonAI platform users
+- Specialized models from Sowon.ai
+
+---
+
+### OpenRouter Support
+
+CrewX also supports **OpenRouter** through the `api/openai` provider by setting a custom URL:
+
+**Example:**
+```yaml
+agents:
+  - id: "openrouter_agent"
+    name: "OpenRouter Agent"
+    inline:
+      provider: "api/openai"
+      url: "https://openrouter.ai/api/v1"
+      apiKey: "{{env.OPENROUTER_API_KEY}}"
+      model: "anthropic/claude-sonnet-4-5-20250929"
+      temperature: 0.7
+      prompt: |
+        You are an AI assistant using OpenRouter.
+```
+
+**Benefits:**
+- Access to 100+ models through one API
+- Competitive pricing
+- Automatic failover
+- Usage analytics
 
 ---
 
@@ -177,15 +481,15 @@ model_list:
       model: openai/gpt-4
       api_key: ${OPENAI_API_KEY}
 
-  - model_name: gpt-4o
+  - model_name: gpt-5.1-chat-latest
     litellm_params:
-      model: openai/gpt-4o
+      model: openai/gpt-5.1-chat-latest
       api_key: ${OPENAI_API_KEY}
 
   # Anthropic Models
-  - model_name: claude-3-5-sonnet-20241022
+  - model_name: claude-sonnet-4-5-20250929
     litellm_params:
-      model: anthropic/claude-3-5-sonnet-20241022
+      model: anthropic/claude-sonnet-4-5-20250929
       api_key: ${ANTHROPIC_API_KEY}
 
   - model_name: claude-3-opus-20240229
@@ -202,7 +506,7 @@ model_list:
   # AWS Bedrock
   - model_name: bedrock-claude
     litellm_params:
-      model: bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0
+      model: bedrock/anthropic.claude-sonnet-4-5-20250929-v2:0
       aws_access_key_id: ${AWS_ACCESS_KEY_ID}
       aws_secret_access_key: ${AWS_SECRET_ACCESS_KEY}
       aws_region_name: us-east-1
@@ -211,8 +515,8 @@ model_list:
 router_settings:
   routing_strategy: latency-based-routing  # or 'simple-shuffle', 'cost-based'
   model_group_alias:
-    claude: [claude-3-5-sonnet-20241022, claude-3-opus-20240229]
-    gpt: [gpt-4, gpt-4o]
+    claude: [claude-sonnet-4-5-20250929, claude-3-opus-20240229]
+    gpt: [gpt-4, gpt-5.1-chat-latest]
 
 # General Settings
 general_settings:
@@ -234,7 +538,7 @@ agents:
     name: Claude via LiteLLM
     provider: api/litellm
     url: "{{vars.litellm_url}}"
-    model: claude-3-5-sonnet-20241022  # Routed by LiteLLM
+    model: claude-sonnet-4-5-20250929  # Routed by LiteLLM
     temperature: 0.7
     inline:
       prompt: |
@@ -244,7 +548,7 @@ agents:
     name: GPT-4 via LiteLLM
     provider: api/litellm
     url: "{{vars.litellm_url}}"
-    model: gpt-4o  # Routed by LiteLLM
+    model: gpt-5.1-chat-latest  # Routed by LiteLLM
     temperature: 0.7
     inline:
       prompt: |
@@ -270,7 +574,7 @@ crewx query "@gpt_agent Write a haiku about AI"
 model_list:
   - model_name: reliable-model
     litellm_params:
-      model: anthropic/claude-3-5-sonnet-20241022
+      model: anthropic/claude-sonnet-4-5-20250929
       api_key: ${ANTHROPIC_API_KEY}
     model_info:
       fallbacks: [gpt-4, gemini-1.5-pro]
@@ -283,12 +587,12 @@ model_list:
 model_list:
   - model_name: claude
     litellm_params:
-      model: anthropic/claude-3-5-sonnet-20241022
+      model: anthropic/claude-sonnet-4-5-20250929
       api_key: ${ANTHROPIC_API_KEY_1}
 
   - model_name: claude
     litellm_params:
-      model: anthropic/claude-3-5-sonnet-20241022
+      model: anthropic/claude-sonnet-4-5-20250929
       api_key: ${ANTHROPIC_API_KEY_2}
 
 router_settings:
@@ -342,7 +646,7 @@ agents:
   - id: simple_gpt
     name: Simple GPT Agent
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     temperature: 0.7
     maxTokens: 2000
     inline:
@@ -357,7 +661,7 @@ agents:
   - id: precise_claude
     name: Precise Claude
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     temperature: 0.0  # Deterministic
     maxTokens: 4000
     inline:
@@ -395,7 +699,7 @@ agents:
   - id: research_agent
     name: Research Specialist
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     temperature: 0.7
     tools: [web_search, company_info]
     inline:
@@ -407,7 +711,7 @@ agents:
   - id: coding_agent
     name: Code Expert
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     temperature: 0.0  # Deterministic for code
     tools: [file_read, file_write, run_tests]
     inline:
@@ -441,7 +745,7 @@ agents:
     name: Adaptive Agent
     provider: api/litellm
     url: "{{vars.api_url}}"
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     temperature: "{{vars.debug_mode ? 0.0 : 0.7}}"
     inline:
       prompt: |
@@ -460,7 +764,7 @@ agents:
     name: AWS Bedrock Claude
     provider: api/bedrock
     url: https://bedrock-runtime.us-east-1.amazonaws.com
-    model: anthropic.claude-3-5-sonnet-20241022-v2:0
+    model: anthropic.claude-sonnet-4-5-20250929-v2:0
     temperature: 0.7
     inline:
       prompt: |
@@ -474,7 +778,7 @@ agents:
   - id: gemini_agent
     name: Google Gemini
     provider: api/google
-    model: gemini-2.0-flash-exp
+    model: gemini-2.5-pro
     temperature: 0.9  # Creative
     maxTokens: 8000
     inline:
@@ -509,7 +813,7 @@ agents:
   - id: devops_agent
     name: DevOps Engineer
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     temperature: 0.3
     mcp: [github, slack]
     tools: [deploy_service, check_logs, alert_team]
@@ -537,7 +841,7 @@ agents:
   - id: smart_agent
     name: Environment-Aware Agent
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     temperature: 0.7
     # Only enable dangerous tools in non-production
     tools: "{{vars.production_mode ? ['read_only_tool'] : ['read_only_tool', 'write_tool', 'delete_tool']}}"
@@ -726,7 +1030,7 @@ agents:
   - id: research_agent
     name: Research Agent
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     temperature: 0.7
     tools: [weather, company_search]  # Activate injected tools
     inline:
@@ -754,7 +1058,7 @@ crewx execute "@research_agent What's the weather in Seoul?"
 ```
 Agent: research_agent
 Provider: api/openai
-Model: gpt-4o
+Model: gpt-5.1-chat-latest
 
 The current weather in Seoul is 15°C (59°F) with clear skies.
 Humidity is at 60%.
@@ -762,6 +1066,199 @@ Humidity is at 60%.
 [Tool Calls]
 - weather(city="Seoul", units="celsius")
   Result: { temperature: 15, conditions: "clear sky", humidity: 60 }
+```
+
+### Built-in File System Tools
+
+CrewX provides several built-in tools for file system operations. These tools are available in `@crewx/sdk/tools`.
+
+#### Find Tool - Search Files by Name
+
+Search for files by filename pattern. Similar to Unix `find` command.
+
+**Import:**
+```typescript
+import { findTool } from '@crewx/sdk/tools';
+```
+
+**Features:**
+- Supports wildcards (`*` and `?`)
+- Case-insensitive by default
+- Returns absolute file paths
+- Sorts by exact matches first, then by modification time
+
+**Parameters:**
+- `pattern`: Filename pattern (e.g., `"MastraAPIProvider.ts"`, `"*Provider*.ts"`)
+- `dir_path`: Directory to search in (default: current directory)
+- `case_sensitive`: Whether to match case-sensitively (default: false)
+- `max_results`: Maximum results to return (default: 50)
+
+**Example:**
+```typescript
+import { findTool } from '@crewx/sdk/tools';
+
+const crewx = new CrewX({
+  configPath: 'crewx.yaml',
+  tools: [findTool],
+});
+```
+
+**YAML Configuration:**
+```yaml
+agents:
+  - id: file_searcher
+    name: File Search Agent
+    provider: api/anthropic
+    model: claude-sonnet-4-5-20250929
+    tools: [find]
+    inline:
+      prompt: |
+        You can search for files by name using the find tool.
+        Example: find(pattern="*Provider*.ts")
+```
+
+**Usage:**
+```bash
+crewx execute "@file_searcher Find all TypeScript files with Provider in the name"
+```
+
+#### Glob Tool - Pattern-Based File Search
+
+Search for files using glob patterns (e.g., `**/*.ts`, `src/**/*.yaml`).
+
+**Import:**
+```typescript
+import { globTool } from '@crewx/sdk/tools';
+```
+
+**Features:**
+- Full glob pattern support (`*`, `?`, `**`)
+- Respects .gitignore by default
+- Returns files sorted by modification time (recent first)
+- Supports recursive directory search
+
+**Parameters:**
+- `pattern`: Glob pattern (e.g., `"**/*.ts"`, `"examples/**/*.yaml"`)
+- `dir_path`: Directory to search in (default: current directory)
+- `case_sensitive`: Whether to match case-sensitively (default: false)
+- `respect_git_ignore`: Whether to respect .gitignore (default: true)
+- `max_results`: Maximum results to return (default: 100)
+
+**Example:**
+```typescript
+import { globTool } from '@crewx/sdk/tools';
+
+const crewx = new CrewX({
+  configPath: 'crewx.yaml',
+  tools: [globTool],
+});
+```
+
+**YAML Configuration:**
+```yaml
+agents:
+  - id: code_analyzer
+    name: Code Analysis Agent
+    provider: api/openai
+    model: gpt-5.1-chat-latest
+    tools: [glob]
+    inline:
+      prompt: |
+        You can search for files using glob patterns.
+        Examples:
+        - glob(pattern="**/*.ts") - All TypeScript files
+        - glob(pattern="src/**/*.yaml") - YAML files in src
+```
+
+**Usage:**
+```bash
+crewx execute "@code_analyzer Find all TypeScript files in the packages directory"
+```
+
+#### Tree Tool - Display Directory Structure
+
+Display directory structure similar to Unix `tree` command.
+
+**Import:**
+```typescript
+import { treeTool } from '@crewx/sdk/tools';
+```
+
+**Features:**
+- Shows nested directory structure
+- Displays file sizes
+- Configurable depth limit
+- Sorts directories first, then alphabetically
+
+**Parameters:**
+- `path`: Directory path to inspect (default: current directory)
+- `max_depth`: Maximum depth to traverse (default: 3)
+
+**Example:**
+```typescript
+import { treeTool } from '@crewx/sdk/tools';
+
+const crewx = new CrewX({
+  configPath: 'crewx.yaml',
+  tools: [treeTool],
+});
+```
+
+**YAML Configuration:**
+```yaml
+agents:
+  - id: project_explorer
+    name: Project Explorer Agent
+    provider: api/anthropic
+    model: claude-sonnet-4-5-20250929
+    tools: [tree]
+    inline:
+      prompt: |
+        You can explore directory structure using the tree tool.
+        Example: tree(path="src", max_depth=2)
+```
+
+**Usage:**
+```bash
+crewx execute "@project_explorer Show me the structure of the src directory"
+```
+
+#### Using Multiple Built-in Tools
+
+Combine built-in tools for powerful file system operations:
+
+```typescript
+import { findTool, globTool, treeTool } from '@crewx/sdk/tools';
+
+const crewx = new CrewX({
+  configPath: 'crewx.yaml',
+  tools: [
+    findTool,
+    globTool,
+    treeTool,
+  ],
+});
+```
+
+**YAML Configuration:**
+```yaml
+agents:
+  - id: filesystem_agent
+    name: File System Expert
+    provider: api/anthropic
+    model: claude-sonnet-4-5-20250929
+    tools: [find, glob, tree]
+    inline:
+      prompt: |
+        You are a file system expert with access to:
+        - find: Search files by name pattern
+        - glob: Search files by glob pattern
+        - tree: Display directory structure
+
+        Use the appropriate tool based on the task:
+        - Use find for simple filename searches
+        - Use glob for complex path patterns
+        - Use tree to understand project structure
 ```
 
 ### Advanced Tool Examples
@@ -1001,7 +1498,7 @@ agents:
   - id: github_agent
     name: GitHub Manager
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     temperature: 0.7
     mcp: [github]  # Activate GitHub MCP server
     inline:
@@ -1015,7 +1512,7 @@ agents:
   - id: slack_agent
     name: Slack Bot
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     temperature: 0.7
     mcp: [slack]  # Activate Slack MCP server
     inline:
@@ -1080,7 +1577,7 @@ agents:
   - id: devops_agent
     name: DevOps Agent
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     temperature: 0.5
     mcp: [github]
     tools: [deploy_service, check_logs, alert_team]  # Custom tools
@@ -1147,7 +1644,7 @@ agents:
   - id: multi_org_agent
     name: Multi-Org GitHub Agent
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     mcp: [github_org1, github_org2]
     inline:
       prompt: |
@@ -1268,7 +1765,7 @@ agents:
   - id: api_claude
     name: API Claude
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     tools: [web_search, company_info]
     mcp: [github, slack]
     inline:
@@ -1303,7 +1800,7 @@ agents:
 
   - id: prod_agent
     provider: api/anthropic  # Add for production
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     tools: [web_search]
     inline:
       prompt: |
@@ -1317,7 +1814,7 @@ agents:
   - id: prod_agent
     provider: api/litellm  # Use LiteLLM gateway
     url: https://gateway.mycompany.com
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     tools: [web_search, company_info]
     mcp: [github, slack]
     inline:
@@ -1344,7 +1841,7 @@ agents:
   - id: api_agent
     name: API Agent
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     tools: [web_search, company_info]
     mcp: [github, slack]
     inline:
@@ -1411,7 +1908,7 @@ model: gpt-5  # Doesn't exist
 
 # ✅ Correct
 provider: api/openai
-model: gpt-4o  # Valid model
+model: gpt-5.1-chat-latest  # Valid model
 ```
 
 #### 3. Tool Not Available
@@ -1692,7 +2189,7 @@ agents:
 # Balanced (general tasks)
 - id: general_agent
   provider: api/anthropic
-  model: claude-3-5-sonnet-20241022  # Recommended
+  model: claude-sonnet-4-5-20250929  # Recommended
 
 # Cheap (simple tasks)
 - id: simple_agent
@@ -1755,7 +2252,7 @@ Provider Options is a powerful feature that allows fine-grained control over too
 agents:
   - name: secure_agent
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     options:
       query:                     # Read-only operations
         tools: [file_read, grep, glob]
@@ -1797,7 +2294,7 @@ agents:
 agents:
   - name: dev_assistant
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     options:
       query:
         tools: [file_read, grep, glob]           # Code analysis only
@@ -1818,7 +2315,7 @@ agents:
 agents:
   - name: research_bot
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     options:
       query:
         tools: [web_search, company_info]      # Research tools
@@ -1838,7 +2335,7 @@ agents:
 agents:
   - name: devops_engineer
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     options:
       query:
         tools: [check_logs, status_check]       # Monitoring tools
@@ -2000,7 +2497,7 @@ agents:
   - id: self_hosted_litellm
     provider: api/litellm
     url: https://litellm.mycompany.com
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
 ```
 
 ### Dynamic Configuration
@@ -2092,13 +2589,13 @@ agents:
   # Coding tasks → GPT-4
   - id: coder
     provider: api/openai
-    model: gpt-4o
+    model: gpt-5.1-chat-latest
     temperature: 0.0
 
   # Writing tasks → Claude
   - id: writer
     provider: api/anthropic
-    model: claude-3-5-sonnet-20241022
+    model: claude-sonnet-4-5-20250929
     temperature: 0.8
 
   # Analysis tasks → Gemini
@@ -2128,7 +2625,7 @@ router_settings:
     smart-router:
       - claude-3-haiku-20240307     # Cheapest first
       - claude-3-sonnet-20240229     # Medium
-      - claude-3-5-sonnet-20241022  # Fallback
+      - claude-sonnet-4-5-20250929  # Fallback
 ```
 
 ### Monitoring and Logging

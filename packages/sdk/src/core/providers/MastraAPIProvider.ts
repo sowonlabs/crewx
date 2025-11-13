@@ -124,7 +124,8 @@ export class MastraAPIProvider implements AIProvider {
           apiKey: apiKey || defaultKey,
           baseURL: url || defaultURL,
         });
-        return customOpenAI(model);
+        // Use chat() method explicitly for chat completions endpoint
+        return customOpenAI.chat(model);
       }
 
       case 'api/anthropic': {
@@ -286,17 +287,20 @@ export class MastraAPIProvider implements AIProvider {
     try {
       const mastraTools = this.createMastraToolsForMode(mode);
 
-      console.log('[DEBUG] MastraAPIProvider.runWithMode - Tool registration complete');
-      console.log('[DEBUG] Mode:', mode);
-      console.log('[DEBUG] Number of tools registered:', Object.keys(mastraTools).length);
-      console.log('[DEBUG] Tool names:', Object.keys(mastraTools));
+      // Log for CLI task logs (INFO level only)
+      const toolCount = Object.keys(mastraTools).length;
+      if (toolCount > 0) {
+        console.log(`[INFO] Registered ${toolCount} tools for ${mode} mode: ${Object.keys(mastraTools).join(', ')}`);
+      } else {
+        console.log(`[INFO] No tools registered for ${mode} mode`);
+      }
 
       // Allow runtime model override via options.model
       const configToUse = options.model
         ? { ...this.config, model: options.model }
         : this.config;
 
-      console.log('[DEBUG] Using model:', configToUse.model);
+      console.log(`[INFO] Using model: ${configToUse.model}`);
 
       const modelInstance = this.createModel(configToUse);
 
@@ -312,17 +316,9 @@ export class MastraAPIProvider implements AIProvider {
         ? { toolChoice: 'required' as const }
         : {};
 
+      console.log(`[INFO] Sending request to AI model...`);
       const fullOutput = await agent.generate(prompt, generateOptions);
-
-      console.log('[DEBUG] MastraAPIProvider.runWithMode - Full output received from generate()');
-      console.log('[DEBUG] fullOutput type:', typeof fullOutput);
-      console.log('[DEBUG] fullOutput keys:', Object.keys(fullOutput || {}));
-      console.log('[DEBUG] fullOutput.text:', fullOutput.text);
-      console.log('[DEBUG] fullOutput.text type:', typeof fullOutput.text);
-      console.log('[DEBUG] fullOutput.text length:', fullOutput.text?.length);
-      console.log('[DEBUG] fullOutput.toolCalls:', fullOutput.toolCalls);
-      console.log('[DEBUG] fullOutput.toolResults:', fullOutput.toolResults);
-      console.log('[DEBUG] Full output JSON:', JSON.stringify(fullOutput, null, 2));
+      console.log(`[INFO] Received response from AI model`);
 
       return this.convertResponse(fullOutput, taskId);
     } catch (error: any) {
@@ -347,16 +343,8 @@ export class MastraAPIProvider implements AIProvider {
    * @returns CrewX AIResponse
    */
   private convertResponse(fullOutput: any, taskId: string): AIResponse {
-    // DEBUG: Log the full output structure
-    console.log('[DEBUG] convertResponse - Processing fullOutput');
-    console.log('[DEBUG] fullOutput type:', typeof fullOutput);
-    console.log('[DEBUG] fullOutput keys:', Object.keys(fullOutput || {}));
-
     // Extract text content (should be directly available now)
     let content = fullOutput.text || '';
-
-    console.log('[DEBUG] convertResponse - Extracted content:', content);
-    console.log('[DEBUG] convertResponse - Content length:', content.length);
 
     // Build AIResponse
     const response: AIResponse = {
@@ -370,17 +358,25 @@ export class MastraAPIProvider implements AIProvider {
 
     // Add tool call information if available
     if (fullOutput.toolCalls && fullOutput.toolCalls.length > 0) {
-      console.log('[DEBUG] convertResponse - Tool calls found:', fullOutput.toolCalls.length);
       const firstToolCall = fullOutput.toolCalls[0];
-      console.log('[DEBUG] convertResponse - First tool call:', JSON.stringify(firstToolCall, null, 2));
 
       // Extract tool info from Mastra format
       const toolName = firstToolCall.payload?.toolName || firstToolCall.toolName;
       const toolArgs = firstToolCall.payload?.args || firstToolCall.args;
 
+      console.log(`[INFO] Tool called: ${toolName}`);
+      console.log(`[INFO] Tool arguments: ${JSON.stringify(toolArgs)}`);
+
       // Find corresponding tool result
       const firstResult = fullOutput.toolResults?.[0];
       const toolResultValue = firstResult?.payload?.result || firstResult?.result;
+
+      if (toolResultValue) {
+        const resultPreview = typeof toolResultValue === 'string'
+          ? toolResultValue.substring(0, 200)
+          : JSON.stringify(toolResultValue).substring(0, 200);
+        console.log(`[INFO] Tool result preview: ${resultPreview}${(typeof toolResultValue === 'string' ? toolResultValue.length : JSON.stringify(toolResultValue).length) > 200 ? '...' : ''}`);
+      }
 
       response.toolCall = {
         toolName,
@@ -392,13 +388,8 @@ export class MastraAPIProvider implements AIProvider {
       if (!content && toolResultValue) {
         content = `Tool '${toolName}' executed successfully:\n\n${toolResultValue}`;
         response.content = content;
-        console.log('[DEBUG] convertResponse - Using tool result as content');
       }
-    } else {
-      console.log('[DEBUG] convertResponse - No tool calls found');
     }
-
-    console.log('[DEBUG] convertResponse - Final response:', JSON.stringify(response, null, 2));
 
     return response;
   }
