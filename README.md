@@ -186,11 +186,11 @@ CrewX supports unified HTTP-based API providers with tool calling:
 
 - **Ollama** (`api/ollama`)
 - **OpenRouter** (`api/openai`)
+- **LiteLLM** (`api/litellm`) - Planned
 - **OpenAI** (`api/openai`) - Planned
 - **Anthropic** (`api/anthropic`) - Planned
 - **Google** (`api/google`) - Planned
 - **AWS Bedrock** (`api/bedrock`) - Planned
-- **LiteLLM** (`api/litellm`) - Planned
 - **SowonAI** (`api/sowonai`) - Planned
 
 **Quick Start with API Provider:**
@@ -451,7 +451,6 @@ For more information, see:
 - [🔧 Development Workflow](docs/development.md) - Contributing guidelines
 - [🧩 Context Integration Standard](packages/docs/context-integration-standard.md) - TemplateContext pipeline and layout responsibilities
 - [🛠️ Context Migration Guide](packages/docs/context-integration-migration.md) - Upgrade steps for custom agents
-- [🧱 Layout DSL Reference](packages/docs/layout-dsl-field-reference.md) - Layout fields, props, and helpers
 
 ## License
 
