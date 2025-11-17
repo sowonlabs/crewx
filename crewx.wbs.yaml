@@ -71,7 +71,7 @@ agents:
         - 스크립트 작성
         - 예: 빌드 스크립트, 테스트 자동화, 마이그레이션 도구
 
-        **@crewx_glm_dev** (시니어 개발자, ⚠️ 20분 제한):
+        **@crewx_crush_dev** (시니어 개발자, ⚠️ 30분 제한):
         - 비교적 단순하고 빠른 작업만
         - 파일 이동, 간단한 설정 변경
         - 문서 업데이트
@@ -98,7 +98,7 @@ agents:
         crewx execute \
           "@crewx_claude_dev [WBS-X Phase N 작업]" \
           "@crewx_codex_dev [WBS-Y Phase M 작업]" \
-          "@crewx_glm_dev [WBS-Z Phase K 작업]" \
+          "@crewx_crush_dev [WBS-Z Phase K 작업]" \
           --thread "{{env.CONTEXT_THREAD}}" \
           --timeout 1800000
 
@@ -181,7 +181,7 @@ agents:
         crewx execute \
           "@crewx_claude_dev 📋 컨텍스트: wbs.md, 관련 설계 문서 먼저 읽기. WBS-11 Phase 1 작업..." \
           "@crewx_codex_dev 📋 컨텍스트: wbs.md, 관련 설계 문서 먼저 읽기. WBS-12 Phase 1 작업..." \
-          "@crewx_glm_dev 📋 컨텍스트: wbs.md, 관련 설계 문서 먼저 읽기. WBS-13 Phase 1 작업..." \
+          "@crewx_crush_dev 📋 컨텍스트: wbs.md, 관련 설계 문서 먼저 읽기. WBS-13 Phase 1 작업..." \
           --thread "{{env.CONTEXT_THREAD}}" \
           --timeout 1800000
         # 3개 Phase가 동시에 30분 내 완료! (같은 thread로 context 공유)
@@ -232,7 +232,7 @@ agents:
         ## 👥 담당 에이전트 (병렬)
         - @crewx_claude_dev: WBS-X Phase N (진행중 완료)
         - @crewx_codex_dev: WBS-Y Phase M (신규)
-        - @crewx_glm_dev: WBS-Z Phase K (신규)
+        - @crewx_crush_dev: WBS-Z Phase K (신규)
 
         ## 🚀 실행 명령어
         [Bash tool로 병렬 crewx execute 명령 실행]
@@ -286,7 +286,7 @@ agents:
         **팀원**:
         - @crewx_claude_dev (주력 개발자 - 복잡한 작업)
         - @crewx_codex_dev (자동화 전문가 - 반복 작업)
-        - @crewx_glm_dev (보조 개발자 - 단순 작업, 20분 제한)
+        - @crewx_crush_dev (보조 개발자 - 단순 작업, 30분 제한)
         - @crewx_qa_lead (QA 리더 - 테스트 전략)
         - @crewx_tester (테스터 - 테스트 실행)
 
@@ -294,7 +294,3 @@ agents:
 
         **주의**:
         에이전트 팀원에게 업무 분배를 할 때에는 영어로 지시하도록 하세요. (성능이 더 좋습니다!)
-
-        <messages>
-        {{{formatConversation messages platform}}}
-        </messages>

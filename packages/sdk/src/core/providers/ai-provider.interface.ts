@@ -36,6 +36,7 @@ export interface AIResponse {
   success: boolean;
   error?: string;
   taskId?: string;
+  model?: string;
   toolCall?: {
     toolName: string;
     toolInput: any;

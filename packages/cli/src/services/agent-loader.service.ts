@@ -204,7 +204,8 @@ export class AgentLoaderService {
         // Add new user agents
         allAgents = [...allAgents, ...newUserAgents];
       } catch (error) {
-        this.logger.log('No user agents.yaml found or failed to load, using built-in agents only');
+        this.logger.error(`Failed to load user agents: ${getErrorMessage(error)}`);
+        this.logger.log('Using built-in agents only');
       }
 
       this.logger.log(`Total agents loaded: ${allAgents.length}`);
@@ -279,7 +280,7 @@ export class AgentLoaderService {
             name: agent.name || agent.id,
             role: agent.role || 'AI Agent',
             team: agent.team,
-            provider: parsedProvider,
+            provider: parsedProvider as AgentInfo['provider'], // WBS-24: Type cast to support api/* providers
             workingDirectory: agent.working_directory || './',
             capabilities: agent.capabilities || [],
             description: systemPrompt ? this.extractDescription(systemPrompt) : `${agent.name || agent.id} agent`,
@@ -309,14 +310,24 @@ export class AgentLoaderService {
    * Enhanced version that handles templates and documents
    */
   async loadAgentsFromConfig(configPath: string): Promise<AgentInfo[]> {
+    const isDebug = process.env.CREWX_DEBUG === 'true';
+
     try {
       const path = await import('path');
 
       this.logger.log(`Loading agents from config: ${configPath}`);
+      if (isDebug) {
+        console.log(`\n[CREWX_DEBUG] Starting agent loading from ${configPath}`);
+      }
 
       const parsedConfig =
         this.configService?.getProjectConfig() ??
         parseCrewxConfigFromFile(configPath, { validationMode: 'lenient' });
+
+      if (isDebug) {
+        console.log(`[CREWX_DEBUG] Parsed config:`, JSON.stringify(parsedConfig, null, 2));
+        console.log(`[CREWX_DEBUG] Config has ${parsedConfig.agents?.length || 0} agents`);
+      }
 
       if (!parsedConfig.agents || !Array.isArray(parsedConfig.agents)) {
         throw new Error('Invalid config: missing agents array');
@@ -324,13 +335,22 @@ export class AgentLoaderService {
 
       // Validate configuration if validator is available
       if (this.configValidatorService) {
+        if (isDebug) {
+          console.log(`[CREWX_DEBUG] Starting configuration validation`);
+        }
         const validationResult = this.configValidatorService.validateConfig(parsedConfig, configPath);
         if (!validationResult.valid) {
           const errorMessage = this.configValidatorService.formatErrorMessage(validationResult.errors);
           this.logger.error(errorMessage);
+          if (isDebug) {
+            console.log(`[CREWX_DEBUG] Validation errors:`, JSON.stringify(validationResult.errors, null, 2));
+          }
           throw new Error(`Configuration validation failed:\n${errorMessage}`);
         }
         this.logger.log('Configuration validation passed');
+        if (isDebug) {
+          console.log(`[CREWX_DEBUG] Configuration validation passed`);
+        }
       }
 
       // Register any custom layouts defined in the project configuration
@@ -350,9 +370,18 @@ export class AgentLoaderService {
 
       const projectSkills = parsedConfig.skills;
 
+      if (isDebug) {
+        console.log(`[CREWX_DEBUG] Processing ${parsedConfig.agents.length} agents`);
+      }
+
       // Process templates using the template-processor utility
       const agents = await Promise.all(
-        parsedConfig.agents.map(async (agent) => {
+        parsedConfig.agents.map(async (agent, index) => {
+          if (isDebug) {
+            console.log(`[CREWX_DEBUG] Processing agent ${index + 1}: ${agent.id}`);
+            console.log(`[CREWX_DEBUG] Agent config:`, JSON.stringify(agent, null, 2));
+          }
+
           let systemPrompt = agent.inline?.system_prompt;
 
           // Do NOT process system_prompt template here
@@ -361,15 +390,30 @@ export class AgentLoaderService {
 
           const mergedSkills = this.mergeSkillsConfig(projectSkills, agent.skills);
 
+          if (isDebug) {
+            console.log(`[CREWX_DEBUG] Parsing provider config for agent ${agent.id}`);
+            console.log(`[CREWX_DEBUG] Agent provider field: ${agent.provider}`);
+            console.log(`[CREWX_DEBUG] Agent inline.provider field: ${agent.inline?.provider}`);
+          }
+
           const parsedProvider = this.parseProviderConfig(agent);
+
+          if (isDebug) {
+            console.log(`[CREWX_DEBUG] Parsed provider result: ${JSON.stringify(parsedProvider)}`);
+          }
+
           const providerValue = typeof parsedProvider === 'string' ? parsedProvider : parsedProvider[0];
+
+          if (isDebug) {
+            console.log(`[CREWX_DEBUG] Provider value: ${providerValue}`);
+          }
 
           return {
             id: agent.id,
             name: agent.name || agent.id,
             role: agent.role || 'AI Agent',
             team: agent.team,
-            provider: parsedProvider,
+            provider: parsedProvider as AgentInfo['provider'], // WBS-24: Type cast to support api/* providers
             workingDirectory: agent.working_directory || './',
             capabilities: agent.capabilities || [],
             description: systemPrompt ? this.extractDescription(systemPrompt) : `${agent.name || agent.id} agent`,
@@ -388,8 +432,22 @@ export class AgentLoaderService {
         })
       );
 
+      if (isDebug) {
+        console.log(`[CREWX_DEBUG] Successfully processed ${agents.length} agents`);
+        console.log(`[CREWX_DEBUG] Agent IDs: ${agents.map(a => a.id).join(', ')}`);
+      }
+
       return agents;
     } catch (error) {
+      if (isDebug) {
+        console.log(`[CREWX_DEBUG] Error occurred during agent loading`);
+        console.log(`[CREWX_DEBUG] Error type: ${error?.constructor?.name}`);
+        console.log(`[CREWX_DEBUG] Error message: ${getErrorMessage(error)}`);
+        if (error instanceof Error && error.stack) {
+          console.log(`[CREWX_DEBUG] Error stack trace:\n${error.stack}`);
+        }
+      }
+
       if (error instanceof SkillLoadError) {
         this.logger.error(
           `Failed to parse CrewX configuration at ${configPath}: ${error.message}`,
@@ -602,8 +660,9 @@ export class AgentLoaderService {
   /**
    * Parse provider from agent configuration
    * Supports both single string and array formats
+   * Now supports API providers (api/openai, api/anthropic, etc.) - WBS-24 Phase 2
    */
-  private parseProviderConfig(agent: any): 'claude' | 'gemini' | 'copilot' | 'remote' | ('claude' | 'gemini' | 'copilot')[] {
+  private parseProviderConfig(agent: any): AgentInfo['provider'] {
     if (this.parseRemoteConfig(agent)) {
       return 'remote';
     }
@@ -615,8 +674,9 @@ export class AgentLoaderService {
       // Already an array: use as-is
       return configProvider as ('claude' | 'gemini' | 'copilot')[];
     } else if (typeof configProvider === 'string') {
-      // Single string: use as-is
-      return configProvider as 'claude' | 'gemini' | 'copilot';
+      // WBS-24 Phase 2: Support API providers (api/*)
+      // Return as-is for both CLI providers (claude, gemini, copilot) and API providers (api/*)
+      return configProvider as AgentInfo['provider'];
     } else {
       // No provider specified: default to 'claude'
       return 'claude';
@@ -688,5 +748,33 @@ export class AgentLoaderService {
     }
 
     return 'AI Agent';
+  }
+
+  /**
+   * Check if an agent is configured as an API provider (WBS-24 Phase 2)
+   * @param agentId - Agent ID to check
+   * @returns true if agent uses API provider (api/*), false otherwise
+   */
+  isAPIProvider(agentId: string): boolean {
+    if (!this.configService) {
+      return false;
+    }
+    return this.configService.isAPIProvider(agentId);
+  }
+
+  /**
+   * Check if a provider string is an API provider (WBS-24 Phase 2)
+   * @param provider - Provider string to check
+   * @returns true if provider starts with 'api/', false otherwise
+   */
+  private isAPIProviderString(provider: string | string[] | undefined): boolean {
+    if (typeof provider === 'string') {
+      return provider.startsWith('api/');
+    }
+    if (Array.isArray(provider) && provider.length > 0) {
+      const firstProvider = provider[0];
+      return firstProvider ? firstProvider.startsWith('api/') : false;
+    }
+    return false;
   }
 }

@@ -1,0 +1,39 @@
+Loaded layout: crewx/default from default.yaml
+Loaded 2 layouts from /Users/doha/git/crewx/packages/cli/templates/agents
+[CrewX] Loading configured agents...
+
+Registered custom layout: default
+Available Agents (5)
+
+1. @crewx - CrewX Assistant
+   Provider: cli/claude, cli/gemini, cli/copilot
+   Working Dir: .
+   Role: assistant
+   Team: CrewX
+
+2. @claude - Claude AI
+   Provider: cli/claude
+   Working Dir: .
+   Role: general
+   Team: Anthropic
+
+3. @gemini - Google Gemini
+   Provider: cli/gemini
+   Working Dir: .
+   Role: general
+   Team: Google
+
+4. @copilot - GitHub Copilot
+   Provider: cli/copilot
+   Working Dir: .
+   Role: general
+   Team: GitHub
+
+5. @codex - Codex AI
+   Provider: cli/codex
+   Working Dir: .
+   Role: general
+   Team: Codex
+
+Configuration Source: Default hardcoded values
+Tip: Set CREWX_CONFIG to point to your crewx.yaml file to customize agents.
