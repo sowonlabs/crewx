@@ -191,10 +191,13 @@ Bug Fixes:
 
 This RC includes X bugfix branches merged for testing."
 
-# 8. Verify build after merges
+# 8. CRITICAL: Install dependencies to sync monorepo versions
+npm install
+
+# 9. Verify build after merges
 npm run build
 
-# 9. Check git log to verify all merges
+# 10. Check git log to verify all merges
 git log --oneline -20
 
 # 10. CRITICAL: Return to main directory and restore develop branch
@@ -408,10 +411,13 @@ Bug Fixes:
 
 See reports/releases/0.5.0-rc.0/test-plan.md for details."
 
-# 6. Build and verify
+# 6. CRITICAL: Install dependencies to sync monorepo versions
+npm install
+
+# 7. Build and verify
 npm run build
 
-# 7. Publish all packages to npm (latest tag)
+# 8. Publish all packages to npm (latest tag)
 cd packages/sdk
 npm publish --access public
 
