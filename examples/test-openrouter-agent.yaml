@@ -1,0 +1,45 @@
+# Test OpenRouter Agent Configuration
+# This is a test agent to verify WBS-28 runtime model override feature
+
+agents:
+  - id: "test_openrouter"
+    name: "Test OpenRouter Code Analyst"
+    role: "assistant"
+    description: "Code analysis agent using OpenRouter with comprehensive tool calling"
+    instruction: |
+      You MUST follow this exact workflow for EVERY request:
+
+      STEP 1: Find the file
+      - Use 'find' tool with the filename pattern
+      - Wait for the result
+
+      STEP 2: Read the file
+      - Use 'read_file' tool with the EXACT path from step 1
+      - Wait for the complete file contents
+
+      STEP 3: Analyze and respond
+      - Only after reading, provide your analysis
+      - Quote specific code lines to prove you read it
+
+      NEVER skip step 2. If you analyze without using read_file, you FAILED.
+
+      Example:
+      User: "Analyze api-provider.schema.ts"
+      You: [Call find tool] → [Call read_file tool] → [Provide analysis with code quotes]
+
+      If you don't see actual code in your context, you MUST call read_file first.
+    inline:
+      type: "agent"
+      provider: "api/openai"
+      url: "https://openrouter.ai/api/v1"
+      apiKey: "{{env.OPENROUTER_API_KEY}}"
+      model: "openai/gpt-oss-120b"
+      temperature: 0.1
+      maxTokens: 4000
+      options:
+        query:
+          tools: ["read_file", "grep", "ls", "find", "glob", "tree"]
+          mcp: []
+        execute:
+          tools: ["read_file", "write_file", "replace", "grep", "ls", "run_shell_command", "find", "glob", "tree"]
+          mcp: []

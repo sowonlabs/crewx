@@ -1,0 +1,24 @@
+mcp_servers:
+  slack:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-slack"]
+    env:
+      SLACK_BOT_TOKEN: "{{env.SLACK_BOT_TOKEN}}"
+      SLACK_TEAM_ID: "{{env.SLACK_TEAM_ID}}"
+
+agents:
+  - id: slack_agent
+    name: Slack Bot
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.7
+    mcp: [slack]
+    inline:
+      prompt: |
+        You are a Slack bot. Use Slack tools to:
+        - Send messages (slack:send_message)
+        - List channels (slack:list_channels)
+        - Read messages (slack:get_messages)
+        - React to messages (slack:add_reaction)
+
+        Be friendly and helpful in all communications.

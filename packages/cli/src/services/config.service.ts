@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { config as dotenvConfig } from 'dotenv';
 import { existsSync } from 'fs';
 import * as path from 'path';
 import {
@@ -6,8 +7,14 @@ import {
   RemoteProviderConfig,
   SkillLoadError,
   parseCrewxConfigFromFile,
+  parseAPIProviderConfig,
+  parseMCPServers,
+  APIProviderParseError,
   type AgentDefinition,
   type CrewxProjectConfig,
+  type APIProviderConfig,
+  type MCPServerConfig,
+  type RawYAMLConfig,
 } from '@sowonai/crewx-sdk';
 
 @Injectable()
@@ -21,8 +28,15 @@ export class ConfigService implements OnModuleInit {
   private slackSettings: { logConversations: boolean } = {
     logConversations: false,
   };
+  // API Provider support (WBS-24 Phase 1)
+  private apiProviderConfigs: Map<string, APIProviderConfig> = new Map();
+  private mcpServers: Record<string, MCPServerConfig> = {};
+  private environmentVariables: Record<string, string | undefined> = {};
 
   constructor() {
+    // Load environment variables from .env file (WBS-24 Phase 1)
+    this.loadEnvironmentVariables();
+
     // Load config in constructor to ensure it's available before other services
     // This ensures AIProviderService can access plugin providers in its onModuleInit
     this.loadAgentConfigs();
@@ -47,6 +61,9 @@ export class ConfigService implements OnModuleInit {
     this.projectConfig = null;
     this.currentConfigPath = null;
     this.slackSettings = { logConversations: false };
+    // Clear API provider configs (WBS-24 Phase 1)
+    this.apiProviderConfigs.clear();
+    this.mcpServers = {};
 
     const { path: configPath, name: configName } = this.resolveConfigPath();
 
@@ -109,6 +126,12 @@ export class ConfigService implements OnModuleInit {
           } via CREWX_SLACK_LOG_CONVERSATIONS.`,
         );
       }
+
+      // Parse API provider configurations (WBS-24 Phase 1)
+      this.parseAPIProviderConfigs(config);
+
+      // Parse MCP server configurations (WBS-24 Phase 1)
+      this.parseMCPServerConfigs(config);
     } catch (error) {
       if (error instanceof SkillLoadError) {
         this.logger.error(`Failed to parse ${configName}: ${error.message}`);
@@ -241,5 +264,155 @@ export class ConfigService implements OnModuleInit {
     }
 
     return { path: null, name: null };
+  }
+
+  /**
+   * Load environment variables from .env file (WBS-24 Phase 1)
+   * Supports multiple .env file patterns (.env, .env.local, .env.{NODE_ENV})
+   */
+  private loadEnvironmentVariables() {
+    const cwd = process.cwd();
+    const nodeEnv = process.env.NODE_ENV || 'development';
+
+    // Load .env files in priority order
+    const envFiles = [
+      path.join(cwd, `.env.${nodeEnv}.local`),
+      path.join(cwd, `.env.${nodeEnv}`),
+      path.join(cwd, '.env.local'),
+      path.join(cwd, '.env'),
+    ];
+
+    for (const envFile of envFiles) {
+      if (existsSync(envFile)) {
+        this.logger.log(`Loading environment variables from: ${path.basename(envFile)}`);
+        dotenvConfig({ path: envFile });
+      }
+    }
+
+    // Store merged environment variables
+    this.environmentVariables = { ...process.env };
+  }
+
+  /**
+   * Parse API provider configurations from YAML config (WBS-24 Phase 1)
+   */
+  private parseAPIProviderConfigs(config: CrewxProjectConfig) {
+    if (!Array.isArray(config.agents)) {
+      return;
+    }
+
+    let apiProviderCount = 0;
+
+    for (const agent of config.agents) {
+      if (!agent || !agent.id) {
+        continue;
+      }
+
+      // Check if this is an API provider agent
+      const providerStr = (agent as any).provider || (agent as any).inline?.provider;
+      if (!providerStr || !String(providerStr).startsWith('api/')) {
+        continue;
+      }
+
+
+      try {
+        // Parse API provider config using SDK parser
+        const apiConfig = parseAPIProviderConfig(
+          agent as any,
+          this.environmentVariables,
+        );
+
+        this.apiProviderConfigs.set(agent.id, apiConfig);
+        apiProviderCount++;
+      } catch (error) {
+        if (error instanceof APIProviderParseError) {
+          this.logger.error(
+            `Failed to parse API provider config for agent '${agent.id}': ${error.message}`,
+          );
+          if (error.cause) {
+            this.logger.debug(`Parse error details: ${error.cause.message}`);
+          }
+        } else {
+          this.logger.error(
+            `Unexpected error parsing API provider for agent '${agent.id}': ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    }
+
+    if (apiProviderCount > 0) {
+      this.logger.log(`Loaded ${apiProviderCount} API provider configurations.`);
+    }
+  }
+
+  /**
+   * Parse MCP server configurations from YAML config (WBS-24 Phase 1)
+   */
+  private parseMCPServerConfigs(config: CrewxProjectConfig) {
+    const rawMCPServers = (config as any).mcp_servers;
+    if (!rawMCPServers || typeof rawMCPServers !== 'object') {
+      return;
+    }
+
+    try {
+      this.mcpServers = parseMCPServers(rawMCPServers, this.environmentVariables);
+      const mcpCount = Object.keys(this.mcpServers).length;
+      if (mcpCount > 0) {
+        this.logger.log(`Loaded ${mcpCount} MCP server configurations.`);
+      }
+    } catch (error) {
+      if (error instanceof APIProviderParseError) {
+        this.logger.error(`Failed to parse MCP server configs: ${error.message}`);
+        if (error.cause) {
+          this.logger.debug(`Parse error details: ${error.cause.message}`);
+        }
+      } else {
+        this.logger.error(
+          `Unexpected error parsing MCP servers: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Get API provider configuration by agent ID (WBS-24 Phase 1)
+   */
+  getAPIProviderConfig(agentId: string): APIProviderConfig | undefined {
+    return this.apiProviderConfigs.get(agentId);
+  }
+
+  /**
+   * Get all API provider configurations (WBS-24 Phase 1)
+   */
+  getAllAPIProviderConfigs(): Map<string, APIProviderConfig> {
+    return new Map(this.apiProviderConfigs);
+  }
+
+  /**
+   * Get MCP server configuration by name (WBS-24 Phase 1)
+   */
+  getMCPServerConfig(name: string): MCPServerConfig | undefined {
+    return this.mcpServers[name];
+  }
+
+  /**
+   * Get all MCP server configurations (WBS-24 Phase 1)
+   */
+  getAllMCPServerConfigs(): Record<string, MCPServerConfig> {
+    return { ...this.mcpServers };
+  }
+
+  /**
+   * Get loaded environment variables (WBS-24 Phase 1)
+   */
+  getEnvironmentVariables(): Record<string, string | undefined> {
+    return { ...this.environmentVariables };
+  }
+
+  /**
+   * Check if an agent is configured as an API provider (WBS-24 Phase 1)
+   */
+  isAPIProvider(agentId: string): boolean {
+    return this.apiProviderConfigs.has(agentId);
   }
 }

@@ -1,0 +1,21 @@
+vars:
+  company_name: MyCompany
+  api_version: v2
+
+agents:
+  - id: research_agent
+    name: Research Agent
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.7
+    tools: [weather, company_search, calculator]
+    inline:
+      prompt: |
+        You are a research agent for {{vars.company_name}}.
+
+        Available tools:
+        - weather: Get current weather for any city
+        - company_search: Search company information
+        - calculator: Perform calculations
+
+        Use these tools to answer user queries accurately.

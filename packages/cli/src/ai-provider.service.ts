@@ -12,7 +12,23 @@ import {
   BuiltInProviders,
   type PluginProviderConfig,
   type RemoteProviderConfig,
+  MastraAPIProvider,
+  type APIProviderConfig,
+  type APIToolExecutionContext,
+  type FrameworkToolDefinition,
+  normalizeAPIProviderConfig,
 } from '@sowonai/crewx-sdk';
+import {
+  readFileTool,
+  writeFileTool,
+  replaceTool,
+  lsTool,
+  treeTool,
+  grepTool,
+  runShellCommandTool,
+  findTool,
+  globTool,
+} from '@sowonai/crewx-sdk/tools';
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ConfigService } from './services/config.service';
 import { ToolCallService } from './services/tool-call.service';
@@ -43,6 +59,7 @@ export class AIProviderService implements OnModuleInit {
     }
 
     await this.loadPluginProviders();
+    await this.loadAPIProviders(); // WBS-24 Phase 2: Load API providers
   }
 
   private createBuiltInProviders(): BaseAIProvider[] {
@@ -108,11 +125,116 @@ export class AIProviderService implements OnModuleInit {
   }
 
   /**
+   * Load API providers from YAML configuration (WBS-24 Phase 2)
+   * Creates MastraAPIProvider instances for agents configured with API providers
+   */
+  private async loadAPIProviders(): Promise<void> {
+    try {
+      const apiProviderConfigs = this.configService.getAllAPIProviderConfigs();
+
+      if (!apiProviderConfigs || apiProviderConfigs.size === 0) {
+        this.logger.log('No API providers defined in config');
+        return;
+      }
+
+      for (const [agentId, apiConfig] of apiProviderConfigs) {
+        try {
+          const normalizedConfig = normalizeAPIProviderConfig(apiConfig);
+          // Create MastraAPIProvider instance
+          const provider = new MastraAPIProvider(normalizedConfig.config);
+
+          // Load tools for this agent
+          const agentConfig = this.configService.getAgentConfig(agentId);
+          const allowedToolNames = new Set<string>();
+
+          this.logger.debug(`[Tool Loading] normalizedConfig.permissionsByMode: ${JSON.stringify(normalizedConfig.permissionsByMode, null, 2)}`);
+
+          for (const permissions of Object.values(normalizedConfig.permissionsByMode)) {
+            for (const toolName of permissions.tools) {
+              allowedToolNames.add(toolName);
+            }
+          }
+
+          this.logger.debug(`[Tool Loading] allowedToolNames: ${Array.from(allowedToolNames).join(', ')}`);
+
+          if (allowedToolNames.size > 0) {
+            // Build tool list from built-in tools
+            // Note: Tools can be either FrameworkToolDefinition or Mastra Tool (from createTool())
+            const tools: any[] = [];
+
+            // Map of available built-in tools
+            const builtInTools: Record<string, any> = {
+              read_file: readFileTool,
+              write_file: writeFileTool,
+              replace: replaceTool,
+              ls: lsTool,
+              tree: treeTool,
+              grep: grepTool,
+              find: findTool,
+              glob: globTool,
+              run_shell_command: runShellCommandTool,
+            };
+
+            for (const toolName of allowedToolNames) {
+              const tool = builtInTools[toolName];
+              if (tool) {
+                tools.push(tool);
+                this.logger.log(`✅ Loaded tool: ${toolName} for agent ${agentId}`);
+              } else {
+                this.logger.warn(`⚠️  Unknown tool: ${toolName} for agent ${agentId}`);
+                this.logger.debug(`Available tools: ${Object.keys(builtInTools).join(', ')}`);
+              }
+            }
+
+            // Create ToolExecutionContext (matches API provider types)
+            const context: APIToolExecutionContext = {
+              agent: {
+                id: agentId,
+                provider: apiConfig.provider,
+                model: apiConfig.model,
+                temperature: apiConfig.temperature,
+                maxTokens: apiConfig.maxTokens,
+              },
+              env: this.configService.getEnvironmentVariables() as Record<string, string>,
+              mode: 'query',
+              platform: 'cli',
+            };
+
+            // Set tools on provider
+            provider.setTools(tools, context);
+            this.logger.log(`✅ Configured ${tools.length} tool(s) for agent ${agentId}`);
+          }
+
+          // Create wrapper with agent ID as name
+          const wrappedProvider: AIProvider = {
+            name: agentId, // Use agent ID as provider name
+            isAvailable: provider.isAvailable.bind(provider),
+            query: provider.query.bind(provider),
+            execute: provider.execute.bind(provider),
+            getToolPath: provider.getToolPath?.bind(provider),
+          };
+
+          this.registerProvider(wrappedProvider);
+          this.logger.log(`✅ Registered API provider for agent: ${agentId} (${apiConfig.provider}/${apiConfig.model})`);
+        } catch (error: any) {
+          this.logger.error(
+            `Failed to load API provider for agent '${agentId}': ${error.message}`,
+            error.stack
+          );
+        }
+      }
+    } catch (error: any) {
+      this.logger.error('Failed to load API providers:', error);
+    }
+  }
+
+  /**
    * Reload plugin providers after config change
    * Public method to support --config option
+   * WBS-24 Phase 2: Also reload API providers
    */
   async reloadPluginProviders(): Promise<void> {
-    // Clear existing plugin providers (keep built-in CLI providers)
+    // Clear existing plugin providers and API providers (keep built-in CLI providers)
     for (const [name] of this.providers) {
       if (!this.builtInProviderNames.has(name)) {
         this.providers.delete(name);
@@ -121,6 +243,7 @@ export class AIProviderService implements OnModuleInit {
 
     // Reload from config
     await this.loadPluginProviders();
+    await this.loadAPIProviders(); // WBS-24 Phase 2
   }
 
   private registerProvider(provider: AIProvider): void {

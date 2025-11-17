@@ -1,0 +1,14 @@
+{
+  "name": "@crewx/example-api-agent-basic",
+  "version": "0.1.0",
+  "description": "Basic API Agent example for CrewX",
+  "private": true,
+  "scripts": {
+    "test:openai": "crewx query '@gpt_assistant What is quantum computing?' -c crewx-openai.yaml",
+    "test:claude": "crewx query '@claude_assistant Explain machine learning' -c crewx-claude.yaml",
+    "test:ollama": "crewx query '@local_llama Tell me a joke' -c crewx-ollama.yaml"
+  },
+  "keywords": ["crewx", "api-provider", "example"],
+  "author": "CrewX Team",
+  "license": "MIT"
+}

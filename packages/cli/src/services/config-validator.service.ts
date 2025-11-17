@@ -48,6 +48,17 @@ export class ConfigValidatorService {
     BuiltInProviders.CODEX,
   ];
 
+  // Valid API provider values (api/* namespace)
+  private readonly VALID_API_PROVIDERS = [
+    'api/openai',
+    'api/anthropic',
+    'api/google',
+    'api/bedrock',
+    'api/litellm',
+    'api/ollama',
+    'api/sowonai',
+  ];
+
   // Known field names for typo detection
   private readonly KNOWN_AGENT_FIELDS = [
     'id', 'name', 'role', 'team', 'provider', 'working_directory',
@@ -103,7 +114,10 @@ export class ConfigValidatorService {
    */
   private validateSchema(config: any): ValidationError[] {
     // Build dynamic list of valid providers
-    const validProviders: string[] = [...this.VALID_BUILTIN_PROVIDERS];
+    const validProviders: string[] = [
+      ...this.VALID_BUILTIN_PROVIDERS,
+      ...this.VALID_API_PROVIDERS, // Add API providers
+    ];
 
     // Add plugin providers from config (with plugin/ namespace)
     if (config.providers && Array.isArray(config.providers)) {
@@ -245,7 +259,7 @@ export class ConfigValidatorService {
           if ('allowedValues' in error.params) {
             message = `Invalid value: '${error.data}'. Must be one of: ${(error.params.allowedValues as string[]).join(', ')}`;
             if (error.instancePath?.includes('provider')) {
-              suggestion = `Valid providers: ${this.VALID_BUILTIN_PROVIDERS.join(', ')} + plugin providers`;
+              suggestion = `Valid providers: ${[...this.VALID_BUILTIN_PROVIDERS, ...this.VALID_API_PROVIDERS].join(', ')} + plugin providers`;
             }
           } else {
             message = 'Invalid enum value';
@@ -395,7 +409,10 @@ export class ConfigValidatorService {
     const errors: ValidationError[] = [];
 
     // Build dynamic list of valid providers (with namespaces)
-    const validProviders: string[] = [...this.VALID_BUILTIN_PROVIDERS];
+    const validProviders: string[] = [
+      ...this.VALID_BUILTIN_PROVIDERS,
+      ...this.VALID_API_PROVIDERS, // Add API providers
+    ];
     if (config.providers && Array.isArray(config.providers)) {
       config.providers.forEach((provider: any) => {
         if (provider.type === 'plugin' && provider.id) {

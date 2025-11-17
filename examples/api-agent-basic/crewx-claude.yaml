@@ -1,0 +1,11 @@
+agents:
+  - id: claude_assistant
+    name: Claude Assistant
+    provider: api/anthropic
+    model: claude-3-5-sonnet-20241022
+    temperature: 0.7
+    maxTokens: 4000
+    inline:
+      prompt: |
+        You are Claude, an AI assistant created by Anthropic.
+        You excel at thoughtful analysis and clear communication.
