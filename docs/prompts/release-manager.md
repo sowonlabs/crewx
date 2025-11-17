@@ -173,9 +173,9 @@ sed -i '' 's/"version": "[^"]*"/"version": "0.1.14-rc.0"/' packages/cli/package.
 sed -i '' 's/"version": "[^"]*"/"version": "0.1.14-rc.0"/' packages/sdk/package.json
 sed -i '' 's/"version": "[^"]*"/"version": "0.1.14-rc.0"/' packages/crewx/package.json
 
-# Update inter-package dependencies
-sed -i '' 's/"@sowonai\/crewx-sdk": "\^[^"]*"/"@sowonai\/crewx-sdk": "^0.1.14-rc.0"/' packages/cli/package.json
-sed -i '' 's/"@sowonai\/crewx-cli": "\^[^"]*"/"@sowonai\/crewx-cli": "^0.1.14-rc.0"/' packages/crewx/package.json
+# Update inter-package dependencies (handles both "^X.X.X" and "file:../sdk" formats)
+sed -i '' 's/"@sowonai\/crewx-sdk": "[^"]*"/"@sowonai\/crewx-sdk": "^0.1.14-rc.0"/' packages/cli/package.json
+sed -i '' 's/"@sowonai\/crewx-cli": "[^"]*"/"@sowonai\/crewx-cli": "^0.1.14-rc.0"/' packages/crewx/package.json
 
 # Commit with meaningful message that describes FEATURES, not just version bump
 git add package.json packages/*/package.json
@@ -385,14 +385,14 @@ sed -i '' 's/"version": "0.5.0-rc.0"/"version": "0.5.0"/' package.json
 
 # Update crewx-cli
 sed -i '' 's/"version": "0.5.0-rc.0"/"version": "0.5.0"/' packages/cli/package.json
-sed -i '' 's/"@sowonai\/crewx-sdk": "\^0.5.0-rc.0"/"@sowonai\/crewx-sdk": "^0.5.0"/' packages/cli/package.json
+sed -i '' 's/"@sowonai\/crewx-sdk": "[^"]*"/"@sowonai\/crewx-sdk": "^0.5.0"/' packages/cli/package.json
 
 # Update crewx-sdk
 sed -i '' 's/"version": "0.5.0-rc.0"/"version": "0.5.0"/' packages/sdk/package.json
 
 # Update crewx wrapper
 sed -i '' 's/"version": "0.5.0-rc.0"/"version": "0.5.0"/' packages/crewx/package.json
-sed -i '' 's/"@sowonai\/crewx-cli": "\^0.5.0-rc.0"/"@sowonai\/crewx-cli": "^0.5.0"/' packages/crewx/package.json
+sed -i '' 's/"@sowonai\/crewx-cli": "[^"]*"/"@sowonai\/crewx-cli": "^0.5.0"/' packages/crewx/package.json
 
 # 6. Commit with meaningful message describing user-facing changes
 git add package.json packages/*/package.json
