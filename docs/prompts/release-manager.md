@@ -133,11 +133,13 @@ cd /Users/doha/git/crewx
 git checkout develop
 pwd
 
-# 3. Create RC worktree from main (ALWAYS start with rc.0)
-git worktree add worktree/release-0.1.14-rc.0 -b release/0.1.14-rc.0 main
+# 3. Create release worktree from main (branch name WITHOUT rc suffix)
+# Branch: release/0.1.14 (NOT release/0.1.14-rc.0)
+# Worktree: worktree/release-0.1.14
+git worktree add worktree/release-0.1.14 -b release/0.1.14 main
 
-# 4. Navigate to RC worktree
-cd worktree/release-0.1.14-rc.0
+# 4. Navigate to release worktree
+cd worktree/release-0.1.14
 
 # 5. Merge ONLY the resolved bugfix branches (--no-ff for merge commits)
 # Use the bug IDs from step 1 output
@@ -147,13 +149,13 @@ git merge --no-ff bugfix/bug-00000021
 
 # 6. Copy release documentation from develop branch
 # IMPORTANT: Include test plans and QA reports for traceability
-git checkout develop -- reports/releases/0.1.14-rc.0/
-git add reports/releases/0.1.14-rc.0/
-git commit -m "docs: add release documentation for 0.1.14-rc.0"
+git checkout develop -- reports/releases/0.1.14/
+git add reports/releases/0.1.14/
+git commit -m "docs: add release documentation for 0.1.14"
 
 # 7. CRITICAL: Generate meaningful changelog from test plan or commit history
 # Read test-plan.md to understand what features are included
-cat reports/releases/0.1.14-rc.0/test-plan.md
+cat reports/releases/0.1.14/test-plan.md
 
 # If test-plan doesn't exist, analyze merged commit messages
 git log --oneline --grep="feat:" --grep="fix:" -E $(git merge-base main HEAD)..HEAD
@@ -161,9 +163,9 @@ git log --oneline --grep="feat:" --grep="fix:" -E $(git merge-base main HEAD)..H
 # Extract feature/bug summaries to create user-facing changelog
 # Example: "Add skills system, Slack mention-only mode, fix context bugs"
 
-# 8. Update ALL package.json versions with meaningful commit message
-# For monorepo: update root + all packages in ONE commit
-# For RC: 0.1.14-rc.0, for release: 0.1.14
+# 8. Update ALL package.json versions to FIRST RC (X.X.X-rc.0)
+# Branch name: release/0.1.14 (WITHOUT rc suffix)
+# Version: 0.1.14-rc.0 (WITH rc.0 suffix)
 
 # Update root package.json
 sed -i '' 's/"version": "[^"]*"/"version": "0.1.14-rc.0"/' package.json
@@ -179,7 +181,7 @@ sed -i '' 's/"@sowonai\/crewx-cli": "[^"]*"/"@sowonai\/crewx-cli": "^0.1.14-rc.0
 
 # Commit with meaningful message that describes FEATURES, not just version bump
 git add package.json packages/*/package.json
-git commit -m "chore: release 0.1.14-rc.0 - [FEATURE_SUMMARY_HERE]
+git commit -m "chore: version 0.1.14-rc.0 - [FEATURE_SUMMARY_HERE]
 
 Features:
 - [Feature 1 from test-plan]
@@ -189,29 +191,29 @@ Bug Fixes:
 - [Bug fix 1]
 - [Bug fix 2]
 
-This RC includes X bugfix branches merged for testing."
+This is the first release candidate for 0.1.14."
 
-# 8. CRITICAL: Install dependencies to sync monorepo versions
+# 9. CRITICAL: Install dependencies to sync monorepo versions
 npm install
 
-# 9. Verify build after merges
+# 10. Verify build after merges
 npm run build
 
-# 10. Check git log to verify all merges
+# 11. Check git log to verify all merges
 git log --oneline -20
 
-# 10. CRITICAL: Return to main directory and restore develop branch
+# 12. CRITICAL: Return to main directory and restore develop branch
 cd /Users/doha/git/crewx
 git checkout develop
 
-# 10. Report to Dev Lead
-# - RC version created (e.g., 0.1.14-rc.0)
-# - Package version updated to match
+# 13. Report to Dev Lead
+# - Release branch created: release/0.1.14
+# - Initial version: 0.1.14-rc.0
 # - How many bugs merged (list exact bug IDs from step 1)
 # - Any merge conflicts encountered
 # - Build status
-# - RC branch location: /Users/doha/git/crewx/worktree/release-X.X.X-rc.0
-# - Ready for QA testing
+# - Release branch location: /Users/doha/git/crewx/worktree/release-0.1.14
+# - Ready for QA testing and RC iteration
 ```
 
 **⚠️ CRITICAL: Follow branch-protection and rc-versioning documents**
@@ -222,99 +224,180 @@ git checkout develop
 - If conflict occurs, report immediately to Dev Lead
 - Always verify build after each batch of merges
 
-### 2. Merging Missing Bugs to Existing RC
+### 2. RC Version Increment (Bug Fixes or Issues Found)
 
-**Scenario:** QA discovers some bugfix branches not merged to RC
+**Scenario:** QA finds bugs or packaging issues in current RC version
+**New Strategy:** Stay in same release branch, just increment version (rc.0 → rc.1 → rc.2 ...)
 
 **Steps:**
 ```bash
-# 1. Navigate to RC worktree
-cd /Users/doha/git/crewx/worktree/release-0.1.9-rc.2
+# 1. Navigate to release worktree (SAME branch)
+cd /Users/doha/git/crewx/worktree/release-0.6.0
 
-# 2. Check current state
-git log --oneline -20
-git status
+# 2. Fix issues (code changes, dependency fixes, etc.)
+# Developer makes fixes and commits them
 
-# 3. Merge missing bugfix branches
-git merge --no-ff bugfix/bug-00000014
-git merge --no-ff bugfix/bug-00000015
-# ... continue for all missing bugs
+# 3. Increment RC version (rc.0 → rc.1 → rc.2...)
+# Example: going from 0.6.0-rc.2 to 0.6.0-rc.3
 
-# 4. Verify no conflicts
-git status
+# Update all package versions
+sed -i '' 's/"version": "0\.6\.0-rc\.2"/"version": "0.6.0-rc.3"/' package.json packages/*/package.json
 
-# 5. Run build test
+# Update inter-package dependencies
+sed -i '' 's/"@sowonai\/crewx-sdk": "\^0\.6\.0-rc\.2"/"@sowonai\/crewx-sdk": "^0.6.0-rc.3"/' packages/cli/package.json
+sed -i '' 's/"@sowonai\/crewx-cli": "\^0\.6\.0-rc\.2"/"@sowonai\/crewx-cli": "^0.6.0-rc.3"/' packages/crewx/package.json
+
+# Commit version bump with description of fixes
+git add package.json packages/*/package.json
+git commit -m "chore: version 0.6.0-rc.3 - fix [ISSUE_DESCRIPTION]
+
+Fixed in rc.3:
+- [Fix 1]
+- [Fix 2]
+
+Previous rc.2 had: [ISSUE_SUMMARY]"
+
+# 4. Install and build
+npm install
 npm run build
 
-# 6. Report completion
+# 5. Report to Dev Lead
+# - Version incremented to 0.6.0-rc.3
+# - Issues fixed: [list]
+# - Ready for publish
 ```
 
-### 3. RC Testing Pass - Deploy RC and Merge to Develop
+### 3. Publish RC to npm
 
-**Scenario:** QA reports all tests PASS, ready to deploy RC version to npm and merge to develop
-**⚠️ NOTE: This is for RC versions only! Do NOT merge to main branch!**
+**Scenario:** RC version ready to publish to npm for testing
+**Branch stays same, only version changes**
 
 **Steps:**
 ```bash
-# 1. Navigate to main repo
-cd /Users/doha/git/crewx
+# 1. Navigate to release worktree
+cd /Users/doha/git/crewx/worktree/release-0.6.0
 
-# 2. Checkout develop
-git checkout develop
-git pull origin develop
-
-# 3. Merge RC branch (--no-ff)
-git merge --no-ff release/0.1.9-rc.2
-
-# 4. Push to origin
-git push origin develop
-
-# 5. Update package version
-npm version 0.1.9-rc.2
-
-# 6. Build and test
+# 2. Verify build is current
 npm run build
-npm test
 
-# 7. Publish to npm (next tag for RC)
+# 3. Publish all packages with 'next' tag
+cd packages/sdk
 npm publish --tag next --access public
 
-# 8. Push version tag
-git push origin --tags
+cd ../cli
+npm publish --tag next --access public
 
-# 9. Report to Dev Lead
+cd ../crewx
+npm publish --tag next --access public
+
+# 4. Create and push git tag
+cd /Users/doha/git/crewx/worktree/release-0.6.0
+git tag v0.6.0-rc.3
+git push origin v0.6.0-rc.3
+
+# 5. Return to main directory
+cd /Users/doha/git/crewx
+git checkout develop
+
+# 6. Report to Dev Lead
+# - Published: 0.6.0-rc.3 to npm with 'next' tag
+# - Git tag: v0.6.0-rc.3 created
+# - Ready for QA testing from npm
 ```
 
-### 4. RC Testing Fail - Handle Failed Bugs
+### 4. Final Release (RC Testing Complete)
 
-**Scenario:** QA reports some bugs FAILED testing
+**Scenario:** All RC tests passed, ready for production release
+**Same branch, final version bump (rc.X → X.X.X)**
 
 **Steps:**
 ```bash
-# 1. Read QA report to identify failed bugs
-# Example: bug-00000014 FAILED in rc.0
+# 1. Navigate to release worktree (SAME branch)
+cd /Users/doha/git/crewx/worktree/release-0.6.0
 
-# 2. Create new RC (increment: rc.0 → rc.1) from main, excluding failed bugs
-cd /Users/doha/git/crewx
-git worktree add worktree/release-0.1.9-rc.1 -b release/0.1.9-rc.1 main
+# 2. Update version from rc.X to final (remove -rc.X suffix)
+# Example: 0.6.0-rc.5 → 0.6.0
 
-# 3. Merge only PASSED bugs
-cd worktree/release-0.1.9-rc.1
-git merge --no-ff bugfix/bug-00000001  # PASSED
-git merge --no-ff bugfix/bug-00000013  # PASSED
-# ... (skip bug-00000014)
+# Update all package versions
+sed -i '' 's/"version": "0\.6\.0-rc\.[0-9]*"/"version": "0.6.0"/' package.json packages/*/package.json
 
-# 4. Build and report
+# Update inter-package dependencies
+sed -i '' 's/"@sowonai\/crewx-sdk": "\^0\.6\.0-rc\.[0-9]*"/"@sowonai\/crewx-sdk": "^0.6.0"/' packages/cli/package.json
+sed -i '' 's/"@sowonai\/crewx-cli": "\^0\.6\.0-rc\.[0-9]*"/"@sowonai\/crewx-cli": "^0.6.0"/' packages/crewx/package.json
+
+# Commit final version
+git add package.json packages/*/package.json
+git commit -m "chore: release 0.6.0 - [FEATURE_SUMMARY]
+
+New Features:
+- [Feature 1]
+- [Feature 2]
+
+Bug Fixes:
+- [Fix 1]
+
+Tested through rc.0 to rc.5, all tests passed."
+
+# 3. Install and build
+npm install
 npm run build
 
-# 5. Report to Dev Lead for re-testing
+# 4. Publish to npm with 'latest' tag (default)
+cd packages/sdk
+npm publish --access public
+
+cd ../cli
+npm publish --access public
+
+cd ../crewx
+npm publish --access public
+
+# 5. Merge to main branch
+cd /Users/doha/git/crewx
+git checkout main
+git pull origin main
+git merge --no-ff release/0.6.0
+git push origin main
+
+# 6. Merge to develop branch
+git checkout develop
+git pull origin develop
+git merge --no-ff release/0.6.0
+git push origin develop
+
+# 7. Create and push git tag
+git tag v0.6.0
+git push origin v0.6.0
+
+# 8. Return to develop
+git checkout develop
+
+# 9. Report to Dev Lead
+# - Final release 0.6.0 published to npm
+# - Merged to main and develop
+# - Git tag v0.6.0 created
 ```
 
-### 5. Final Release Branch Creation
+### 5. Workflow Index Summary
 
-**Scenario:** Create final release branch after successful RC testing
+**Old Way (Deprecated):**
+- ❌ release/0.6.0-rc.0 → release/0.6.0-rc.1 → release/0.6.0-rc.2 (multiple branches)
 
-**Steps:**
+**New Way (Current):**
+- ✅ release/0.6.0 branch (ONE branch)
+- ✅ Versions: 0.6.0-rc.0 → rc.1 → rc.2 → 0.6.0 (version increments only)
+
+**Benefits:**
+- Simpler branch management
+- All RC iterations in same branch history
+- Clean transition to final release
+- No branch switching confusion
+
+---
+
+## DEPRECATED WORKFLOWS (DO NOT USE)
+
+### OLD Workflow 5: Final Release Branch Creation (DEPRECATED)
 ```bash
 # 1. Create release worktree from main
 cd /Users/doha/git/crewx
