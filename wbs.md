@@ -17,7 +17,9 @@
 9. [WBS-28: Provider 스펙 설계](#wbs-28-provider-스펙-호환성-설계--진행중)
 10. [WBS-27: Coordinator Loop](#wbs-27-coordinator-loop-개선--보류)
 11. [WBS-29: Slack Bot Network Isolation](#wbs-29-slack-bot-network-isolation-문제--대기)
-12. [참고 문서](#참고-문서)
+12. [WBS-30: Marketplace MVP](#wbs-30-marketplace-mvp--대기)
+13. [WBS-32: Project Templates](#wbs-32-project-templates-create--대기)
+14. [참고 문서](#참고-문서)
 
 ---
 
@@ -50,6 +52,9 @@
 | 🔄  | WBS-27     | Coordinator Loop            | 로그 기반 추적 (보류)      | 3-5일     | P1     |
 | ⬜️  | WBS-29     | Slack Bot Network Isolation | Codex 네트워크 제한 해결   | 1-2일     | P1     |
 | ⬜️  | WBS-25     | 고급 기능                       | Streaming, Cost    | 3일       | P2     |
+| ⬜️  | WBS-30     | Marketplace MVP (전략)       | 비즈니스 모델 설계      | 완료      | P1     |
+| ⬜️  | WBS-31     | Marketplace 구현 (Phase 1)   | 실제 웹사이트 구축      | 4일       | P1     |
+| ⬜️  | WBS-32     | Project Templates (create)   | npm create 스캐폴딩   | 3-4일     | P0     |
 
 ---
 
@@ -254,6 +259,123 @@ agents:
 
 ---
 
+## WBS-30: Marketplace MVP - 전략 문서 (✅ 완료)
+> 📄 [wbs/wbs-30-marketplace-mvp.md](wbs/wbs-30-marketplace-mvp.md)
+
+**목표**: 마켓플레이스 비즈니스 모델 및 전략 수립
+
+**핵심 전략**:
+- 3-Tier 모델 (무료/유료/엔터프라이즈)
+- IP 보호 (AES-256 암호화 + 라이선스 검증)
+- 로깅 시스템 (3-level: Public/Developer/Protected)
+
+**아키텍처**: Registry(JSON) + Git Storage + Astro Frontend
+
+**산출물**:
+- ✅ 비즈니스 모델 설계
+- ✅ 기술 스택 결정 (Astro + Prisma + NestJS)
+- ✅ 3-Phase 로드맵
+- ✅ 비용 구조 분석
+
+**기술적 실현 가능성**: ✅ 100% 가능 (난이도: 중)
+
+**상태**: 전략 승인 완료, WBS-31로 구현 진행
+
+---
+
+## WBS-31: Marketplace 구현 (Phase 1 - MVP) (⬜️ 대기)
+> 📄 [wbs/wbs-31-marketplace-implementation.md](wbs/wbs-31-marketplace-implementation.md)
+
+**목표**: 투자자 데모용 실제 웹사이트 구축 (3일, 30분 단위 작업)
+
+**⚠️ MVP 전용**: 프로덕션은 Phase 2에서 재구축 예정
+
+**기술 스택** (⚠️ MVP 전용):
+- **Framework**: Astro 4.x 하이브리드 (정적 + SSR + Serverless)
+- **Database**: Prisma 5.x + PostgreSQL (Supabase)
+- **Styling**: Tailwind CSS
+- **Deployment**: Vercel (완전 무료)
+
+**프로젝트 구조** (단일 프로젝트):
+```
+crewx-marketplace/
+├── prisma/         # DB 스키마 + Seed
+├── src/
+│   ├── pages/      # Astro 페이지 (정적 + SSR)
+│   │   └── api/    # Serverless Functions
+│   ├── components/ # UI 컴포넌트
+│   └── lib/        # Prisma Client
+└── public/
+```
+
+**구현 계획** (30분 단위):
+- **Day 1**: Astro + Prisma + Supabase 세팅 (3.5h)
+- **Day 2**: 데이터 + UI (API Routes + 홈/상세 페이지) (3.5h)
+- **Day 3**: 검색 + Vercel 배포 + 데모 준비 (3h)
+
+**산출물**:
+- ✅ crewx-marketplace Git 프로젝트
+- ✅ 작동하는 웹사이트 (marketplace.crewx.dev)
+- ✅ 투자자 데모 스크립트
+- ✅ 10개 샘플 Agent 데이터
+
+**Phase 1 MVP 범위**:
+```
+포함:
+✅ Agent 목록/상세 페이지
+✅ 검색/필터 기능
+✅ CLI 설치 명령어 복사
+✅ 정적 배포
+
+제외 (Phase 2+):
+❌ 암호화/라이선스
+❌ 결제 시스템
+❌ 리뷰/레이팅
+```
+
+**다음 단계**: WBS-31 착수 승인 대기
+
+---
+
+## WBS-32: Project Templates (crewx template) (⬜️ 대기)
+> 📄 [wbs/wbs-32-project-templates.md](wbs/wbs-32-project-templates.md)
+
+**목표**: `crewx template` 서브커맨드 기반 프로젝트 스캐폴딩 시스템 구축
+
+**핵심 전략**:
+- **개발자용**: `crewx template init` → 소스코드 생성 → 수정 가능 → `crewx deploy`
+- **사용자용**: `crewx install` → 암호화 패키지 → 읽기 전용 (WBS-31 Marketplace에서 제공)
+- **마켓플레이스 빈자리 메꾸기**: 앱스토어 완성 전까지 템플릿으로 배포
+- **CLI UX 일관성**: 모든 기능을 `crewx` 단일 명령어로 통일 (별도 패키지 불필요)
+
+**템플릿 종류**:
+1. **wbs-automation**: WBS 자동화 프로젝트 (wbs.md + wbs-loop.sh + coordinator)
+2. **docusaurus-admin**: 문서 사이트 관리 자동화
+3. **dev-team**: 개발팀 협업 자동화
+4. **custom**: 커스텀 워크플로우 베이스
+
+**생태계 플로우**:
+```
+개발자: crewx template init → 개발 → crewx deploy → Marketplace
+사용자: crewx install → 즉시 사용 (암호화, 수정 불가)
+```
+
+**구현 계획** (3-4일):
+- **Day 1**: `crewx template` 서브커맨드 및 TemplateService 구현
+- **Day 2**: WBS Automation 템플릿 구현
+- **Day 3**: 추가 템플릿 (Docusaurus, Dev Team)
+- **Day 4**: 테스트 & NPM 배포
+
+**산출물**:
+- ✅ `create-crewx-project` NPM 패키지
+- ✅ 3개 템플릿 (WBS, Docusaurus, Dev Team)
+- ✅ 템플릿 개발 가이드
+- ✅ `crewx deploy` 통합 (마켓플레이스 배포 준비)
+
+**다음 단계**: WBS-32 설계 문서 작성 및 승인 대기
+
+---
+
 ## 참고 문서
 
 ### WBS 상세 계획
@@ -264,6 +386,9 @@ agents:
 - [WBS-26: 문서화](wbs/wbs-26-documentation-examples.md)
 - [WBS-28: Provider 스펙 설계](wbs/wbs-28-provider-options-design.md)
 - [WBS-29: Slack Bot Network Isolation](wbs/wbs-29-slack-network-isolation.md)
+- [WBS-30: Marketplace MVP (전략)](wbs/wbs-30-marketplace-mvp.md)
+- [WBS-31: Marketplace 구현 (Phase 1)](wbs/wbs-31-marketplace-implementation.md)
+- [WBS-32: Project Templates](wbs/wbs-32-project-templates.md)
 
 ### 구현 문서
 - [API Provider 가이드](docs/api-provider-guide.md)
