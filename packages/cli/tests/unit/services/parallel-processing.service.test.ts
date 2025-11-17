@@ -26,7 +26,7 @@ describe('ParallelProcessingService', () => {
 
     const configService = {
       getAgentConfig: vi.fn().mockReturnValue({
-        inline: { provider: 'claude' },
+        inline: { provider: 'cli/claude' },
         options: {},
       }),
     };
@@ -96,11 +96,11 @@ describe('ParallelProcessingService', () => {
     expect(runMock).toHaveBeenCalledOnce();
     expect(mocks.aiService.queryAI).toHaveBeenCalledWith(
       'hello',
-      'claude',
+      'cli/claude',
       expect.objectContaining({ additionalArgs: [], agentId: 'agent-A' }),
     );
     expect(mocks.taskManagementService.createTask).toHaveBeenCalledWith(
-      expect.objectContaining({ agentId: 'agent-A', provider: 'claude' }),
+      expect.objectContaining({ agentId: 'agent-A', provider: 'cli/claude' }),
     );
     expect(mocks.taskManagementService.completeTask).toHaveBeenCalledWith(
       'task-123',

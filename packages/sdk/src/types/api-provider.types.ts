@@ -56,6 +56,8 @@ export interface LegacyProviderPermissionConfig {
 }
 
 export interface APIProviderConfig extends LegacyProviderPermissionConfig {
+  /** Agent ID (preserved from YAML configuration) */
+  id?: string;
   provider: APIProviderType;
   /** API base URL (e.g., https://api.openai.com/v1, http://localhost:4000) */
   url?: string;

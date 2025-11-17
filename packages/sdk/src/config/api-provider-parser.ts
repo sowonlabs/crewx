@@ -96,11 +96,14 @@ export function parseAPIProviderConfig(
   rawConfig: RawAgentConfig,
   globalEnv: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
 ): APIProviderConfig {
-  // Determine provider string (from provider field or inline.provider)
-  const providerStr = rawConfig.provider || rawConfig.inline?.provider;
+  // Determine provider string (inline.provider takes precedence over root provider)
+  const providerStr = rawConfig.inline?.provider || rawConfig.provider;
   if (!providerStr) {
     throw new APIProviderParseError('Provider is required for API provider configuration');
   }
+
+  // Substitute environment variables BEFORE validation
+  const substitutedProvider = substituteEnvVars(providerStr, globalEnv);
 
   // Validate provider type
   const validProviders: APIProviderType[] = [
@@ -113,38 +116,43 @@ export function parseAPIProviderConfig(
     'api/sowonai',
   ];
 
-  if (!validProviders.includes(providerStr as APIProviderType)) {
+  if (!validProviders.includes(substitutedProvider as APIProviderType)) {
     throw new APIProviderParseError(
-      `Invalid API provider '${providerStr}'. Valid providers: ${validProviders.join(', ')}`,
+      `Invalid API provider '${substitutedProvider}'. Valid providers: ${validProviders.join(', ')}`,
     );
   }
 
-  // Get model (required)
-  const model = rawConfig.model || rawConfig.inline?.model;
+  // Get model (required) - inline.model takes precedence over root model
+  const model = rawConfig.inline?.model || rawConfig.model;
   if (!model) {
-    throw new APIProviderParseError(`Model is required for API provider '${providerStr}'`);
+    throw new APIProviderParseError(`Model is required for API provider '${substitutedProvider}'`);
   }
 
   // Build config with environment variable substitution
   const config: APIProviderConfig = {
-    provider: providerStr as APIProviderType,
+    provider: substitutedProvider as APIProviderType,
     model: substituteEnvVars(model, globalEnv),
   };
 
-  // Optional: url
-  const url = rawConfig.url || rawConfig.inline?.url;
+  // Optional: preserve agent ID from YAML
+  if (rawConfig.id) {
+    config.id = rawConfig.id;
+  }
+
+  // Optional: url (inline.url takes precedence)
+  const url = rawConfig.inline?.url || rawConfig.url;
   if (url) {
     config.url = substituteEnvVars(url, globalEnv);
   }
 
-  // Optional: apiKey
-  const apiKey = rawConfig.apiKey || rawConfig.inline?.apiKey;
+  // Optional: apiKey (inline.apiKey takes precedence)
+  const apiKey = rawConfig.inline?.apiKey || rawConfig.apiKey;
   if (apiKey) {
     config.apiKey = substituteEnvVars(apiKey, globalEnv);
   }
 
-  // Optional: temperature
-  const temperature = rawConfig.temperature ?? rawConfig.inline?.temperature;
+  // Optional: temperature (inline.temperature takes precedence)
+  const temperature = rawConfig.inline?.temperature ?? rawConfig.temperature;
   if (temperature !== undefined) {
     if (typeof temperature !== 'number' || temperature < 0 || temperature > 2) {
       throw new APIProviderParseError(
@@ -154,8 +162,8 @@ export function parseAPIProviderConfig(
     config.temperature = temperature;
   }
 
-  // Optional: maxTokens
-  const maxTokens = rawConfig.maxTokens ?? rawConfig.inline?.maxTokens;
+  // Optional: maxTokens (inline.maxTokens takes precedence)
+  const maxTokens = rawConfig.inline?.maxTokens ?? rawConfig.maxTokens;
   if (maxTokens !== undefined) {
     if (typeof maxTokens !== 'number' || maxTokens < 1 || !Number.isInteger(maxTokens)) {
       throw new APIProviderParseError(
@@ -165,8 +173,8 @@ export function parseAPIProviderConfig(
     config.maxTokens = maxTokens;
   }
 
-  // Optional: tools (check both top-level and inline.tools)
-  const tools = rawConfig.tools || rawConfig.inline?.tools;
+  // Optional: tools (inline.tools takes precedence)
+  const tools = rawConfig.inline?.tools || rawConfig.tools;
   if (tools) {
     if (Array.isArray(tools)) {
       config.tools = tools;
@@ -177,8 +185,8 @@ export function parseAPIProviderConfig(
     }
   }
 
-  // Optional: mcp (check both top-level and inline.mcp)
-  const mcp = rawConfig.mcp || rawConfig.inline?.mcp;
+  // Optional: mcp (inline.mcp takes precedence)
+  const mcp = rawConfig.inline?.mcp || rawConfig.mcp;
   if (mcp) {
     if (Array.isArray(mcp)) {
       config.mcp = mcp;
@@ -189,9 +197,8 @@ export function parseAPIProviderConfig(
     }
   }
 
-  // Optional: mode-specific options (query/execute)
-  // Check both top-level and inline.options
-  const options = rawConfig.options || rawConfig.inline?.options;
+  // Optional: mode-specific options (inline.options takes precedence)
+  const options = rawConfig.inline?.options || rawConfig.options;
   if (options) {
     const parsedOptions = parseProviderOptions(options);
     if (parsedOptions) {
