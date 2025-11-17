@@ -1,7 +1,7 @@
 {
   "name": "crewx-monorepo",
   "private": true,
-  "version": "0.6.0-rc.2",
+  "version": "0.6.0-rc.3",
   "license": "Apache-2.0",
   "description": "CrewX monorepo workspace",
   "workspaces": [
@@ -26,7 +26,7 @@
     "clean": "rimraf node_modules \"packages/*/node_modules\"",
     "bump:dev": "node ./scripts/dev-bump.mjs",
     "changeset": "changeset",
-    "version": "0.6.0-rc.2",
+    "version": "0.6.0-rc.3",
     "release": "npm run build && npm run test && changeset publish",
     "prerelease": "npm run build && npm run test"
   },
