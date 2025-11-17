@@ -1,0 +1,28 @@
+{
+  "name": "@crewx/example-api-agent-tools",
+  "version": "0.1.0",
+  "description": "Tool Calling example for CrewX API Providers",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "npm run build && npm start -- 'What is the weather in Seoul?'"
+  },
+  "dependencies": {
+    "@crewx/sdk": "workspace:*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "vitest": "^1.0.4"
+  },
+  "keywords": ["crewx", "api-provider", "tool-calling", "example"],
+  "author": "CrewX Team",
+  "license": "MIT"
+}

@@ -7,12 +7,14 @@ import { AgentRuntime, AgentRuntimeOptions } from './agent-runtime';
 import { EventBus, EventListener } from './event-bus';
 import { MockProvider } from '../providers/mock.provider';
 import { createProviderFromConfig } from '../providers/provider-factory';
+import { MastraAPIProvider } from '../providers/MastraAPIProvider';
 import type { AIProvider } from '../providers/ai-provider.interface';
 import type {
   ProviderConfig,
   ProviderInput,
   ProviderResolutionResult,
 } from '../../types/provider.types';
+import type { APIProviderConfig } from '../../types/api-provider.types';
 
 export interface KnowledgeBaseConfig {
   path?: string;
@@ -20,7 +22,7 @@ export interface KnowledgeBaseConfig {
 }
 
 export interface CrewxAgentConfig {
-  provider?: ProviderConfig | AIProvider;
+  provider?: ProviderConfig | APIProviderConfig | AIProvider;
   knowledgeBase?: KnowledgeBaseConfig;
   enableCallStack?: boolean;
   defaultAgentId?: string;
@@ -64,11 +66,17 @@ export interface CrewxAgentResult {
   eventBus: EventBus;
 }
 
-function isAIProvider(candidate: ProviderInput): candidate is AIProvider {
+type ExtendedProviderInput = ProviderInput | APIProviderConfig;
+
+function isAIProvider(candidate: ExtendedProviderInput): candidate is AIProvider {
   return typeof candidate === 'object' && candidate !== null && 'query' in candidate;
 }
 
-async function resolveProvider(config?: ProviderInput): Promise<ProviderResolutionResult> {
+function isAPIProviderConfig(candidate: ExtendedProviderInput): candidate is APIProviderConfig {
+  return typeof candidate === 'object' && candidate !== null && 'provider' in candidate && typeof candidate.provider === 'string' && candidate.provider.startsWith('api/');
+}
+
+async function resolveProvider(config?: ExtendedProviderInput): Promise<ProviderResolutionResult> {
   if (!config) {
     return { provider: new MockProvider() };
   }
@@ -77,17 +85,27 @@ async function resolveProvider(config?: ProviderInput): Promise<ProviderResoluti
     return { provider: config };
   }
 
-  const provider = await createProviderFromConfig(config);
+  // Handle APIProviderConfig directly
+  if (isAPIProviderConfig(config)) {
+    const provider = new MastraAPIProvider(config);
+    return {
+      provider,
+      defaultModel: config.model,
+    };
+  }
+
+  // Handle ProviderConfig (namespace/id format)
+  const provider = await createProviderFromConfig(config as ProviderConfig);
   return {
     provider,
-    defaultModel: config.model,
+    defaultModel: (config as ProviderConfig).model,
   };
 }
 
 /**
  * Create a CrewX agent with the specified configuration.
  *
- * @example
+ * @example CLI Provider
  * ```ts
  * const { agent, onEvent } = await createCrewxAgent({
  *   provider: { namespace: 'cli', id: 'codex', apiKey: process.env.CODEX_TOKEN },
@@ -101,6 +119,22 @@ async function resolveProvider(config?: ProviderInput): Promise<ProviderResoluti
  * const result = await agent.query({
  *   prompt: 'What is the current status?',
  *   context: 'Project: CrewX',
+ * });
+ * ```
+ *
+ * @example API Provider (Mastra-based)
+ * ```ts
+ * const { agent } = await createCrewxAgent({
+ *   provider: {
+ *     provider: 'api/openai',
+ *     model: 'gpt-4o',
+ *     apiKey: process.env.OPENAI_API_KEY,
+ *     temperature: 0.7,
+ *   },
+ * });
+ *
+ * const result = await agent.query({
+ *   prompt: 'Explain API providers',
  * });
  * ```
  */

@@ -1,0 +1,22 @@
+# Test Ollama Agent Configuration (No Tools)
+# Testing basic Ollama connectivity without tool calling
+
+agents:
+  - id: "test_ollama_simple"
+    name: "Test Ollama Simple Agent"
+    role: "assistant"
+    description: "Test agent using local Ollama without tools"
+    inline:
+      type: "agent"
+      provider: "api/ollama"
+      url: "http://192.168.219.105:11434/v1"
+      model: "gpt-oss:20b"
+      temperature: 0.3
+      maxTokens: 100
+      options:
+        query:
+          tools: []
+          mcp: []
+        execute:
+          tools: []
+          mcp: []

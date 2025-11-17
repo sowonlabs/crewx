@@ -14,6 +14,17 @@ export {
 // Configuration
 export type { TimeoutConfig } from './config/timeout.config';
 export { getTimeoutConfig, getDefaultTimeoutConfig } from './config/timeout.config';
+export {
+  parseAPIProviderConfig,
+  parseMCPServers,
+  parseCrewXConfig,
+  validateAPIProviderConfig,
+  substituteEnvVars,
+  APIProviderParseError,
+  type RawAgentConfig,
+  type RawYAMLConfig,
+  type RawMCPServerConfig,
+} from './config/api-provider-parser';
 
 // Conversation contracts
 export type {
@@ -32,6 +43,24 @@ export {
 // Knowledge utilities
 export { DocumentManager } from './knowledge/DocumentManager';
 
+// Tools
+export {
+  readFileTool,
+  writeFileTool,
+  replaceTool,
+  lsTool,
+  grepTool,
+  runShellCommandTool,
+  treeTool,
+  findTool,
+  globTool,
+} from './tools';
+export type {
+  FileSystemService,
+  ProcessedFileReadResult,
+  ToolErrorType,
+} from './tools';
+
 // Provider contracts
 export {
   ProviderNamespace,
@@ -45,6 +74,8 @@ export type {
   AIResponse,
 } from './core/providers/ai-provider.interface';
 export { BaseAIProvider } from './core/providers/base-ai.provider';
+export { MastraAPIProvider } from './core/providers/MastraAPIProvider';
+export { MastraToolAdapter } from './adapters/MastraToolAdapter';
 export {
   ClaudeProvider,
   GeminiProvider,
@@ -71,11 +102,44 @@ export type {
   ProviderResolutionResult,
 } from './types/provider.types';
 export type {
+  APIProviderConfig,
+  APIProviderType,
+  ProviderExecutionMode,
+  ProviderModeOptions,
+  ProviderOptions,
+  LegacyProviderPermissionConfig,
+  CrewXInstance,
+  FrameworkToolDefinition,
+  MCPServerConfig,
+  ToolExecutionContext as APIToolExecutionContext,
+} from './types/api-provider.types';
+export {
+  isLegacyProviderPermissionConfig,
+  isProviderModeOptions,
+  isProviderOptions,
+  convertLegacyPermissionsToProviderOptions,
+} from './types/api-provider.types';
+export {
+  APIProviderConfigSchema,
+  MCPServerConfigSchema,
+  APIProviderConfigJsonSchema,
+} from './schemas/api-provider.schema';
+export type {
   Tool,
   ToolExecutionContext,
   ToolExecutionResult,
   ToolCallHandler,
 } from './core/providers/tool-call.types';
+export {
+  normalizeAPIProviderConfig,
+  getModePermissions,
+  isAPIProviderConfig,
+  assertAPIProviderConfig,
+} from './utils/api-provider-normalizer';
+export type {
+  NormalizedAPIProviderConfigResult,
+  ModePermissionBuckets,
+} from './utils/api-provider-normalizer';
 
 // Agent domain types
 export type {

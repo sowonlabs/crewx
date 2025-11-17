@@ -175,10 +175,52 @@ crewx mcp  # VS Code, Claude Desktop, Cursor
 
 ## Supported AI Tools
 
+### CLI Providers (Local)
 - **Claude Code** - Advanced reasoning and analysis
 - **Gemini CLI** - Real-time web access
 - **GitHub Copilot CLI** - Specialized coding assistant
 - **Codex CLI** - Open inference with workspace-aware execution
+
+### API Providers (Cloud & Local)
+CrewX supports unified HTTP-based API providers with tool calling:
+
+- **Ollama** (`api/ollama`)
+- **OpenRouter** (`api/openai`)
+- **LiteLLM** (`api/litellm`) - Planned
+- **OpenAI** (`api/openai`) - Planned
+- **Anthropic** (`api/anthropic`) - Planned
+- **Google** (`api/google`) - Planned
+- **AWS Bedrock** (`api/bedrock`) - Planned
+- **SowonAI** (`api/sowonai`) - Planned
+
+**Quick Start with API Provider:**
+
+```yaml
+# crewx.yaml
+agents:
+  - id: "api_assistant"
+    name: "API-based Assistant"
+    inline:
+      type: "agent"
+      provider: "api/anthropic"
+      model: "claude-sonnet-4-5-20250929"
+      temperature: 0.7
+      options:
+        query:
+          tools: ["read_file", "grep", "find", "glob", "tree"]
+        execute:
+          tools: ["read_file", "write_file", "replace", "grep", "run_shell_command"]
+      prompt: |
+        You are an AI assistant with tool calling support.
+```
+
+**Key Features:**
+- **Tool Calling** - Built-in tools (file operations, shell commands) + custom tools
+- **MCP Integration** - Model Context Protocol for external services
+- **Mode-based Filtering** - Different tool sets for query vs execute modes
+- **Runtime Model Override** - Change models dynamically per request
+
+📚 **[Complete API Provider Guide →](./docs/api-provider-guide.md)**
 
 ## Basic Usage
 
@@ -391,6 +433,7 @@ For more information, see:
 ## Documentation
 
 ### User Guides
+- [🚀 API Provider Guide](docs/api-provider-guide.md) - **NEW!** Complete guide for API providers (OpenAI, Anthropic, Google, Bedrock, LiteLLM, Ollama, SowonAI)
 - [📖 CLI Guide](docs/cli-guide.md) - Complete CLI reference
 - [🔌 MCP Integration](docs/mcp-integration.md) - IDE setup and MCP servers
 - [⚙️ Agent Configuration](docs/agent-configuration.md) - Custom agents and advanced config
@@ -408,7 +451,6 @@ For more information, see:
 - [🔧 Development Workflow](docs/development.md) - Contributing guidelines
 - [🧩 Context Integration Standard](packages/docs/context-integration-standard.md) - TemplateContext pipeline and layout responsibilities
 - [🛠️ Context Migration Guide](packages/docs/context-integration-migration.md) - Upgrade steps for custom agents
-- [🧱 Layout DSL Reference](packages/docs/layout-dsl-field-reference.md) - Layout fields, props, and helpers
 
 ## License
 

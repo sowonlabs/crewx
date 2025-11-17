@@ -1,0 +1,224 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://crewx.ai/schemas/crewx-config.json",
+  "title": "CrewX Configuration",
+  "description": "Complete CrewX configuration including agents, MCP servers, tools, and global variables.",
+  "type": "object",
+  "properties": {
+    "vars": {
+      "type": "object",
+      "description": "Global variables accessible in templates as {{vars.key}} and in tool execution context",
+      "additionalProperties": true
+    },
+    "mcp_servers": {
+      "type": "object",
+      "description": "Model Context Protocol server definitions",
+      "additionalProperties": {
+        "$ref": "#/$defs/mcpServerConfig"
+      }
+    },
+    "agents": {
+      "type": "array",
+      "description": "Agent definitions",
+      "items": {
+        "$ref": "#/$defs/agentConfig"
+      }
+    }
+  },
+  "$defs": {
+    "agentConfig": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique agent identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable agent name"
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider identifier (cli/claude, api/openai, etc.)",
+          "pattern": "^(cli|api)/[a-z0-9-]+$"
+        },
+        "inline": {
+          "type": "object",
+          "description": "Inline provider configuration",
+          "properties": {
+            "model": {
+              "type": "string",
+              "description": "Model identifier"
+            },
+            "provider": {
+              "type": "string",
+              "enum": [
+                "api/openai",
+                "api/anthropic",
+                "api/google",
+                "api/bedrock",
+                "api/litellm",
+                "api/ollama",
+                "api/sowonai",
+                "cli/claude",
+                "cli/gemini",
+                "cli/copilot",
+                "cli/codex"
+              ],
+              "description": "Provider type for inline configuration"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "API base URL (for API providers)"
+            },
+            "apiKey": {
+              "type": "string",
+              "description": "API key (supports {{env.VAR}} template)"
+            },
+            "temperature": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2,
+              "default": 0.7,
+              "description": "Sampling temperature"
+            },
+            "maxTokens": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum completion tokens"
+            },
+            "prompt": {
+              "type": "string",
+              "description": "Agent system prompt (supports templates)"
+            }
+          }
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "API base URL (shorthand for inline.url)"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "API key (shorthand for inline.apiKey, supports {{env.VAR}} template)"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model identifier (shorthand for inline.model)"
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Sampling temperature (shorthand for inline.temperature)"
+        },
+        "maxTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum completion tokens (shorthand for inline.maxTokens)"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Agent system prompt (shorthand for inline.prompt, supports templates)"
+        },
+        "tools": {
+          "oneOf": [
+            {
+              "type": "array",
+              "description": "Simple array of tool names (SowonFlow style)",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            {
+              "type": "object",
+              "description": "Include/exclude pattern for tool activation",
+              "properties": {
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true,
+                  "description": "Tool names to include"
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true,
+                  "description": "Tool names to exclude"
+                }
+              }
+            }
+          ],
+          "description": "Tool activation configuration"
+        },
+        "mcp": {
+          "oneOf": [
+            {
+              "type": "array",
+              "description": "Simple array of MCP server names (SowonFlow style)",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            {
+              "type": "object",
+              "description": "Include/exclude pattern for MCP server activation",
+              "properties": {
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true,
+                  "description": "MCP server names to include"
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true,
+                  "description": "MCP server names to exclude"
+                }
+              }
+            }
+          ],
+          "description": "MCP server activation configuration"
+        }
+      }
+    },
+    "mcpServerConfig": {
+      "type": "object",
+      "description": "Model Context Protocol server process definition",
+      "required": ["command", "args"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Executable to launch the MCP server (e.g., npx, node)"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Arguments passed to the command"
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables (supports {{env.VAR}} template)"
+        }
+      }
+    }
+  }
+}

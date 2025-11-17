@@ -8,18 +8,7 @@
     "moduleResolution": "node",
     "incremental": false,
     "skipLibCheck": true,
-    "esModuleInterop": true,
-    "paths": {
-      "@sowonai/crewx-sdk": [
-        "../sdk/dist/index"
-      ],
-      "@sowonai/crewx-sdk/internal": [
-        "../sdk/dist/internal/index"
-      ],
-      "@sowonai/crewx-sdk/*": [
-        "../sdk/dist/*"
-      ]
-    }
+    "esModuleInterop": true
   },
   "include": [
     "src/**/*"

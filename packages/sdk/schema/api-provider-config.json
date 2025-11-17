@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://crewx.ai/schemas/api-provider-config.json",
+  "title": "CrewX API Provider Configuration",
+  "description": "API provider configuration for CrewX agents (OpenAI, Anthropic, Google, Bedrock, LiteLLM, Ollama, SowonAI)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["provider", "model"],
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": [
+        "api/openai",
+        "api/anthropic",
+        "api/google",
+        "api/bedrock",
+        "api/litellm",
+        "api/ollama",
+        "api/sowonai"
+      ],
+      "description": "API provider identifier"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "API base URL (e.g., https://api.openai.com/v1, http://localhost:4000)"
+    },
+    "apiKey": {
+      "type": "string",
+      "description": "API key (optional, can use environment variables via {{env.VAR}} template)"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier understood by the provider (e.g., gpt-4o, claude-3-5-sonnet-20241022)"
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 0.7,
+      "description": "Sampling temperature applied to API calls"
+    },
+    "maxTokens": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum completion tokens"
+    },
+    "options": {
+      "type": "object",
+      "description": "Mode-specific permissions. Define tools/MCP servers per execution mode (query/execute).",
+      "properties": {
+        "query": {
+          "$ref": "#/$defs/providerModeOptions"
+        },
+        "execute": {
+          "$ref": "#/$defs/providerModeOptions"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/providerModeOptions"
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Legacy root-level tool list (SowonFlow style). Prefer options.<mode>.tools instead."
+    },
+    "mcp": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Legacy root-level MCP reference list. Prefer options.<mode>.mcp instead."
+    },
+    "mcp_servers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Legacy alias for MCP references (mirrors SowonFlow snake_case). Prefer options.<mode>.mcp instead."
+    }
+  },
+  "$defs": {
+    "providerModeOptions": {
+      "type": "object",
+      "description": "Mode-specific permissions for tools and MCP servers",
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "Tool names enabled in this mode"
+        },
+        "mcp": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "MCP server references enabled in this mode"
+        }
+      }
+    },
+    "mcpServerConfig": {
+      "type": "object",
+      "description": "Model Context Protocol server process definition",
+      "required": ["command", "args"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Executable to launch the MCP server (e.g., npx, node)"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Arguments passed to the command"
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Environment variables injected when spawning the server (supports {{env.VAR}} template)"
+        }
+      }
+    }
+  }
+}

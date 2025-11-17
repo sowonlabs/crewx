@@ -110,7 +110,7 @@ export interface AgentInfo {
   name?: string;
   role?: string;
   team?: string;
-  provider: 'claude' | 'gemini' | 'copilot' | 'remote' | `remote/${string}` | ('claude' | 'gemini' | 'copilot')[]; // Single provider or array for fallback
+  provider: 'claude' | 'gemini' | 'copilot' | 'remote' | `remote/${string}` | `api/${string}` | ('claude' | 'gemini' | 'copilot')[]; // Single provider or array for fallback (WBS-24: added api/* support)
   workingDirectory: string;
   capabilities: string[];
   description: string;
@@ -122,7 +122,7 @@ export interface AgentInfo {
   }; // Flexible CLI options - legacy array, mode-specific array, or provider-specific object
   inline?: {
     type: 'agent';
-    provider?: 'claude' | 'gemini' | 'copilot' | 'remote' | `plugin/${string}` | `cli/${string}` | string; // Support plugin and remote providers
+    provider?: 'claude' | 'gemini' | 'copilot' | 'remote' | `plugin/${string}` | `cli/${string}` | `api/${string}` | string; // Support plugin, remote, and API providers (WBS-24)
     system_prompt?: string; // Legacy system prompt (backward compatibility)
     prompt?: string; // Alternative to system_prompt
     model?: string; // Default model for this agent

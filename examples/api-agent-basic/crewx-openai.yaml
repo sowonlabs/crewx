@@ -1,0 +1,11 @@
+agents:
+  - id: gpt_assistant
+    name: GPT-4 Assistant
+    provider: api/openai
+    model: gpt-4o
+    temperature: 0.7
+    maxTokens: 2000
+    inline:
+      prompt: |
+        You are a helpful AI assistant powered by GPT-4.
+        Provide clear, concise, and accurate responses.
