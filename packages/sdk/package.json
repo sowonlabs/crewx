@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-sdk",
-  "version": "0.6.0-rc.3",
+  "version": "0.6.0-rc.4",
   "license": "Apache-2.0",
   "description": "SowonAI CrewX SDK",
   "type": "commonjs",
@@ -37,14 +37,20 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.8",
+    "@ai-sdk/google": "^1.0.10",
+    "@ai-sdk/openai": "^1.0.11",
     "@mastra/core": "^0.24.0",
     "@openrouter/ai-sdk-provider": "^1.2.2",
     "ai": "^5.0.92",
+    "glob": "^11.0.0",
+    "handlebars": "^4.7.8",
     "js-yaml": "^4.1.0",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.0.0",
+    "zod": "^3.24.1"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",
