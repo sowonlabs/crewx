@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-sdk",
-  "version": "0.6.0-rc.4",
+  "version": "0.6.0-rc.5",
   "license": "Apache-2.0",
   "description": "SowonAI CrewX SDK",
   "type": "commonjs",
@@ -34,7 +34,20 @@
       "import": "./dist/internal/index.js",
       "require": "./dist/internal/index.js"
     },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "import": "./dist/tools/index.js",
+      "require": "./dist/tools/index.js"
+    },
+    "./dist/*": "./dist/*",
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "tools": ["./dist/tools/index.d.ts"],
+      "internal": ["./dist/internal/index.d.ts"],
+      "*": ["./dist/*"]
+    }
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.8",
