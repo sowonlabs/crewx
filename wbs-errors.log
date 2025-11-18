@@ -1,0 +1,17 @@
+[2025-11-18 15:59:52] ERROR: Cycle 1 failed (exit code: 130)
+----- Last output -----
+Loaded layout: crewx/default from default.yaml
+Loaded 2 layouts from /Users/doha/.nvm/versions/node/v20.19.2/lib/node_modules/crewx/node_modules/@sowonai/crewx-cli/templates/agents
+[dotenv@17.2.3] injecting env (1) from .env.local -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+🔗 Continuing conversation thread: wbs-20251118-context
+Registered custom layout: default
+⚡ Processing 1 task
+📋 Task: 사이클 #1: wbs.md 확인하고 미처리 Phase들을 병렬로 진행해주세요.
+🤖 Agent: @coordinator
+🧵 Thread: wbs-20251118-context
+
+⚡ Executing task with single agent: @coordinator
+────────────────────────────────────────────────────────────
+
+[AgentRuntime] Starting execute for agent: coordinator
+-----------------------
