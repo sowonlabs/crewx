@@ -49,12 +49,12 @@
 | ✅   | WBS-24     | CLI 통합                      | CLI 명령어 지원         | 1-2일     | P0     |
 | ✅   | WBS-26     | 문서화                         | 가이드, 예제            | 2-3일     | P1     |
 | ✅   | WBS-28     | Provider 스펙 설계              | options 통합         | 3-4일     | P0     |
-| 🔄  | WBS-27     | Coordinator Loop            | 로그 기반 추적 (보류)      | 3-5일     | P1     |
-| ⬜️  | WBS-29     | Slack Bot Network Isolation | Codex 네트워크 제한 해결   | 1-2일     | P1     |
-| ⬜️  | WBS-25     | 고급 기능                       | Streaming, Cost    | 3일       | P2     |
-| ⬜️  | WBS-30     | Marketplace MVP (전략)       | 비즈니스 모델 설계      | 완료      | P1     |
-| ⬜️  | WBS-31     | Marketplace 구현 (Phase 1)   | 실제 웹사이트 구축      | 4일       | P1     |
-| ⬜️  | WBS-32     | Project Templates (create)   | npm create 스캐폴딩   | 3-4일     | P0     |
+| 🔄  | WBS-27     | Coordinator Loop            | 로그 기반 추적 (보류)      | 3-5일     | P2     |
+| 🔄  | WBS-29     | Slack Bot Network Isolation | Codex 네트워크 제한 해결   | 1-2일     | P2     |
+| 🔄  | WBS-25     | 고급 기능                       | Streaming, Cost    | 3일       | P2     |
+| 🔄  | WBS-30     | Marketplace MVP (전략)       | 비즈니스 모델 설계      | 완료      | P2     |
+| 🔄  | WBS-31     | Marketplace 구현 (Phase 1)   | 실제 웹사이트 구축      | 4일       | P2     |
+| 🟡  | WBS-32     | Project Templates (create)   | crewx template 스캐폴딩   | 3-4일     | P0     |
 
 ---
 
@@ -238,7 +238,7 @@ agents:
 
 **목표**: Worker Agent 로그 분석을 통한 작업 완료 자동 감지
 
-**상태**: 보류 (API Provider 완료 후 별도 브랜치에서 진행 예정)
+**상태**: 🔄 보류 (WBS-32 완료 후 재검토 예정)
 
 **핵심 아이디어**:
 - Coordinator가 Worker Agent 로그 분석
@@ -247,10 +247,12 @@ agents:
 
 ---
 
-## WBS-29: Slack Bot Network Isolation 문제 (⬜️ 대기)
+## WBS-29: Slack Bot Network Isolation 문제 (🔄 보류)
 > 📄 [wbs/wbs-29-slack-network-isolation.md](wbs/wbs-29-slack-network-isolation.md)
 
 **목표**: Slack Bot에서 실행되는 Codex Provider의 네트워크 접근 제한 해결
+
+**상태**: 🔄 보류 (WBS-32 완료 후 재검토 예정)
 
 **산출물**:
 - 네트워크 환경 분석 보고서
@@ -259,10 +261,12 @@ agents:
 
 ---
 
-## WBS-30: Marketplace MVP - 전략 문서 (✅ 완료)
+## WBS-30: Marketplace MVP - 전략 문서 (🔄 보류)
 > 📄 [wbs/wbs-30-marketplace-mvp.md](wbs/wbs-30-marketplace-mvp.md)
 
 **목표**: 마켓플레이스 비즈니스 모델 및 전략 수립
+
+**상태**: 🔄 보류 (전략 완료됨, 구현은 WBS-32 이후 재검토)
 
 **핵심 전략**:
 - 3-Tier 모델 (무료/유료/엔터프라이즈)
@@ -283,10 +287,12 @@ agents:
 
 ---
 
-## WBS-31: Marketplace 구현 (Phase 1 - MVP) (⬜️ 대기)
+## WBS-31: Marketplace 구현 (Phase 1 - MVP) (🔄 보류)
 > 📄 [wbs/wbs-31-marketplace-implementation.md](wbs/wbs-31-marketplace-implementation.md)
 
 **목표**: 투자자 데모용 실제 웹사이트 구축 (3일, 30분 단위 작업)
+
+**상태**: 🔄 보류 (WBS-32 완료 후 재검토 예정)
 
 **⚠️ MVP 전용**: 프로덕션은 Phase 2에서 재구축 예정
 
@@ -337,42 +343,37 @@ crewx-marketplace/
 
 ---
 
-## WBS-32: Project Templates (crewx template) (⬜️ 대기)
+## WBS-32: Project Templates (crewx template) (🟡 진행중)
 > 📄 [wbs/wbs-32-project-templates.md](wbs/wbs-32-project-templates.md)
 
 **목표**: `crewx template` 서브커맨드 기반 프로젝트 스캐폴딩 시스템 구축
 
-**핵심 전략**:
-- **개발자용**: `crewx template init` → 소스코드 생성 → 수정 가능 → `crewx deploy`
-- **사용자용**: `crewx install` → 암호화 패키지 → 읽기 전용 (WBS-31 Marketplace에서 제공)
-- **마켓플레이스 빈자리 메꾸기**: 앱스토어 완성 전까지 템플릿으로 배포
-- **CLI UX 일관성**: 모든 기능을 `crewx` 단일 명령어로 통일 (별도 패키지 불필요)
+**예상 소요**: 2-3일 (AI 작업 기준, 12-16시간)
 
-**템플릿 종류**:
-1. **wbs-automation**: WBS 자동화 프로젝트 (wbs.md + wbs-loop.sh + coordinator)
-2. **docusaurus-admin**: 문서 사이트 관리 자동화
-3. **dev-team**: 개발팀 협업 자동화
-4. **custom**: 커스텀 워크플로우 베이스
+**시작**: 2025-01-18 11:30
+**완료**: 미정
+**실제 소요**: (진행중)
 
-**생태계 플로우**:
-```
-개발자: crewx template init → 개발 → crewx deploy → Marketplace
-사용자: crewx install → 즉시 사용 (암호화, 수정 불가)
-```
+**완료 시 할 수 있는 것**:
+- `crewx template init wbs-automation`으로 프로젝트 생성
+- `crewx template list`로 사용 가능한 템플릿 목록 확인
+- `crewx template show wbs-automation`으로 템플릿 상세 정보 확인
+- WBS 자동화 봇을 5분 만에 시작 가능
+- Docusaurus 문서 관리 봇을 즉시 배포 가능
 
-**구현 계획** (3-4일):
-- **Day 1**: `crewx template` 서브커맨드 및 TemplateService 구현
-- **Day 2**: WBS Automation 템플릿 구현
-- **Day 3**: 추가 템플릿 (Docusaurus, Dev Team)
-- **Day 4**: 테스트 & NPM 배포
+**Phase 진행 상황**:
+- [ ] Phase 1: CLI 명령어 구조 (4-5시간) - 담당: crewx_claude_dev
+- [ ] Phase 2: WBS Automation 템플릿 (3-4시간) - 담당: crewx_codex_dev
+- [ ] Phase 3: 추가 템플릿 (3-4시간) - 담당: crewx_crush_dev
+- [ ] Phase 4: 문서화 (2-3시간) - 담당: crewx_claude_dev
 
-**산출물**:
-- ✅ `create-crewx-project` NPM 패키지
-- ✅ 3개 템플릿 (WBS, Docusaurus, Dev Team)
-- ✅ 템플릿 개발 가이드
-- ✅ `crewx deploy` 통합 (마켓플레이스 배포 준비)
-
-**다음 단계**: WBS-32 설계 문서 작성 및 승인 대기
+**작업 시간 추적** (Coordinator 자동 기록):
+| Phase | 담당자 | 시작 | 완료 | 실제 소요 | 예상 소요 | 상태 |
+|-------|--------|------|------|----------|----------|------|
+| Phase 1 | - | - | - | - | 4-5h | ⬜️ |
+| Phase 2 | - | - | - | - | 3-4h | ⬜️ |
+| Phase 3 | - | - | - | - | 3-4h | ⬜️ |
+| Phase 4 | - | - | - | - | 2-3h | ⬜️ |
 
 ---
 
