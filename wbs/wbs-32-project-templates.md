@@ -1,10 +1,11 @@
 # WBS-32: Project Templates System (crewx template)
 
-> **목표**: `crewx template` 서브커맨드 기반 프로젝트 스캐폴딩 시스템
+> **목표**: Git 기반 템플릿 저장소 시스템 (현재 디렉토리에 템플릿 받아오기)
 > **상태**: 🟡 진행중
 > **우선순위**: P0
-> **예상 소요**: 2-3일 (AI 작업 기준, 12-16시간)
-> **시작일**: 2025-01-18
+> **예상 소요**: 2-3일 (AI 작업 기준, 10-13시간)
+> **시작일**: 2025-11-16
+> **Phase 2 리젝일**: 2025-11-18 (설계 변경)
 
 ---
 
@@ -26,19 +27,40 @@
 
 ### 배경
 - **문제**: 마켓플레이스(WBS-31) 완성 전까지 CrewX 프로젝트 시작이 어려움
-- **해결**: `crewx template` 서브커맨드로 빈자리 메꾸기 + 개발자 생태계 구축
+- **해결**: Git 기반 템플릿 저장소로 빠른 프로젝트 시작 지원
 
 ### 목표
-1. **단기**: 마켓플레이스 완성 전까지 프로젝트 템플릿 제공
-2. **중기**: 개발자들이 `template → develop → deploy` 워크플로우로 마켓플레이스 기여
+1. **단기**: Git 저장소에서 템플릿을 현재 디렉토리로 받아오기
+2. **중기**: 개발자들이 템플릿 저장소를 직접 관리하고 공유
 3. **장기**: 마켓플레이스와 통합하여 완전한 생태계 구축
 
-### npm create 대신 서브커맨드를 선택한 이유
-- ✅ **단일 패키지**: 버전 싱크 문제 없음
-- ✅ **CLI UX 일관성**: `crewx` 하나로 모든 작업
-- ✅ **유지보수 편의성**: 템플릿을 `packages/cli/templates/` 안에 포함
-- ✅ **확장성**: `crewx template list`, `show` 등 부가 기능 추가 쉬움
-- ✅ **마켓플레이스 연결**: 자연스러운 전환 경로
+### 핵심 설계 변경 (2025-11-18)
+**기존 구현** (리젝됨):
+```bash
+crewx template init test-wbs --template wbs-automation
+# → test-wbs/ 디렉토리 생성 후 템플릿 복사
+```
+
+**새로운 설계**:
+```bash
+# 현재 디렉토리에 템플릿 받아오기
+crewx template init wbs-automation
+# → ./ (현재 디렉토리)에 템플릿 파일들 생성
+
+# Git 저장소에서 받아오기 (기본)
+CREWX_TEMPLATE_GIT=https://github.com/crewx-templates/official.git \
+  crewx template init wbs-automation
+
+# 로컬 템플릿 테스트
+CREWX_TEMPLATE_LOCAL=/path/to/templates \
+  crewx template init wbs-automation
+```
+
+**변경 이유**:
+- ✅ **사용 편의성**: 디렉토리 이름 고민 불필요
+- ✅ **Git 워크플로우 친화적**: 현재 디렉토리 = Git 저장소 루트
+- ✅ **템플릿 중앙 관리**: Git 저장소로 버전 관리
+- ✅ **확장성**: 여러 템플릿 저장소 지원 가능
 
 ---
 
@@ -150,20 +172,20 @@ agents:
 
 ## Phase 구성
 
-**일정**: 2-3일 (AI 작업 기준)
+**일정**: 2-3일 (AI 작업 기준, 설계 변경 후)
 
-| Phase | 작업 | 소요 | 산출물 |
-|-------|------|------|--------|
-| Phase 1 | CLI 명령어 구조 | 4-5시간 | `template` 서브커맨드 |
-| Phase 1-1 | 명령어 스켈레톤 | 1.5시간 | 3개 명령어 인터페이스 |
-| Phase 1-2 | TemplateService 핵심 | 2시간 | Service + 3개 메서드 |
-| Phase 1-3 | 테스트 | 1시간 | 단위 테스트 |
-| Phase 2 | WBS Automation 템플릿 | 3-4시간 | wbs-automation 완성 |
-| Phase 2-1 | 템플릿 구조 | 1.5시간 | crewx.yaml + 기본 구조 |
-| Phase 2-2 | 스크립트 & 문서 | 1.5시간 | wbs-loop.sh + README |
-| Phase 2-3 | 통합 테스트 | 1시간 | 템플릿 검증 |
-| Phase 3 | 추가 템플릿 | 3-4시간 | docusaurus, dev-team |
-| Phase 4 | 문서화 | 2-3시간 | E2E 테스트, 가이드 |
+| Phase | 작업 | 소요 | 산출물 | 상태 |
+|-------|------|------|--------|------|
+| Phase 1 | CLI 명령어 구조 | 4-5시간 | `template` 서브커맨드 | ✅ 완료 |
+| Phase 2 | 현재 디렉토리 템플릿 init | 3-4시간 | 현재 디렉토리 초기화 | ❌ 리젝 |
+| Phase 3 | Git 기반 템플릿 저장소 | 2-3시간 | Git clone + 템플릿 적용 | ⬜️ 대기 |
+| Phase 3-1 | Git 저장소 clone | 1시간 | TemplateGitService | ⬜️ |
+| Phase 3-2 | 템플릿 파일 복사 | 1시간 | 현재 디렉토리에 복사 | ⬜️ |
+| Phase 3-3 | Handlebars 렌더링 | 0.5시간 | 변수 치환 | ⬜️ |
+| Phase 4 | 로컬/원격 템플릿 병행 | 1-2시간 | 환경변수 기반 전환 | ⬜️ 대기 |
+| Phase 4-1 | 환경변수 처리 | 0.5시간 | CREWX_TEMPLATE_* | ⬜️ |
+| Phase 4-2 | 로컬 템플릿 지원 | 0.5시간 | 로컬 경로 처리 | ⬜️ |
+| Phase 5 | 문서화 및 테스트 | 2-3시간 | E2E 테스트, 가이드 | ⬜️ 대기 |
 
 ---
 
@@ -219,131 +241,229 @@ agents:
 
 ---
 
-## Phase 2: WBS Automation 템플릿 (3-4시간)
+## Phase 2: 현재 디렉토리 템플릿 init (❌ 리젝됨)
 
-### Phase 2-1: 템플릿 구조 (1.5시간)
+**리젝 이유** (2025-11-18):
+- **설계 오류**: 프로젝트명을 받아서 하위 디렉토리 생성하는 방식
+- **의도와 불일치**: 현재 디렉토리에 직접 템플릿 파일 생성해야 함
+- **Git 워크플로우 불편**: 별도 디렉토리 생성으로 Git 초기화 복잡
 
-**세부 작업**:
-- 디렉토리 구조 생성 (15분)
-  - `packages/cli/templates/wbs-automation/` 생성
-- crewx.yaml 작성 (45분)
-  - metadata 섹션 (name, displayName, description, version)
-  - agents 섹션 (coordinator agent + CLI provider)
-- wbs.md 템플릿 작성 (30분)
-  - Handlebars 변수 ({{project_name}}, {{author}}, {{date}})
-  - 기본 WBS 구조
+**기존 구현** (잘못됨):
+```bash
+crewx template init test-wbs --template wbs-automation
+# → test-wbs/ 디렉토리 생성 후 템플릿 복사
+```
 
-**성공 기준**:
-- ✅ crewx.yaml 메타데이터 완성
-- ✅ wbs.md 템플릿 완성
+**올바른 설계**:
+```bash
+mkdir my-wbs-bot && cd my-wbs-bot
+crewx template init wbs-automation
+# → ./ (현재 디렉토리)에 템플릿 파일들 생성
+```
 
-### Phase 2-2: 스크립트 & 문서 (1.5시간)
-
-**세부 작업**:
-- wbs-loop.sh 작성 (45분)
-  - git pull + crewx query 로직
-  - 5분마다 WBS 체크 루프
-- README.md 작성 (45분)
-  - 설치 및 사용법
-  - 환경 변수 설정 가이드
-  - cron 설정 예시
-
-**성공 기준**:
-- ✅ wbs-loop.sh 실행 가능
-- ✅ README.md 완성
-
-### Phase 2-3: 통합 테스트 (1시간)
-
-**세부 작업**:
-- 템플릿 생성 테스트 (30분)
-  - `crewx template init test-wbs --template wbs-automation`
-  - 생성된 파일 검증
-- 템플릿 실행 테스트 (30분)
-  - wbs-loop.sh 동작 확인
-  - Handlebars 변수 치환 확인
-
-**성공 기준**:
-- ✅ 템플릿 생성 동작
-- ✅ 변수 치환 정상 동작
+**Phase 3, 4로 재설계됨**
 
 ---
 
-## Phase 3: 추가 템플릿 (3-4시간)
+## Phase 3: Git 기반 템플릿 저장소 지원 (2-3시간)
 
-**⚠️ 실제 구현 상태**: **미구현** (Phase 3는 실제로 수행되지 않음)
+**목표**: Git 저장소에서 템플릿을 clone하여 현재 디렉토리에 적용
 
-**원래 계획된 작업**:
-- docusaurus-admin 템플릿 (1.5시간)
-  - crewx.yaml (docs-writer, docs-reviewer 에이전트)
-  - 문서 빌드 스크립트
-  - README 작성
-- dev-team 템플릿 (1.5시간)
-  - crewx.yaml (developer, reviewer, tester 에이전트)
-  - PR 자동 리뷰 스크립트
-  - README 작성
-- 3개 템플릿 통합 테스트 (1시간)
-  - 각 템플릿 생성 확인
+### Phase 3-1: Git 저장소 clone (1시간)
+
+**세부 작업**:
+- TemplateGitService 생성 (30분)
+  - `packages/cli/src/services/template-git.service.ts`
+  - Git clone 로직 (`simple-git` 또는 `child_process`)
+  - 임시 디렉토리 관리
+- 환경변수 처리 (15분)
+  - `CREWX_TEMPLATE_GIT` 읽기
+  - 기본값: `https://github.com/crewx-templates/official.git`
+- 템플릿 디렉토리 탐색 (15분)
+  - Clone된 저장소에서 템플릿명 폴더 찾기
+  - 예: `wbs-automation/` 디렉토리
+
+**성공 기준**:
+- ✅ Git 저장소 clone 성공
+- ✅ 템플릿 디렉토리 찾기 성공
+- ✅ 임시 디렉토리 정리
+
+### Phase 3-2: 템플릿 파일 복사 (1시간)
+
+**세부 작업**:
+- 현재 디렉토리에 복사 (30분)
+  - Clone된 템플릿 파일들을 `./` (현재 디렉토리)에 복사
+  - `.git`, `node_modules` 제외
+  - 숨김 파일 포함 (`.gitignore`, `.env.example` 등)
+- 덮어쓰기 방지 (15분)
+  - 현재 디렉토리가 비어있지 않으면 경고
+  - `--force` 옵션으로 강제 허용
+- 에러 처리 (15분)
+  - 템플릿 없을 때 에러 메시지
+  - Git clone 실패 시 fallback
+
+**성공 기준**:
+- ✅ 현재 디렉토리에 템플릿 파일 복사
+- ✅ 덮어쓰기 방지 동작
+- ✅ 명확한 에러 메시지
+
+### Phase 3-3: Handlebars 변수 렌더링 (0.5시간)
+
+**세부 작업**:
+- 변수 수집 (15분)
+  - 현재 디렉토리명 → `project_name`
+  - Git 사용자명 → `author`
+  - 현재 날짜 → `date`
+- Handlebars 렌더링 (15분)
+  - 모든 파일 순회하며 `{{변수}}` 치환
+  - 바이너리 파일 제외
+
+**성공 기준**:
+- ✅ 변수 치환 동작
+- ✅ 프로젝트명 자동 설정
+
+---
+
+## Phase 4: 로컬/원격 템플릿 병행 지원 (1-2시간)
+
+**목표**: 개발/테스트 시 로컬 템플릿 사용 가능하도록 환경변수 지원
+
+### Phase 4-1: 환경변수 처리 (0.5시간)
+
+**세부 작업**:
+- 환경변수 우선순위 설정 (15분)
+  ```typescript
+  // 1. CREWX_TEMPLATE_LOCAL (로컬 경로 - 테스트용)
+  // 2. CREWX_TEMPLATE_GIT (Git 저장소 URL)
+  // 3. 기본값: https://github.com/crewx-templates/official.git
+  ```
+- Config 로딩 로직 (15분)
+  - `getTemplateSource()` 메서드 구현
+  - 환경변수 검증
+
+**성공 기준**:
+- ✅ 환경변수 우선순위 동작
+- ✅ 명확한 에러 메시지
+
+### Phase 4-2: 로컬 템플릿 지원 (0.5시간)
+
+**세부 작업**:
+- 로컬 경로 처리 (15분)
+  - `CREWX_TEMPLATE_LOCAL=/path/to/templates` 지원
+  - 절대 경로/상대 경로 모두 지원
+- 로컬 템플릿 검증 (15분)
+  - 경로 존재 여부 확인
+  - 템플릿 디렉토리 존재 확인
+
+**성공 기준**:
+- ✅ 로컬 템플릿 로딩 동작
+- ✅ 개발/테스트 편의성
+
+**사용 예시**:
+```bash
+# 로컬 템플릿으로 테스트
+CREWX_TEMPLATE_LOCAL=./packages/cli/templates \
+  crewx template init wbs-automation
+
+# 다른 Git 저장소 사용
+CREWX_TEMPLATE_GIT=https://github.com/myorg/my-templates.git \
+  crewx template init custom-template
+
+# 기본 저장소 사용
+crewx template init wbs-automation
+```
+
+---
+
+## Phase 5: 문서화 및 테스트 (2-3시간)
+
+**목표**: E2E 테스트 작성 및 사용자 가이드 문서화
+
+### Phase 5-1: E2E 테스트 (1시간)
+
+**세부 작업**:
+- Git 템플릿 테스트 (30분)
+  - Git clone 테스트
+  - 현재 디렉토리 복사 테스트
+  - 덮어쓰기 방지 테스트
+- 로컬 템플릿 테스트 (15분)
+  - 로컬 경로 로딩 테스트
+- Handlebars 렌더링 테스트 (15분)
   - 변수 치환 검증
 
-**실제 완료 사항**:
-- ❌ Docusaurus 템플릿 미구현
-- ❌ Dev Team 템플릿 미구현
-- ✅ 1개 템플릿만 동작 (wbs-automation만)
+**성공 기준**:
+- ✅ 모든 E2E 테스트 통과
+- ✅ 테스트 커버리지 80% 이상
 
-**참고**: Phase 3 로그는 2025-11-18 13:37-13:42 (5분)에 실행되었으나, 추가 템플릿 구현 대신 다른 작업 수행된 것으로 추정
+### Phase 5-2: 사용자 가이드 작성 (1시간)
 
----
-
-## Phase 4: 문서화 (2-3시간)
-
-**⚠️ 실제 구현 상태**: **일부 구현**
-
-**원래 계획된 작업**:
-- E2E 테스트 (1시간)
-  - 전체 플로우 테스트 (init → build → run)
-  - 3개 템플릿 모두 검증
-- 템플릿 개발 가이드 (1시간)
-  - 새 템플릿 만드는 방법
-  - Handlebars 문법 설명
-  - 메타데이터 스키마
-- 사용자 가이드 (1시간)
-  - `crewx template` 명령어 레퍼런스
-  - 각 템플릿 사용법
+**세부 작업**:
+- 명령어 레퍼런스 (30분)
+  - `crewx template init <template-name>`
+  - 환경변수 설명
+  - 옵션 설명 (`--force`)
+- 사용 예시 (30분)
+  - wbs-automation 템플릿 사용법
+  - 커스텀 템플릿 저장소 만들기
   - Troubleshooting
 
-**실제 완료 사항**:
-- ✅ E2E 테스트 구현 (`packages/cli/tests/e2e/template.e2e.spec.ts`)
-  - wbs-automation 템플릿 테스트만 구현
-  - docusaurus-admin, dev-team 테스트 코드는 있으나 실제 템플릿 미구현
-- ❌ 템플릿 개발 가이드 미작성
-- ❌ 사용자 가이드 미작성
+**성공 기준**:
+- ✅ 사용자 가이드 완성
+- ✅ 예시 코드 검증
 
-**실제 소요**: 2025-11-18 13:41-13:47 (6분)
+### Phase 5-3: 템플릿 개발 가이드 (1시간)
+
+**세부 작업**:
+- 템플릿 구조 설명 (30분)
+  - 필수 파일 (`crewx.yaml`, `README.md`)
+  - Handlebars 변수 사용법
+  - 메타데이터 스키마
+- 템플릿 저장소 만들기 (30분)
+  - Git 저장소 구조
+  - 여러 템플릿 관리 방법
+  - 버전 관리 전략
+
+**성공 기준**:
+- ✅ 개발자 가이드 완성
+- ✅ 템플릿 저장소 예시
 
 ---
 
 ## 성공 기준 요약
 
-**원래 계획된 완료 조건**:
-- ✅ 모든 Phase 완료
-- ✅ 3개 템플릿 (wbs-automation, docusaurus-admin, dev-team) 작동 확인
-- ✅ 전체 테스트 통과율 90% 이상
-- ✅ 문서화 완료 (사용자 가이드, 개발자 가이드)
-
-**실제 달성 상황** (2025-11-18 기준):
+**새로운 설계 목표** (2025-11-18 설계 변경 후):
 - ✅ Phase 1 완료 (CLI 명령어 구조)
-- ✅ Phase 2 완료 (WBS Automation 템플릿)
-- ⚠️ Phase 3 미완료 (추가 템플릿 미구현)
-- ⚠️ Phase 4 부분 완료 (E2E 테스트만, 문서 미작성)
-- ✅ **1개 템플릿** 작동 확인 (wbs-automation만)
-- ✅ E2E 테스트 통과 (wbs-automation 템플릿)
-- ❌ 문서화 미완료 (개발자 가이드, 사용자 가이드 미작성)
+- ❌ Phase 2 리젝 (설계 변경)
+- ⬜️ Phase 3 대기 (Git 기반 템플릿 저장소)
+- ⬜️ Phase 4 대기 (로컬/원격 병행 지원)
+- ⬜️ Phase 5 대기 (문서화 및 테스트)
 
-**MVP 성공 기준** (실용적 목표):
-- ✅ `crewx template init` 명령어 동작
-- ✅ wbs-automation 템플릿 사용 가능
-- ✅ E2E 테스트 통과
-- ⚠️ 추가 템플릿 및 문서화는 향후 개선 필요
+**완료 조건** (재정의):
+1. **기본 기능**:
+   - ✅ `crewx template init <template-name>` 명령어 동작
+   - ⬜️ 현재 디렉토리에 템플릿 파일 생성
+   - ⬜️ Git 저장소에서 템플릿 clone
+   - ⬜️ Handlebars 변수 치환
+
+2. **환경변수 지원**:
+   - ⬜️ `CREWX_TEMPLATE_GIT` 지원 (기본 저장소 변경)
+   - ⬜️ `CREWX_TEMPLATE_LOCAL` 지원 (로컬 템플릿 테스트)
+
+3. **테스트 및 문서**:
+   - ⬜️ E2E 테스트 통과
+   - ⬜️ 사용자 가이드 작성
+   - ⬜️ 템플릿 개발 가이드 작성
+
+**MVP 성공 기준**:
+- ⬜️ Git 저장소에서 템플릿 받아오기 동작
+- ⬜️ 현재 디렉토리에 템플릿 생성 동작
+- ⬜️ 로컬 템플릿으로 테스트 가능
+- ⬜️ 1개 이상의 템플릿 사용 가능 (wbs-automation)
+
+**Phase 2 리젝 사유**:
+- ❌ 프로젝트명 받아서 하위 디렉토리 생성 (잘못된 설계)
+- ✅ 현재 디렉토리에 직접 템플릿 생성 (올바른 설계)
+- ✅ Git 기반 템플릿 저장소 (확장성)
 
 ---
 
