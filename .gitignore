@@ -1,6 +1,9 @@
 /dist
 /packages/*/dist
-/packages/cli/templates/
+/packages/cli/templates/*
+!/packages/cli/templates/versions.json
+!/packages/cli/templates/wbs-automation/
+!/packages/cli/templates/wbs-automation/**
 /node_modules
 **/package-lock.json
 pnpm-lock.yaml

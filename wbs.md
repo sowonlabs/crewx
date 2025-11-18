@@ -1,6 +1,6 @@
-# CrewX WBS - API Provider Implementation
+# CrewX WBS
 
-> 상태: `⬜️ 대기`, `🟡 진행중`, `✅ 완료`, `🔄 보류`
+> 상태: `⬜️ 대기`, `🟡 진행중`, `✅ 완료`, `⏸️ 보류`
 
 ---
 
@@ -39,22 +39,22 @@
 
 ## 진행 현황
 
-| 상태  | ID         | 작업명                         | 산출물                | 소요       | 우선순위   |
-| --- | ---------- | --------------------------- | ------------------ | -------- | ------ |
-| ✅   | WBS-19     | API Provider 설계             | 아키텍처, YAML 스펙      | 2-3일     | P0     |
-| ✅   | WBS-20     | Mastra 통합                   | 7 Providers 구현     | 3일       | P0     |
-| ✅   | **WBS-21** | **Tool Calling 구현**         | **Built-in Tools** | **2-3일** | **P0** |
-| ✅   | ~~WBS-22~~ | ~~MCP 통합~~                  | ~~Mastra 제공~~      | 0일       | -      |
-| ✅   | WBS-23     | YAML 파싱                     | Provider Factory   | 2-3일     | P0     |
-| ✅   | WBS-24     | CLI 통합                      | CLI 명령어 지원         | 1-2일     | P0     |
-| ✅   | WBS-26     | 문서화                         | 가이드, 예제            | 2-3일     | P1     |
-| ✅   | WBS-28     | Provider 스펙 설계              | options 통합         | 3-4일     | P0     |
-| 🔄  | WBS-27     | Coordinator Loop            | 로그 기반 추적 (보류)      | 3-5일     | P2     |
-| 🔄  | WBS-29     | Slack Bot Network Isolation | Codex 네트워크 제한 해결   | 1-2일     | P2     |
-| 🔄  | WBS-25     | 고급 기능                       | Streaming, Cost    | 3일       | P2     |
-| 🔄  | WBS-30     | Marketplace MVP (전략)       | 비즈니스 모델 설계      | 완료      | P2     |
-| 🔄  | WBS-31     | Marketplace 구현 (Phase 1)   | 실제 웹사이트 구축      | 4일       | P2     |
-| ✅  | WBS-32     | Project Templates (create)   | crewx template 스캐폴딩   | 3-4일     | P0     |
+| 상태  | ID         | 작업명                         | 산출물                 | 소요       | 우선순위   |
+| --- | ---------- | --------------------------- | ------------------- | -------- | ------ |
+| ✅   | WBS-19     | API Provider 설계             | 아키텍처, YAML 스펙       | 2-3일     | P0     |
+| ✅   | WBS-20     | Mastra 통합                   | 7 Providers 구현      | 3일       | P0     |
+| ✅   | **WBS-21** | **Tool Calling 구현**         | **Built-in Tools**  | **2-3일** | **P0** |
+| ✅   | ~~WBS-22~~ | ~~MCP 통합~~                  | ~~Mastra 제공~~       | 0일       | -      |
+| ✅   | WBS-23     | YAML 파싱                     | Provider Factory    | 2-3일     | P0     |
+| ✅   | WBS-24     | CLI 통합                      | CLI 명령어 지원          | 1-2일     | P0     |
+| ✅   | WBS-26     | 문서화                         | 가이드, 예제             | 2-3일     | P1     |
+| ✅   | WBS-28     | Provider 스펙 설계              | options 통합          | 3-4일     | P0     |
+| ⏸️  | WBS-27     | Coordinator Loop            | 로그 기반 추적 (보류)       | 3-5일     | P2     |
+| ⏸️  | WBS-29     | Slack Bot Network Isolation | Codex 네트워크 제한 해결    | 1-2일     | P2     |
+| ⏸️  | WBS-25     | 고급 기능                       | Streaming, Cost     | 3일       | P2     |
+| ⏸️  | WBS-30     | Marketplace MVP (전략)        | 비즈니스 모델 설계          | 완료       | P2     |
+| ⏸️  | WBS-31     | Marketplace 구현 (Phase 1)    | 실제 웹사이트 구축          | 4일       | P2     |
+| ✅   | WBS-32     | Project Templates (create)  | crewx template 스캐폴딩 | ~2h      | P0     |
 
 ---
 
@@ -234,7 +234,7 @@ agents:
 
 ---
 
-## WBS-27: Coordinator Loop 개선 (🔄 보류)
+## WBS-27: Coordinator Loop 개선 (⏸️ 보류)
 
 **목표**: Worker Agent 로그 분석을 통한 작업 완료 자동 감지
 
@@ -247,7 +247,7 @@ agents:
 
 ---
 
-## WBS-29: Slack Bot Network Isolation 문제 (🔄 보류)
+## WBS-29: Slack Bot Network Isolation 문제 (⏸️ 보류)
 > 📄 [wbs/wbs-29-slack-network-isolation.md](wbs/wbs-29-slack-network-isolation.md)
 
 **목표**: Slack Bot에서 실행되는 Codex Provider의 네트워크 접근 제한 해결
@@ -261,7 +261,7 @@ agents:
 
 ---
 
-## WBS-30: Marketplace MVP - 전략 문서 (🔄 보류)
+## WBS-30: Marketplace MVP - 전략 문서 (⏸️ 보류)
 > 📄 [wbs/wbs-30-marketplace-mvp.md](wbs/wbs-30-marketplace-mvp.md)
 
 **목표**: 마켓플레이스 비즈니스 모델 및 전략 수립
@@ -287,7 +287,7 @@ agents:
 
 ---
 
-## WBS-31: Marketplace 구현 (Phase 1 - MVP) (🔄 보류)
+## WBS-31: Marketplace 구현 (Phase 1 - MVP) (⏸️ 보류)
 > 📄 [wbs/wbs-31-marketplace-implementation.md](wbs/wbs-31-marketplace-implementation.md)
 
 **목표**: 투자자 데모용 실제 웹사이트 구축 (3일, 30분 단위 작업)
@@ -346,36 +346,72 @@ crewx-marketplace/
 ## WBS-32: Project Templates (crewx template) (✅ 완료)
 > 📄 [wbs/wbs-32-project-templates.md](wbs/wbs-32-project-templates.md)
 
-**목표**: `crewx template` 서브커맨드 기반 프로젝트 스캐폴딩 시스템 구축
+**목표**: `crewx template` 서브커맨드 기반 Git 템플릿 다운로드 시스템 (MVP)
 
-**예상 소요**: 2-3일 (AI 작업 기준, 12-16시간)
+**실제 소요**: ~2시간 (AI 작업 기준, Phase 3 MVP만)
 
-**시작**: 2025-01-18 12:00
-**완료**: 2025-11-18 14:00
-**실제 소요**: ~2.0h
+**작업 이력**:
+- **1차 시도**: 2025-11-18 12:00 ~ 2025-11-18 14:00 (~2h) - ❌ 리젝 (설계 변경 - Git 기반 템플릿으로 재설계)
+- **2차 시도 (Phase 3)**: 2025-11-18 16:00 ~ 2025-11-18 16:10 (~10분) - ✅ 완료
 
-**완료 시 할 수 있는 것**:
-- `crewx template init wbs-automation`으로 프로젝트 생성
-- `crewx template list`로 사용 가능한 템플릿 목록 확인
-- `crewx template show wbs-automation`으로 템플릿 상세 정보 확인
-- WBS 자동화 봇을 5분 만에 시작 가능
-- Docusaurus 문서 관리 봇을 즉시 배포 가능
+**구현된 기능**:
+- ✅ `crewx template init <template-name>` - Git에서 템플릿 다운로드
+- ✅ `crewx template list` - 사용 가능한 템플릿 목록
+- ✅ `crewx template show <template-name>` - 템플릿 상세 정보
+- ✅ 환경변수 지원: `CREWX_TEMPLATE_REPO` - 회사 템플릿 저장소 사용
+- ✅ giget 통합 - Git CLI 불필요, GitHub tarball API 사용
+- ✅ 현재 디렉토리에 템플릿 파일 생성
+- ✅ 명확한 에러 처리 및 메시지
 
 **Phase 진행 상황**:
-- [x] Phase 1: CLI 명령어 구조 (4-5시간) - 담당: crewx_claude_dev ✅ 완료 (2025-11-16)
-- [❌] Phase 2: 현재 디렉토리 템플릿 init (3-4시간) - 담당: - ❌ 리젝 (설계 변경 필요)
-- [❌] Phase 3: Git 기반 템플릿 저장소 지원 (2-3시간) - 담당: - ⬜️ 대기
-- [ ] Phase 4: 로컬/원격 템플릿 병행 지원 (1-2시간) - 담당: - ⬜️ 대기
-- [ ] Phase 5: 문서화 및 테스트 (2-3시간) - 담당: - ⬜️ 대기
+- [❌] Phase 1: CLI 명령어 구조 (4-5시간) - ❌ 리젝 (1차 시도)
+- [❌] Phase 2: 현재 디렉토리 템플릿 init (3-4시간) - ❌ 리젝 (1차 시도, 설계 변경)
+- [✅] Phase 3: Git 템플릿 다운로드 (2시간) - ✅ 완료 (~10분)
+- [✅] Phase 4: 템플릿 저장소 구성 (1-1.5시간) - ✅ 완료 - 담당: crewx_claude_dev
+- [✅] Phase 5: 문서화 (30분) - ✅ 완료 (docs/project-templates.md)
 
-**작업 시간 추적** (Coordinator 자동 기록):
+**작업 시간 추적**:
 | Phase | 담당자 | 시작 | 완료 | 실제 소요 | 예상 소요 | 상태 |
 |-------|--------|------|------|----------|----------|------|
-| Phase 1 | crewx_claude_dev | 2025-11-16 01:15 | 2025-11-16 01:40 | ~25m | 4-5h | ✅ |
-| Phase 2 | - | - | - | - | 3-4h | ❌ 리젝 |
-| Phase 3 | - | - | - | - | 2-3h | ⬜️ |
-| Phase 4 | - | - | - | - | 1-2h | ⬜️ |
-| Phase 5 | - | - | - | - | 2-3h | ⬜️ |
+| Phase 1 | - | 2025-11-18 12:00 | 2025-11-18 14:00 | ~2h | 4-5h | ❌ 리젝 |
+| Phase 2 | - | 2025-11-18 12:00 | 2025-11-18 14:00 | ~2h | 3-4h | ❌ 리젝 |
+| Phase 3 | crewx_claude_dev | 2025-11-18 16:00 | 2025-11-18 16:10 | ~10분 | 2h | ✅ 완료 |
+| Phase 4 | crewx_claude_dev | 2025-11-18 19:53 | 2025-11-18 19:58 | ~5분 | 1-1.5h | ✅ 완료 |
+| Phase 5 | crewx_dev_lead | 2025-11-18 19:00 | 2025-11-18 19:30 | ~30분 | 1-2h | ✅ 완료 |
+
+**구현 파일**:
+- `packages/cli/src/services/template.service.ts` - giget 통합, scaffoldProject() 메서드
+- `packages/cli/src/cli/template.handler.ts` - CLI 명령어 핸들러 (init, list, show)
+- `packages/cli/package.json` - giget 의존성 추가
+
+**완성된 템플릿 저장소** (Phase 4):
+- ✅ GitHub Repository: https://github.com/sowonlabs/crewx-templates
+- ✅ wbs-automation 템플릿 (8개 파일, 완전한 영어 문서)
+- ✅ templates.json - 템플릿 레지스트리
+- ✅ Root README.md - 저장소 소개 및 사용 가이드
+- ✅ Template Manager Agent - 템플릿 검증 및 추가 자동화
+
+**사용 예시**:
+```bash
+# 기본 사용 (sowonlabs/crewx-templates 저장소)
+mkdir my-wbs-bot && cd my-wbs-bot
+crewx template init wbs-automation
+
+# 커스텀 저장소 사용 (회사/개인 템플릿)
+export CREWX_TEMPLATE_REPO=https://github.com/mycompany/crewx-templates
+crewx template init wbs-automation
+
+# 템플릿 목록 보기
+crewx template list
+
+# 템플릿 상세 정보
+crewx template show wbs-automation
+```
+
+**다음 단계** (선택사항):
+- Phase 5: 추가 문서화 및 E2E 테스트 (필요시)
+- 공식 템플릿 저장소 생성: `https://github.com/sowonlabs/crewx-templates`
+- 추가 템플릿 개발: docusaurus-admin, dev-team 등
 
 ---
 

@@ -1,6 +1,21 @@
+---
+name: crewx-wbs
+description: Expert on WBS (Work Breakdown Structure) creation and management for CrewX project. Activate when user asks to create, review, update, or validate WBS documents. Handles AI-based time estimation, Phase breakdown, and task tracking.
+---
+
 # WBS (Work Breakdown Structure) 작성 가이드
 
 당신은 CrewX 프로젝트의 WBS 문서를 작성하는 전문가입니다.
+
+## When to Use This Skill
+
+Activate when the user asks about:
+- "WBS 작성해줘" / "Create a new WBS"
+- "WBS-XX 검토해줘" / "Review WBS-XX"
+- "WBS 양식 맞는지 확인" / "Validate WBS format"
+- "wbs.md 업데이트" / "Update wbs.md"
+- Phase breakdown or task estimation
+- WBS document structure or best practices
 
 ## 📋 WBS 문서 작성 표준
 
@@ -12,7 +27,7 @@
 # WBS-XX: [작업명]
 
 > **목표**: [한 문장으로 핵심 목표]
-> **상태**: [⬜️ 대기 | 🟡 진행중 | ✅ 완료 | 🔄 보류]
+> **상태**: [⬜️ 대기 | 🟡 진행중 | ✅ 완료 | ⏸️ 보류]
 > **우선순위**: [P0 | P1 | P2]
 > **예상 소요**: [N일 또는 N-M일]
 > **시작일**: YYYY-MM-DD (진행중인 경우)
@@ -198,7 +213,7 @@
    - ✅ 완료
    - ❌ 제거/문제
    - ⚠️ 주의
-   - 🔄 보류
+   - ⏸️ 보류
    - 🟡 진행중
    - ⬜️ 대기
 

@@ -1,11 +1,25 @@
 # WBS-32: Project Templates System (crewx template)
 
 > **목표**: Git 기반 템플릿 저장소 시스템 (현재 디렉토리에 템플릿 받아오기)
-> **상태**: 🟡 진행중
+> **상태**: 🟡 진행중 (Phase 3 구현)
 > **우선순위**: P0
-> **예상 소요**: 2-3일 (AI 작업 기준, 10-13시간)
+> **예상 소요**: 2시간 (Phase 3 MVP만)
 > **시작일**: 2025-11-16
 > **Phase 2 리젝일**: 2025-11-18 (설계 변경)
+> **Phase 3 설계 완료**: 2025-11-18
+
+---
+
+## 🎯 핵심 의사결정 요약
+
+| 항목 | 결정 사항 | 비고 |
+|------|----------|------|
+| **라이브러리** | `giget` (UnJS) | Git CLI 불필요, tarball API 사용 |
+| **기본 저장소** | `https://github.com/sowonlabs/crewx-templates` | 공식 템플릿 저장소 |
+| **환경변수** | `CREWX_TEMPLATE_REPO` | 퍼블릭 GitHub 저장소만 지원 |
+| **Phase 3 범위** | giget + 환경변수만 | 2시간 구현 목표 |
+| **Phase 6 이동** | Registry, --from, Handlebars, simple-git | 선택사항 (4-5시간) |
+| **회사 사용** | 공식 템플릿 fork → 커스터마이징 → 환경변수로 사용 | 소스 공개 (퍼블릭 GitHub) |
 
 ---
 
@@ -35,32 +49,55 @@
 3. **장기**: 마켓플레이스와 통합하여 완전한 생태계 구축
 
 ### 핵심 설계 변경 (2025-11-18)
+
+**Phase 2 리젝** → **Phase 3 MVP 설계**:
+
 **기존 구현** (리젝됨):
 ```bash
 crewx template init test-wbs --template wbs-automation
-# → test-wbs/ 디렉토리 생성 후 템플릿 복사
+# → test-wbs/ 디렉토리 생성 후 템플릿 복사 (로컬 파일 복사)
 ```
 
-**새로운 설계**:
+**최종 설계** (MVP):
 ```bash
-# 현재 디렉토리에 템플릿 받아오기
+# 기본 사용 (sowonlabs 공식 저장소)
+mkdir my-wbs-bot && cd my-wbs-bot
 crewx template init wbs-automation
-# → ./ (현재 디렉토리)에 템플릿 파일들 생성
+# → giget으로 GitHub에서 다운로드 (Git CLI 불필요)
 
-# Git 저장소에서 받아오기 (기본)
-CREWX_TEMPLATE_GIT=https://github.com/crewx-templates/official.git \
-  crewx template init wbs-automation
+# 커스텀 저장소 사용 (회사/개인 템플릿)
+export CREWX_TEMPLATE_REPO=https://github.com/mycompany/crewx-templates
+crewx template init wbs-automation
+# → 회사가 fork한 템플릿 저장소에서 다운로드
+```
 
-# 로컬 템플릿 테스트
-CREWX_TEMPLATE_LOCAL=/path/to/templates \
-  crewx template init wbs-automation
+**핵심 의사결정**:
+1. ✅ **라이브러리**: `giget` (UnJS) - Git CLI 불필요, tarball API 사용
+2. ✅ **기본 저장소**: `https://github.com/sowonlabs/crewx-templates`
+3. ✅ **환경변수**: `CREWX_TEMPLATE_REPO` (퍼블릭 GitHub 저장소만)
+4. ❌ **제외 (Phase 6 이동)**: registry.json, Handlebars, --from 옵션, simple-git
+
+**회사 사용 시나리오**:
+```bash
+# 1. 공식 템플릿 fork
+git clone https://github.com/sowonlabs/crewx-templates
+cd crewx-templates
+# 2. 회사 표준에 맞게 커스터마이징
+# 3. 회사 GitHub에 push
+git push https://github.com/mycompany/crewx-templates
+
+# 4. 신입 개발자 온보딩
+export CREWX_TEMPLATE_REPO=https://github.com/mycompany/crewx-templates
+crewx template init wbs-automation
+# → 회사 커스텀 템플릿으로 프로젝트 시작
 ```
 
 **변경 이유**:
 - ✅ **사용 편의성**: 디렉토리 이름 고민 불필요
 - ✅ **Git 워크플로우 친화적**: 현재 디렉토리 = Git 저장소 루트
 - ✅ **템플릿 중앙 관리**: Git 저장소로 버전 관리
-- ✅ **확장성**: 여러 템플릿 저장소 지원 가능
+- ✅ **확장성**: 환경변수로 저장소 변경 가능 (회사/개인)
+- ✅ **단순성**: MVP는 giget + 환경변수만 (Registry는 Phase 6)
 
 ---
 
@@ -70,7 +107,7 @@ CREWX_TEMPLATE_LOCAL=/path/to/templates \
 
 ```bash
 # 🛠️ 개발자용 (Developer Mode)
-crewx template init my-wbs-bot --template wbs-automation
+crewx template init wbs-automation
 # - crewx.yaml 편집 가능
 # - 소스코드 전부 노출
 # - 자유롭게 커스터마이징
@@ -172,20 +209,22 @@ agents:
 
 ## Phase 구성
 
-**일정**: 2-3일 (AI 작업 기준, 설계 변경 후)
+**일정**: 3-4시간 (AI 작업 기준, MVP만)
 
 | Phase | 작업 | 소요 | 산출물 | 상태 |
 |-------|------|------|--------|------|
 | Phase 1 | CLI 명령어 구조 | 4-5시간 | `template` 서브커맨드 | ✅ 완료 |
 | Phase 2 | 현재 디렉토리 템플릿 init | 3-4시간 | 현재 디렉토리 초기화 | ❌ 리젝 |
-| Phase 3 | Git 기반 템플릿 저장소 | 2-3시간 | Git clone + 템플릿 적용 | ⬜️ 대기 |
-| Phase 3-1 | Git 저장소 clone | 1시간 | TemplateGitService | ⬜️ |
-| Phase 3-2 | 템플릿 파일 복사 | 1시간 | 현재 디렉토리에 복사 | ⬜️ |
-| Phase 3-3 | Handlebars 렌더링 | 0.5시간 | 변수 치환 | ⬜️ |
-| Phase 4 | 로컬/원격 템플릿 병행 | 1-2시간 | 환경변수 기반 전환 | ⬜️ 대기 |
-| Phase 4-1 | 환경변수 처리 | 0.5시간 | CREWX_TEMPLATE_* | ⬜️ |
-| Phase 4-2 | 로컬 템플릿 지원 | 0.5시간 | 로컬 경로 처리 | ⬜️ |
-| Phase 5 | 문서화 및 테스트 | 2-3시간 | E2E 테스트, 가이드 | ⬜️ 대기 |
+| **Phase 3** | **Git 템플릿 다운로드 (MVP)** | **2시간** | **giget + 환경변수** | **✅ 완료** |
+| Phase 3-1 | giget 통합 | 1시간 | TemplateService 업데이트 | ✅ |
+| Phase 3-2 | CLI 명령어 연결 | 30분 | handleTemplateInit 수정 | ✅ |
+| Phase 3-3 | 테스트 및 검증 | 30분 | 기본/환경변수 테스트 | ✅ |
+| **Phase 4** | **템플릿 저장소 구성** | **1-1.5시간** | **crewx-templates repo** | **⬜️ 대기** |
+| Phase 4-1 | 저장소 초기화 | 15분 | Git 저장소 + 구조 | ⬜️ |
+| Phase 4-2 | wbs-automation 템플릿 | 30-45분 | 6개 템플릿 파일 | ⬜️ |
+| Phase 4-3 | 저장소 마무리 | 15분 | README + push | ⬜️ |
+| **Phase 5** | **문서화** | **30분** | **사용자 가이드** | **✅ 완료** |
+| Phase 5-1 | 사용자 가이드 | 30분 | project-templates.md | ✅ |
 
 ---
 
@@ -265,200 +304,310 @@ crewx template init wbs-automation
 
 ---
 
-## Phase 3: Git 기반 템플릿 저장소 지원 (2-3시간)
+## Phase 3: Git 기반 템플릿 저장소 지원 (2-3시간) - MVP
 
-**목표**: Git 저장소에서 템플릿을 clone하여 현재 디렉토리에 적용
+**목표**: Git 저장소에서 템플릿을 다운로드하여 현재 디렉토리에 적용
 
-### Phase 3-1: Git 저장소 clone (1시간)
+**기술 스택**: `giget` (UnJS) - Git CLI 불필요, tarball API 사용
 
-**세부 작업**:
-- TemplateGitService 생성 (30분)
-  - `packages/cli/src/services/template-git.service.ts`
-  - Git clone 로직 (`simple-git` 또는 `child_process`)
-  - 임시 디렉토리 관리
-- 환경변수 처리 (15분)
-  - `CREWX_TEMPLATE_GIT` 읽기
-  - 기본값: `https://github.com/crewx-templates/official.git`
-- 템플릿 디렉토리 탐색 (15분)
-  - Clone된 저장소에서 템플릿명 폴더 찾기
-  - 예: `wbs-automation/` 디렉토리
+**기본 저장소**: `https://github.com/sowonlabs/crewx-templates`
 
-**성공 기준**:
-- ✅ Git 저장소 clone 성공
-- ✅ 템플릿 디렉토리 찾기 성공
-- ✅ 임시 디렉토리 정리
+**환경변수 지원**: `CREWX_TEMPLATE_REPO` (퍼블릭 GitHub 저장소만)
 
-### Phase 3-2: 템플릿 파일 복사 (1시간)
+### 구현 전략
 
-**세부 작업**:
-- 현재 디렉토리에 복사 (30분)
-  - Clone된 템플릿 파일들을 `./` (현재 디렉토리)에 복사
-  - `.git`, `node_modules` 제외
-  - 숨김 파일 포함 (`.gitignore`, `.env.example` 등)
-- 덮어쓰기 방지 (15분)
-  - 현재 디렉토리가 비어있지 않으면 경고
-  - `--force` 옵션으로 강제 허용
-- 에러 처리 (15분)
-  - 템플릿 없을 때 에러 메시지
-  - Git clone 실패 시 fallback
-
-**성공 기준**:
-- ✅ 현재 디렉토리에 템플릿 파일 복사
-- ✅ 덮어쓰기 방지 동작
-- ✅ 명확한 에러 메시지
-
-### Phase 3-3: Handlebars 변수 렌더링 (0.5시간)
-
-**세부 작업**:
-- 변수 수집 (15분)
-  - 현재 디렉토리명 → `project_name`
-  - Git 사용자명 → `author`
-  - 현재 날짜 → `date`
-- Handlebars 렌더링 (15분)
-  - 모든 파일 순회하며 `{{변수}}` 치환
-  - 바이너리 파일 제외
-
-**성공 기준**:
-- ✅ 변수 치환 동작
-- ✅ 프로젝트명 자동 설정
-
----
-
-## Phase 4: 로컬/원격 템플릿 병행 지원 (1-2시간)
-
-**목표**: 개발/테스트 시 로컬 템플릿 사용 가능하도록 환경변수 지원
-
-### Phase 4-1: 환경변수 처리 (0.5시간)
-
-**세부 작업**:
-- 환경변수 우선순위 설정 (15분)
-  ```typescript
-  // 1. CREWX_TEMPLATE_LOCAL (로컬 경로 - 테스트용)
-  // 2. CREWX_TEMPLATE_GIT (Git 저장소 URL)
-  // 3. 기본값: https://github.com/crewx-templates/official.git
-  ```
-- Config 로딩 로직 (15분)
-  - `getTemplateSource()` 메서드 구현
-  - 환경변수 검증
-
-**성공 기준**:
-- ✅ 환경변수 우선순위 동작
-- ✅ 명확한 에러 메시지
-
-### Phase 4-2: 로컬 템플릿 지원 (0.5시간)
-
-**세부 작업**:
-- 로컬 경로 처리 (15분)
-  - `CREWX_TEMPLATE_LOCAL=/path/to/templates` 지원
-  - 절대 경로/상대 경로 모두 지원
-- 로컬 템플릿 검증 (15분)
-  - 경로 존재 여부 확인
-  - 템플릿 디렉토리 존재 확인
-
-**성공 기준**:
-- ✅ 로컬 템플릿 로딩 동작
-- ✅ 개발/테스트 편의성
+**Phase 3 (MVP)**: 기본 Git 다운로드만 구현
+- ✅ **선택된 라이브러리**: `giget` (UnJS)
+  - Git CLI 불필요 (tarball API 사용)
+  - 최신 유지보수 (2024년 활발)
+  - GitHub/GitLab/Bitbucket 지원
+  - 서브디렉토리 추출 지원
+- ✅ **기본 저장소**: `https://github.com/sowonlabs/crewx-templates`
+- ✅ **환경변수**: `CREWX_TEMPLATE_REPO` (퍼블릭 GitHub만)
+- ❌ **제외**: registry.json, Handlebars, --from 옵션
 
 **사용 예시**:
+
 ```bash
-# 로컬 템플릿으로 테스트
-CREWX_TEMPLATE_LOCAL=./packages/cli/templates \
-  crewx template init wbs-automation
+# 기본 사용 (sowonlabs 저장소)
+mkdir my-wbs-bot && cd my-wbs-bot
+crewx template init wbs-automation
 
-# 다른 Git 저장소 사용
-CREWX_TEMPLATE_GIT=https://github.com/myorg/my-templates.git \
-  crewx template init custom-template
-
-# 기본 저장소 사용
+# 커스텀 저장소 사용 (회사/개인 템플릿)
+export CREWX_TEMPLATE_REPO=https://github.com/mycompany/crewx-templates
 crewx template init wbs-automation
 ```
 
 ---
 
-## Phase 5: 문서화 및 테스트 (2-3시간)
-
-**목표**: E2E 테스트 작성 및 사용자 가이드 문서화
-
-### Phase 5-1: E2E 테스트 (1시간)
+### Phase 3-1: giget 통합 및 기본 다운로드 (1시간)
 
 **세부 작업**:
-- Git 템플릿 테스트 (30분)
-  - Git clone 테스트
-  - 현재 디렉토리 복사 테스트
-  - 덮어쓰기 방지 테스트
-- 로컬 템플릿 테스트 (15분)
-  - 로컬 경로 로딩 테스트
-- Handlebars 렌더링 테스트 (15분)
-  - 변수 치환 검증
+- giget 패키지 설치 (5분)
+  - `npm install giget --save`
+- TemplateService 업데이트 (30분)
+  - `packages/cli/src/services/template.service.ts`
+  - giget의 `downloadTemplate()` 함수 사용
+  - GitHub tarball API로 다운로드 (Git CLI 불필요)
+- 환경변수 처리 (15분)
+  - `CREWX_TEMPLATE_REPO` 읽기
+  - 기본값: `https://github.com/sowonlabs/crewx-templates`
+  - URL → giget source 형식 변환
+- 에러 처리 (10분)
+  - 템플릿 없을 때 에러 메시지
+  - 네트워크 에러 처리
+
+**구현 예시**:
+```typescript
+import { downloadTemplate } from 'giget'
+
+@Injectable()
+export class TemplateService {
+  private readonly DEFAULT_REPO = 'https://github.com/sowonlabs/crewx-templates'
+
+  async scaffoldProject(templateName: string, targetDir: string): Promise<void> {
+    const repo = process.env.CREWX_TEMPLATE_REPO || this.DEFAULT_REPO
+    const source = `github:${this.parseGitHubUrl(repo)}/${templateName}`
+
+    await downloadTemplate(source, {
+      dir: targetDir,
+      force: true,
+    })
+
+    console.log(`✅ Template downloaded: ${templateName}`)
+  }
+
+  private parseGitHubUrl(url: string): string {
+    // https://github.com/sowonlabs/crewx-templates → sowonlabs/crewx-templates
+    return url.replace('https://github.com/', '')
+  }
+}
+```
 
 **성공 기준**:
-- ✅ 모든 E2E 테스트 통과
-- ✅ 테스트 커버리지 80% 이상
+- ✅ giget으로 템플릿 다운로드 성공
+- ✅ 환경변수 처리 동작
+- ✅ 에러 메시지 명확
 
-### Phase 5-2: 사용자 가이드 작성 (1시간)
+### Phase 3-2: CLI 명령어 연결 (30분)
 
 **세부 작업**:
-- 명령어 레퍼런스 (30분)
+- template.handler.ts 업데이트 (20분)
+  - `handleTemplateInit()` 함수 수정
+  - 현재 디렉토리를 targetDir로 전달
+  - 성공 메시지 출력
+- 사용 예시 출력 (10분)
+  - 환경변수 설정 방법 안내
+  - 기본 저장소 정보 표시
+
+**구현 예시**:
+```typescript
+async function handleTemplateInit(templateService: TemplateService, args: CliOptions) {
+  const templateName = args.templateName || process.argv[4]
+
+  if (!templateName) {
+    console.error('❌ Error: Template name is required')
+    console.log('Usage: crewx template init <template-name>')
+    process.exit(1)
+  }
+
+  console.log(`\n📦 Downloading template: ${templateName}`)
+
+  const repo = process.env.CREWX_TEMPLATE_REPO ||
+    'https://github.com/sowonlabs/crewx-templates'
+  console.log(`📋 Repository: ${repo}\n`)
+
+  await templateService.scaffoldProject(templateName, process.cwd())
+
+  console.log(`\n✅ Template initialized successfully!`)
+  console.log(`\nNext steps:`)
+  console.log(`  # Edit crewx.yaml to configure your agents`)
+  console.log(`  # Run your project\n`)
+}
+```
+
+**성공 기준**:
+- ✅ 현재 디렉토리에 템플릿 다운로드
+- ✅ 명확한 성공 메시지
+- ✅ 환경변수 정보 표시
+
+### Phase 3-3: 테스트 및 검증 (30분)
+
+**세부 작업**:
+- 기본 동작 테스트 (15분)
+  - 빈 디렉토리에서 `crewx template init wbs-automation` 실행
+  - 파일 생성 확인
+- 환경변수 테스트 (15분)
+  - `CREWX_TEMPLATE_REPO` 설정 후 테스트
+  - 다른 GitHub 저장소에서 다운로드 확인
+
+**성공 기준**:
+- ✅ 기본 저장소에서 템플릿 다운로드 동작
+- ✅ 환경변수로 저장소 변경 동작
+- ✅ 에러 처리 정상 동작
+
+**참고**: Handlebars 변수 치환과 --from 옵션은 Phase 6으로 이동 (선택사항)
+
+---
+
+## Phase 4: 템플릿 저장소 구성 (1-1.5시간)
+
+> 📄 상세 문서: [wbs/wbs-32-phase-4-template-repo.md](wbs-32-phase-4-template-repo.md)
+
+**목표**: GitHub에 실제 템플릿 저장소 구성 (wbs-automation 템플릿 포함)
+
+**저장소**: `https://github.com/sowonlabs/crewx-templates`
+**로컬 경로**: `/Users/doha/git/crewx-templates`
+
+### Phase 4-1: 저장소 초기화 (15분)
+
+**세부 작업**:
+- 로컬 프로젝트 생성 (5분)
+  - `cd /Users/doha/git && mkdir crewx-templates && cd crewx-templates`
+  - `git init`
+- 기본 구조 생성 (5분)
+  - `mkdir -p wbs-automation/.claude/skills/crewx-wbs`
+  - `touch README.md`
+- Git 설정 및 첫 커밋 (5분)
+  - `git remote add origin https://github.com/sowonlabs/crewx-templates.git`
+  - 첫 커밋 및 push
+
+**성공 기준**:
+- ✅ `/Users/doha/git/crewx-templates` 디렉토리 생성
+- ✅ Git 저장소 초기화
+- ✅ GitHub 연결
+
+### Phase 4-2: wbs-automation 템플릿 구성 (30-45분)
+
+**🌎 중요**: 미국 시장을 타겟으로 하므로 **모든 파일을 영어로 작성**해야 합니다.
+- README.md, wbs.md, crewx.yaml의 system_prompt, 코멘트, 설명 등 모두 영어
+- 한국어는 사용하지 않음
+- 영어권 사용자가 읽고 수정할 수 있어야 함
+
+**템플릿 파일 8개**:
+
+1. **crewx.yaml** (10분)
+   - 소스: `/Users/doha/git/crewx/crewx.wbs.yaml`
+   - 수정: `metadata` 섹션 추가, `working_directory` 제거
+
+2. **wbs.md** (10분)
+   - 빈 템플릿 구조 제공 (사용자가 채울 수 있게)
+
+3. **wbs-loop.sh** (5분)
+   - 소스: `/Users/doha/git/crewx/wbs-loop.sh` 그대로 복사
+
+4. **README.md** (10분)
+   - 템플릿 사용 가이드 작성
+
+5. **.claude/skills/crewx-wbs/SKILL.md** (2분)
+   - 소스: `/Users/doha/git/crewx/.claude/skills/crewx-wbs/SKILL.md` 복사
+   - 클로드코드와 wbs 작성시 도움
+
+6. **.claude/skills/crewx/SKILL.md** (2분)
+   - 소스: `/Users/doha/git/crewx/.claude/skills/crewx/SKILL.md` 복사
+   - CrewX 전반적인 사용법 도움
+
+7. **wbs-progress.log**, **wbs-errors.log** (1분)
+   - 빈 파일 생성 (로그 예시)
+
+**성공 기준**:
+- ✅ 모든 파일 생성 완료 (8개)
+- ✅ crewx.yaml에 metadata 포함
+- ✅ README.md 사용 가이드 완성
+- ✅ 두 가지 스킬 포함 (crewx-wbs + crewx)
+
+### Phase 4-3: 저장소 마무리 (15분)
+
+**세부 작업**:
+- 루트 README.md 작성 (10분)
+  - 템플릿 저장소 소개
+  - 회사 템플릿 fork 가이드
+  - 템플릿 작성 가이드
+- Git 커밋 및 Push (5분)
+  - `git add . && git commit -m "feat: add wbs-automation template"`
+  - `git push`
+
+**성공 기준**:
+- ✅ 루트 README.md 작성 완료
+- ✅ GitHub에 push 완료
+- ✅ `https://github.com/sowonlabs/crewx-templates` 접속 가능
+
+---
+
+## Phase 5: 문서화 (30분)
+
+**목표**: 기본 테스트 및 사용자 가이드 문서화
+
+### Phase 5-1: 기본 테스트 (30분)
+
+**세부 작업**:
+- 수동 테스트 (30분)
+  - 기본 동작 확인: `crewx template init wbs-automation`
+  - 환경변수 테스트: `CREWX_TEMPLATE_REPO` 설정 후 테스트
+  - 에러 케이스 확인
+
+**성공 기준**:
+- ✅ 기본 저장소에서 다운로드 동작
+- ✅ 환경변수로 저장소 변경 동작
+- ✅ 에러 메시지 명확
+
+### Phase 5-2: 사용자 가이드 작성 (30분-1시간)
+
+**세부 작업**:
+- 명령어 레퍼런스 (15분)
   - `crewx template init <template-name>`
-  - 환경변수 설명
-  - 옵션 설명 (`--force`)
-- 사용 예시 (30분)
+  - 환경변수 설명 (`CREWX_TEMPLATE_REPO`)
+- 사용 예시 (15분)
   - wbs-automation 템플릿 사용법
-  - 커스텀 템플릿 저장소 만들기
-  - Troubleshooting
+  - 회사 템플릿 저장소 사용법
+- Troubleshooting (선택, 15분)
+  - 네트워크 에러 해결
+  - 템플릿 없을 때 대처법
 
 **성공 기준**:
 - ✅ 사용자 가이드 완성
-- ✅ 예시 코드 검증
-
-### Phase 5-3: 템플릿 개발 가이드 (1시간)
-
-**세부 작업**:
-- 템플릿 구조 설명 (30분)
-  - 필수 파일 (`crewx.yaml`, `README.md`)
-  - Handlebars 변수 사용법
-  - 메타데이터 스키마
-- 템플릿 저장소 만들기 (30분)
-  - Git 저장소 구조
-  - 여러 템플릿 관리 방법
-  - 버전 관리 전략
-
-**성공 기준**:
-- ✅ 개발자 가이드 완성
-- ✅ 템플릿 저장소 예시
+- ✅ 예시 코드 동작 확인
 
 ---
 
 ## 성공 기준 요약
 
-**새로운 설계 목표** (2025-11-18 설계 변경 후):
+**최종 설계 목표** (2025-11-18 설계 완료):
 - ✅ Phase 1 완료 (CLI 명령어 구조)
 - ❌ Phase 2 리젝 (설계 변경)
-- ⬜️ Phase 3 대기 (Git 기반 템플릿 저장소)
-- ⬜️ Phase 4 대기 (로컬/원격 병행 지원)
-- ⬜️ Phase 5 대기 (문서화 및 테스트)
+- ⬜️ **Phase 3 준비완료** (Git 템플릿 다운로드 - MVP, 2시간)
+- ⬜️ Phase 5 대기 (문서화 및 테스트, 1-2시간)
 
-**완료 조건** (재정의):
-1. **기본 기능**:
-   - ✅ `crewx template init <template-name>` 명령어 동작
-   - ⬜️ 현재 디렉토리에 템플릿 파일 생성
-   - ⬜️ Git 저장소에서 템플릿 clone
-   - ⬜️ Handlebars 변수 치환
+**MVP 완료 조건** (Phase 3 + 5):
 
-2. **환경변수 지원**:
-   - ⬜️ `CREWX_TEMPLATE_GIT` 지원 (기본 저장소 변경)
-   - ⬜️ `CREWX_TEMPLATE_LOCAL` 지원 (로컬 템플릿 테스트)
+1. **Phase 3: 핵심 기능 구현** (2시간)
+   - ⬜️ giget 패키지 설치
+   - ⬜️ TemplateService 업데이트 (giget 통합)
+   - ⬜️ 환경변수 처리 (`CREWX_TEMPLATE_REPO`)
+   - ⬜️ CLI 명령어 연결 (handleTemplateInit 수정)
+   - ⬜️ 현재 디렉토리에 템플릿 다운로드
 
-3. **테스트 및 문서**:
-   - ⬜️ E2E 테스트 통과
+2. **Phase 5: 테스트 및 문서** (1-2시간)
+   - ⬜️ 기본 동작 테스트
+   - ⬜️ 환경변수 테스트
    - ⬜️ 사용자 가이드 작성
-   - ⬜️ 템플릿 개발 가이드 작성
 
-**MVP 성공 기준**:
-- ⬜️ Git 저장소에서 템플릿 받아오기 동작
-- ⬜️ 현재 디렉토리에 템플릿 생성 동작
-- ⬜️ 로컬 템플릿으로 테스트 가능
-- ⬜️ 1개 이상의 템플릿 사용 가능 (wbs-automation)
+**사용자 시나리오**:
+```bash
+# 기본 사용 (sowonlabs 저장소)
+mkdir my-wbs-bot && cd my-wbs-bot
+crewx template init wbs-automation
+
+# 커스텀 저장소 사용
+export CREWX_TEMPLATE_REPO=https://github.com/mycompany/crewx-templates
+crewx template init wbs-automation
+```
+
+**제외된 기능** (향후 구현 시 별도 WBS):
+- ❌ Template Registry (registry.json, crewx config)
+- ❌ --from 옵션 (직접 URL 지정)
+- ❌ Handlebars 변수 치환
+- ❌ Self-hosted Git 지원 (simple-git)
 
 **Phase 2 리젝 사유**:
 - ❌ 프로젝트명 받아서 하위 디렉토리 생성 (잘못된 설계)
