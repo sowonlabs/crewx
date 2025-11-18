@@ -1,9 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { downloadTemplate } from 'giget';
 
 // CrewX version - should match package.json
 const CREWX_VERSION = '0.3.0';
+
+// Default template repository
+const DEFAULT_TEMPLATE_REPO = 'https://github.com/sowonlabs/crewx-templates';
 
 export interface TemplateMetadata {
   name: string;
@@ -334,16 +338,101 @@ export class TemplateService {
     try {
       const fs = require('fs');
       const files = fs.readdirSync(this.cacheDir);
-      
+
       for (const file of files) {
         if (file.endsWith('.yaml')) {
           fs.unlinkSync(join(this.cacheDir, file));
         }
       }
-      
+
       this.logger.log('🧹 Template cache cleared');
     } catch (error) {
       this.logger.error(`Failed to clear cache: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /**
+   * Parse GitHub URL to giget source format
+   * @param url GitHub repository URL
+   * @returns giget source string (e.g., "github:sowonlabs/crewx-templates")
+   */
+  private parseGitHubUrl(url: string): string {
+    // Remove trailing slash if present
+    const cleanUrl = url.replace(/\/$/, '');
+
+    // Extract owner/repo from GitHub URL
+    // Supports: https://github.com/owner/repo or github:owner/repo
+    if (cleanUrl.startsWith('github:')) {
+      return cleanUrl; // Already in giget format
+    }
+
+    const match = cleanUrl.match(/github\.com\/([^/]+\/[^/]+)/);
+    if (!match) {
+      throw new Error(`Invalid GitHub URL: ${url}. Expected format: https://github.com/owner/repo`);
+    }
+
+    return `github:${match[1]}`;
+  }
+
+  /**
+   * Download and scaffold a project template from Git repository
+   * Uses giget (no Git CLI required) to download templates from GitHub
+   *
+   * @param templateName - Name of the template subdirectory (e.g., "wbs-automation")
+   * @param targetDir - Target directory (usually process.cwd())
+   */
+  async scaffoldProject(templateName: string, targetDir: string): Promise<void> {
+    try {
+      // Get repository from environment variable or use default
+      const repo = process.env.CREWX_TEMPLATE_REPO || DEFAULT_TEMPLATE_REPO;
+      this.logger.log(`📦 Downloading template from: ${repo}`);
+
+      // Parse GitHub URL to giget source format
+      const source = this.parseGitHubUrl(repo);
+
+      // Construct full source path with template subdirectory
+      // Format: github:owner/repo/subdir#branch
+      const fullSource = `${source}/${templateName}`;
+
+      this.logger.log(`📥 Downloading: ${templateName}`);
+      this.logger.log(`🎯 Target directory: ${targetDir}`);
+
+      // Download template using giget (uses GitHub tarball API, no Git CLI needed)
+      await downloadTemplate(fullSource, {
+        dir: targetDir,
+        force: true, // Overwrite existing files
+        forceClean: false, // Don't delete existing files
+        offline: false,
+      });
+
+      this.logger.log(`✅ Template downloaded successfully: ${templateName}`);
+
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`❌ Failed to download template: ${message}`);
+
+      // Provide helpful error messages
+      if (message.includes('404') || message.includes('Not Found')) {
+        throw new Error(
+          `Template "${templateName}" not found in repository.\n` +
+          `  Repository: ${process.env.CREWX_TEMPLATE_REPO || DEFAULT_TEMPLATE_REPO}\n` +
+          `  Template: ${templateName}\n\n` +
+          `Please check:\n` +
+          `  1. Template name is correct\n` +
+          `  2. Repository URL is correct (use CREWX_TEMPLATE_REPO env variable)\n` +
+          `  3. Repository is publicly accessible`
+        );
+      }
+
+      if (message.includes('network') || message.includes('ENOTFOUND')) {
+        throw new Error(
+          `Network error while downloading template.\n` +
+          `  Repository: ${process.env.CREWX_TEMPLATE_REPO || DEFAULT_TEMPLATE_REPO}\n\n` +
+          `Please check your internet connection and try again.`
+        );
+      }
+
+      throw new Error(`Failed to download template: ${message}`);
     }
   }
 }
