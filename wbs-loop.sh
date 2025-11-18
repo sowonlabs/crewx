@@ -110,7 +110,7 @@ work_cycle() {
     cycle_temp_log=$(mktemp -t crewx-cycle-XXXXXX)
 
     set +e
-    $CREWX_CMD execute "@coordinator 사이클 #$cycle: wbs.md 확인하고 미처리 Phase들을 병렬로 진행해주세요." \
+    $CREWX_CMD execute "@coordinator 사이클 #$cycle: wbs.md 확인하고 미처리 Phase들을 찾아서 즉시 병렬로 진행해주세요. 사용자에게 물어보지 말고 바로 실행하세요." \
         --config $CONFIG_FILE \
         --thread $CONTEXT_THREAD \
         --timeout "$COORDINATOR_TIMEOUT" 2>&1 | tee -a "$PROGRESS_FILE" | tee "$cycle_temp_log"

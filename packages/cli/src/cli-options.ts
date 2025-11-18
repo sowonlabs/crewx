@@ -31,6 +31,10 @@ export interface CliOptions {
   template?: string;
   templateVersion?: string;
   force?: boolean;
+  // Template command options (crewx template)
+  templateSubcommand?: string; // init, list, show
+  templateProjectName?: string; // Project name for init
+  templateName?: string; // Template name for show
   // Slack options
   slackAgent?: string; // Default agent for Slack bot
   slackMode?: 'query' | 'execute'; // Slack bot execution mode
@@ -102,6 +106,23 @@ export function parseCliOptions(): CliOptions {
     .command('templates', 'Manage agent templates', (yargs) => {
       yargs.command('list', 'List available templates');
       yargs.command('update', 'Clear cache and re-download templates');
+    })
+    .command('template [subcommand] [name]', 'Project scaffolding system', (yargs) => {
+      yargs.positional('subcommand', {
+        description: 'Subcommand (init, list, show)',
+        type: 'string',
+        choices: ['init', 'list', 'show']
+      });
+      yargs.positional('name', {
+        description: 'Project name (for init) or template name (for show)',
+        type: 'string'
+      });
+      yargs.option('template', {
+        alias: 't',
+        type: 'string',
+        default: 'wbs-automation',
+        description: 'Template to use for init (wbs-automation, docusaurus-admin, dev-team)'
+      });
     })
     .command('agent [action]', 'Manage configured agents', (yargs) => {
       yargs.command(['ls', 'list'], 'List available agents');
@@ -255,6 +276,10 @@ export function parseCliOptions(): CliOptions {
     template: parsed.template as string,
     templateVersion: parsed['template-version'] as string,
     force: parsed.force as boolean,
+    // Template command options
+    templateSubcommand: parsed.subcommand as string,
+    templateProjectName: parsed.name as string,
+    templateName: parsed.name as string,
     // Slack options
     slackAgent: parsed.agent as string,
     slackMode: (parsed.mode as 'query' | 'execute' | undefined) || 'query',
