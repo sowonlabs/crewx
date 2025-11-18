@@ -114,6 +114,32 @@ CREWX_CONFIG=crewx.skills.yaml crewx query "@skill_tester_gemini test hello skil
 
 👉 **[Skills Documentation →](./docs/skills.md)** | **[Example Skills →](./skills/)**
 
+### **Project Templates** - Quick Project Bootstrap
+Start new projects with pre-configured templates:
+- **Ready-to-use setups** - WBS automation, development workflows, deployment configs
+- **Git-based templates** - Templates stored in GitHub repository
+- **Simple commands** - List, preview, and initialize templates instantly
+- **Customizable** - Edit downloaded templates to fit your needs
+
+```bash
+# List available templates
+crewx template list
+
+# View template details
+crewx template show wbs-automation
+
+# Initialize template in current directory
+crewx template init wbs-automation
+```
+
+**Available templates:**
+- `wbs-automation` - WBS task tracking with coordinator agent
+- `development` - Development team setup with code review agents
+- `deployment` - CI/CD deployment automation
+- More templates coming soon!
+
+👉 **[Project Templates Documentation →](./docs/project-templates.md)**
+
 ### Other Benefits
 - **No additional costs** - Use existing Claude Pro, Gemini, Codex or GitHub Copilot subscriptions
 - **Multi-agent collaboration** - Different AI models working on specialized tasks
