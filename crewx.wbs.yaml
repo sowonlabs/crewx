@@ -251,14 +251,13 @@ agents:
         2. 다른 WBS? → **병렬!** (무조건)
         3. 의존성 확실? → 순차 (예외)
 
-        ## 작업 시간 추적 (Git 기반 자동 추적)
+        ## 작업 시간 추적 (로그 기반 자동 추적)
 
-        **추적 방법**:
-        - Git commit 시간 분석으로 작업 시작/완료 시간 파악
-        - Phase별 첫 commit = 시작 시간
-        - Phase별 마지막 commit = 완료 시간
+        **⚠️ 중요**: Git 커밋이 없으면 시간 추적 불가능! 임의로 시간 지어내지 말 것!
 
-        **Git 분석 명령어**:
+        **추적 방법 우선순위**:
+
+        ### 1. Git Commit 분석 (최우선, 가장 정확)
         ```bash
         # 특정 Phase 관련 commit 조회 (예: WBS-32 Phase 1)
         git log --all --format="%ai %s" --reverse -- "packages/cli/src/commands/template/*" | head -1
@@ -268,6 +267,59 @@ agents:
         git log --all --format="%ai" -1 -- "packages/cli/src/commands/template/*"
         # → 2025-01-18 15:45:00 +0900
         ```
+
+        ### 2. 로그 파일 분석 (Git 커밋 없을 때, 정확함)
+        **상황**: 작업 완료했지만 Git untracked files인 경우
+
+        ```bash
+        # 1. 관련 에이전트와 작업 키워드로 로그 파일 검색
+        grep -l "WBS-32\|Phase 2\|template" .crewx/logs/*.log | head -10
+
+        # 2. 로그 파일의 생성 시간 확인 (= 작업 시작 시간)
+        stat -f "%Sm" -t "%Y-%m-%d %H:%M" .crewx/logs/task_1763435448651_3ui22a6z3.log
+        # → 2025-11-18 12:30 (시작 시간)
+
+        # 3. 로그 파일 내부에서 완료 시간 확인
+        tail -100 .crewx/logs/task_1763435448651_3ui22a6z3.log | grep -i "complete\|finish"
+        # → [11/18/2025, 12:30:48 PM] INFO: Execution completed
+
+        # 4. 실제 소요 시간 계산
+        # 12:30 ~ 12:30 = <1분
+        ```
+
+        **로그 파일 분석 예시** (WBS-32 실제 사례):
+        - Phase 1 (crewx_claude_dev):
+          - 로그: task_1763223238384_7ftikilok.log (2025-11-16 01:15)
+          - 마지막 로그: task_1763224769869_rx4mcmbaz.log (2025-11-16 01:40)
+          - 실제 소요: ~25분
+        - Phase 2 (crewx_codex_dev):
+          - 로그: task_1763435448651_3ui22a6z3.log (2025-11-18 12:30)
+          - 완료: 12:30:48 PM (로그 내부)
+          - 실제 소요: <1분
+        - Phase 3 (crewx_claude_dev):
+          - 로그: task_1763440224171_4gymhxf1a.log (2025-11-18 13:37)
+          - 종료 로그: task_1763440177705_yqjx71t93.log (2025-11-18 13:42)
+          - 실제 소요: ~5분
+        - Phase 4 (crewx_codex_dev):
+          - 로그: task_1763440224187_rh5ilbf2m.log (2025-11-18 13:41)
+          - 종료 로그: task_1763441243621_wt2hieorf.log (2025-11-18 13:47)
+          - 실제 소요: ~6분
+
+        ### 3. Git Status 확인 (작업 완료 여부 검증)
+        ```bash
+        # Untracked files 확인 - 작업 완료했지만 커밋 안했을 가능성
+        git status packages/cli/templates/
+        # → Untracked files: packages/cli/templates/ (작업 완료, 커밋 필요!)
+
+        # 이 경우 로그 파일 분석으로 시간 추적!
+        ```
+
+        **⚠️ 금지 사항**:
+        - ❌ Git 로그도 없고 실행 로그도 없으면 **절대 시간을 지어내지 말 것!**
+        - ❌ 예상 시간(4-5h)을 실제 시간으로 착각하지 말 것!
+        - ❌ "2025-01-18 11:30"같은 과거 날짜 임의로 적지 말 것!
+        - ✅ 시간 정보 없으면 **"-, -, -"로 비워두기** (정직하게!)
+        - ✅ 로그 파일 분석으로 정확한 시간 파악 가능
 
         **wbs.md 자동 업데이트 항목**:
 
