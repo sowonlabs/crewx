@@ -7,10 +7,11 @@
 **터미널 작업 할 시에 타임아웃 설정은 30분을 사용해서 실행하세요.**
 
 ## 📚 필수 참고 문서
-- CREWX.md: crewx 에이전트들이 참고하는 파일
+- **CREWX.md**: crewx 에이전트들이 참고하는 파일
 - **[개발 프로세스](docs/development.md)**: 버그 워크플로우, 브랜치 전략, 에이전트 협업, 릴리스 프로세스
 - **[에이전트 설정](crewx.yaml)**: 각 에이전트의 역할과 지시사항
 - **[버그 관리](bug.md)**: 전체 버그 트래킹
+- **[WBS 작업 가이드](skills/crewx-wbs/)**: WBS 기반 기능 개발 프로세스 (작성법, 브랜치 전략, 릴리스 플로우)
 - **[리서치 리포트](reports/summary.md)**: 기술 조사 및 분석 문서 요약 (중요도별 분류, 킬러피처 및 로드맵 참고용)
 
 ## 🎯 당신의 역할
@@ -56,98 +57,101 @@ crewx execute "@crewx_qa_lead Test bug aae5d66"
 ```
 
 ### 릴리스 관리
+
+> **📖 상세 프로세스**: [docs/process/development-workflow.md](docs/process/development-workflow.md)
+
 ```bash
-# 1. 릴리스 플랜 요청
-crewx query "@crewx_qa_lead Plan next release"
-# QA lead가 자동으로:
-#   - git bug bug -l status:resolved 로 resolved bugs 찾기
-#   - npm registry 체크해서 다음 버전 결정
-#   - test-plan.md 생성
+# 기능 릴리스 (WBS 기반)
+crewx execute "@crewx_release_manager Create release/X.Y.Z from develop and merge feature/wbs-X"
 
-# 2. 📋 플랜 확인 (Dev Lead 필수!)
-# - reports/releases/0.3.X-rc.0/test-plan.md 읽고 검토
-# - 사용자와 함께 포함할 버그 확인
-# - GO/NO-GO 결정
-
-# 3. RC 브랜치 생성 (GO 결정 시)
-crewx execute "@crewx_release_manager Create 0.3.17-rc.0"
-# Release manager가 자동으로:
-#   - main 브랜치에서 RC 생성
-#   - resolved bugfix 브랜치들 merge
-#   - package.json 버전 업데이트
-#   - 빌드 검증
-
-# 4. QA 테스트
-crewx execute "@crewx_qa_lead Test 0.3.17-rc.0"
-# QA lead가 자동으로:
-#   - Stage 1: 개별 버그 테스트 (병렬)
-#   - Stage 2: 통합 테스트
-#   - 최종 리포트 생성
-
-# 5. 📊 테스트 리포트 확인 및 릴리즈 결정 (Dev Lead 필수!)
-# - reports/releases/0.3.X-rc.0/qa-report-*.md 읽고 분석
-# - 사용자와 함께 결과 검토
-# - 결정:
-#   a) PASS + 정식 릴리즈 → Release manager에게 배포 지시
-#   b) PASS + 더 테스트 → rc.1 생성
-#   c) FAIL → 실패 버그 제외하고 rc.1
-#   d) BLOCKED → 블로커 해결 후 재시도
-
-# 예: 정식 릴리즈 (a)
-crewx execute "@crewx_release_manager Release 0.3.17-rc.0 (all tests passed)"
-
-# 예: 실패 버그 제외하고 rc.1 (c)
-crewx execute "@crewx_release_manager Create 0.3.17-rc.1 excluding bug aae5d66"
+# 버그 수정 릴리스 (RC 기반)
+crewx q "@crewx_qa_lead Plan next release"  # 플랜 수립
+crewx execute "@crewx_release_manager Create X.Y.Z-rc.0"  # RC 생성
+crewx execute "@crewx_qa_lead Test X.Y.Z-rc.0"  # QA 테스트
+crewx execute "@crewx_release_manager Release X.Y.Z-rc.0 as X.Y.Z"  # 정식 릴리스
 ```
 
-## 🔄 표준 워크플로우
+**참고 문서**:
+- 릴리스 매니저: [docs/prompts/release-manager.md](docs/prompts/release-manager.md)
+- QA팀장: [docs/prompts/qa-lead.md](docs/prompts/qa-lead.md)
+- RC 버전 규칙: [docs/standards/rc-versioning.md](docs/standards/rc-versioning.md)
+
+## 🔄 워크플로우 및 에이전트 활용
+
+> **📖 상세 프로세스는 아래 문서를 참고하세요:**
+> - **[개발 워크플로우 전체](docs/process/development-workflow.md)** - 버그/기능 개발 프로세스
+> - **[RC 버전 규칙](docs/standards/rc-versioning.md)** - 브랜치명 vs 버전 규칙
+> - **[브랜치 보호 규칙](docs/rules/branch-protection.md)** - main directory 규칙
 
 ### 1. 버그 수정 프로세스
+
+**에이전트 활용**:
+```bash
+# 1. 개발자에게 버그 수정 위임
+crewx execute "@crewx_claude_dev Fix bug [bug-id]"
+
+# 2. QA팀장에게 테스트 위임
+crewx execute "@crewx_qa_lead Test bug [bug-id]"
 ```
-1. 버그 확인: crewx q "@crewx_dev Summarize all bugs"
-2. 수정 위임: crewx execute "@crewx_dev Fix bug aae5d66"
-   - 개발자는 worktree에서 작업
-   - status:resolved 라벨 추가 (open 상태 유지)
-3. 테스트 관리: crewx execute "@crewx_qa_lead Test bug aae5d66"
-4. RC 통합 후 closed 처리 (Release Manager가 담당)
+
+**참고 문서**:
+- 개발자: [docs/prompts/dev-claude.md](docs/prompts/dev-claude.md)
+- QA팀장: [docs/prompts/qa-lead.md](docs/prompts/qa-lead.md)
+- 테스터: [docs/prompts/qa-tester.md](docs/prompts/qa-tester.md)
+
+### 2. 기능 개발 프로세스 (WBS 기반)
+
+> **📖 WBS 작성 및 관리**: Skill `crewx-wbs` 참고 (skills/crewx-wbs/)
+
+**에이전트 활용**:
+```bash
+# 1. 개발자에게 기능 개발 위임
+crewx execute "@crewx_claude_dev Implement WBS-X [feature description]"
+
+# 2. 릴리스 매니저에게 릴리스 브랜치 생성 및 머지 위임
+crewx execute "@crewx_release_manager Create release/X.Y.Z from develop and merge feature/wbs-X"
+
+# 3. QA팀장에게 릴리스 테스트 위임
+crewx execute "@crewx_qa_lead Test release/X.Y.Z"
+
+# 4. 테스트 통과 후 정식 릴리스
+crewx execute "@crewx_release_manager Release X.Y.Z-rc.0 as X.Y.Z"
 ```
 
-### 2. RC 릴리스 프로세스 (전체)
+**참고 문서**:
+- **WBS 가이드**: [skills/crewx-wbs/](skills/crewx-wbs/) - WBS 작성법, Phase 구성, 브랜치 전략
+- 개발자: [docs/prompts/dev-claude.md](docs/prompts/dev-claude.md)
+- 릴리스 매니저: [docs/prompts/release-manager.md](docs/prompts/release-manager.md)
+- QA팀장: [docs/prompts/qa-lead.md](docs/prompts/qa-lead.md)
+
+**중요 규칙** ([docs/standards/rc-versioning.md](docs/standards/rc-versioning.md)):
+- 브랜치명: `release/0.7.1` (고정, rc 없음)
+- 버전: `0.7.1-rc.0` → `0.7.1` (변화)
+- 패키지별 버전 관리: 수정된 패키지만 버전 업
+
+### 3. 버그 수정 릴리스 프로세스 (RC 기반)
+
+**에이전트 활용**:
+```bash
+# 1. QA팀장에게 릴리스 플랜 요청
+crewx q "@crewx_qa_lead Plan next release"
+
+# 2. 📋 플랜 확인 후 릴리스 매니저에게 RC 생성 지시
+crewx execute "@crewx_release_manager Create X.Y.Z-rc.0"
+
+# 3. QA팀장에게 RC 테스트 위임
+crewx execute "@crewx_qa_lead Test X.Y.Z-rc.0"
+
+# 4. 📊 테스트 결과에 따라 다음 액션 결정
+# - PASS → 정식 릴리스 or rc.1 (추가 버그 포함)
+# - FAIL → rc.1 (실패 버그 제외)
+# - BLOCKED → 블로커 해결 후 재시도
 ```
-1. 릴리스 플랜 요청: crewx q "@crewx_qa_lead Plan next release"
-   - QA lead가 resolved bugs 확인 (git bug bug -l status:resolved)
-   - NPM registry 체크해서 다음 버전 자동 결정
-   - test-plan.md 생성
 
-2. 📋 플랜 확인 및 RC 생성 결정 (Dev Lead 확인 필수!)
-   - test-plan.md 읽고 사용자와 검토
-   - 포함된 버그들이 적절한지 확인
-   - 테스트 범위가 충분한지 확인
-   - 결정: GO (RC 생성) / NO-GO (플랜 수정 또는 버그 수정 먼저)
-
-3. RC 브랜치 생성 (GO 결정 시): crewx execute "@crewx_release_manager Create 0.3.X-rc.0"
-   - Release manager가 main에서 RC 브랜치 생성
-   - Resolved bugfix 브랜치들 merge (--no-ff)
-   - package.json 버전 업데이트 및 빌드 검증
-
-4. QA 검증: crewx execute "@crewx_qa_lead Test 0.3.X-rc.0"
-   - Stage 1: 개별 버그 테스트 (병렬)
-   - Stage 2: 통합 테스트
-   - 최종 리포트 생성 (PASS/FAIL/BLOCKED)
-
-5. 📊 테스트 리포트 확인 및 릴리즈 결정 (Dev Lead 확인 필수!)
-   - qa-report-*.md 읽고 분석
-   - 모든 버그가 의도대로 동작하는지 확인
-   - 결정:
-     a) ✅ PASS + 추가 테스트 불필요 → 정식 릴리즈
-        crewx execute "@crewx_release_manager Release 0.3.X-rc.0 (all tests passed)"
-     b) ✅ PASS + 더 테스트 필요 → rc.1 생성 (더 많은 버그 포함)
-        crewx execute "@crewx_release_manager Create 0.3.X-rc.1 with additional bugs"
-     c) ❌ FAIL → 실패 버그 제외하고 rc.1
-        crewx execute "@crewx_release_manager Create 0.3.X-rc.1 excluding failed bugs"
-     d) 🚫 BLOCKED → 블로커 해결 후 재시도
-        개발자에게 블로커 해결 지시 후 새로운 RC
-```
+**참고 문서**:
+- QA팀장: [docs/prompts/qa-lead.md](docs/prompts/qa-lead.md) - 릴리스 플랜, 테스트 전략
+- 릴리스 매니저: [docs/prompts/release-manager.md](docs/prompts/release-manager.md) - RC 생성, 배포
+- 리포트 작성: [docs/standards/report-structure.md](docs/standards/report-structure.md)
 
 ## 📊 주요 명령어
 
