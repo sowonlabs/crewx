@@ -125,7 +125,7 @@ async function handleTemplateList(templateService: TemplateService) {
     }
 
     const longestName = templates.reduce(
-      (max, template) => Math.max(max, (template.displayName || template.id).length),
+      (max, template) => Math.max(max, (template.id || template.name || '').length),
       0
     );
     const nameWidth = Math.max(longestName, 18);
@@ -135,9 +135,9 @@ async function handleTemplateList(templateService: TemplateService) {
       console.log(`${category}:`);
       const entries = grouped.get(category) || [];
       entries
-        .sort((a, b) => (a.displayName || a.id).localeCompare(b.displayName || b.id))
+        .sort((a, b) => (a.id || a.name || '').localeCompare(b.id || b.name || ''))
         .forEach((template) => {
-          const name = (template.displayName || template.id).padEnd(nameWidth, ' ');
+          const name = (template.id || template.name || '').padEnd(nameWidth, ' ');
           const description = template.description || 'No description provided';
           console.log(`  • ${name} - ${description}`);
         });
@@ -168,7 +168,7 @@ async function handleTemplateShow(templateService: TemplateService, args: CliOpt
 
   const templates = await templateService.fetchTemplateList();
   const normalized = templateName.toLowerCase();
-  const template = templates.find((entry) => entry.id.toLowerCase() === normalized);
+  const template = templates.find((entry) => (entry.id || entry.name || '').toLowerCase() === normalized);
 
   if (!template) {
     console.log(`\n⚠️ Template "${templateName}" not found in templates.json.`);
@@ -177,8 +177,8 @@ async function handleTemplateShow(templateService: TemplateService, args: CliOpt
   }
 
   const repo = template.repo || process.env.CREWX_TEMPLATE_REPO || 'https://github.com/sowonlabs/crewx-templates';
-  console.log(`\n📦 Template: ${template.displayName || template.id}`);
-  console.log(`ID: ${template.id}`);
+  console.log(`\n📦 Template: ${template.displayName || template.id || template.name}`);
+  console.log(`ID: ${template.id || template.name}`);
   console.log(`Repository: ${repo}`);
   if (template.category) {
     console.log(`Category: ${template.category}`);
@@ -200,7 +200,7 @@ async function handleTemplateShow(templateService: TemplateService, args: CliOpt
 
   console.log('To initialize:');
   console.log(`  mkdir my-project && cd my-project`);
-  console.log(`  crewx template init ${template.id}\n`);
+  console.log(`  crewx template init ${template.id || template.name}\n`);
 }
 
 /**

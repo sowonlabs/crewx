@@ -33,7 +33,8 @@ export interface TemplateVersions {
 }
 
 export interface TemplateListItem {
-  id: string;
+  id?: string;
+  name?: string; // Legacy field, same as id
   displayName?: string;
   description?: string;
   category?: string;
