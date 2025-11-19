@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { downloadTemplate } from 'giget';
 
@@ -8,6 +8,7 @@ const CREWX_VERSION = '0.3.0';
 
 // Default template repository
 const DEFAULT_TEMPLATE_REPO = 'https://github.com/sowonlabs/crewx-templates';
+const TEMPLATE_LIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export interface TemplateMetadata {
   name: string;
@@ -31,6 +32,22 @@ export interface TemplateVersions {
   };
 }
 
+export interface TemplateListItem {
+  id: string;
+  displayName?: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  repo?: string;
+  path?: string;
+  readme?: string;
+}
+
+interface TemplateRegistry {
+  version?: string;
+  templates?: TemplateListItem[];
+}
+
 @Injectable()
 export class TemplateService {
   private readonly logger = new Logger(TemplateService.name);
@@ -41,6 +58,11 @@ export class TemplateService {
   private readonly cacheDir = join(process.cwd(), '.crewx', 'cache', 'templates');
   private readonly remoteTemplatesEnabled =
     process.env.CREWX_ENABLE_REMOTE_TEMPLATES === 'true';
+  private templateListCache: {
+    repo: string;
+    expiresAt: number;
+    templates: TemplateListItem[];
+  } | null = null;
 
   constructor() {
     // Ensure cache directory exists
@@ -230,6 +252,49 @@ export class TemplateService {
   }
 
   /**
+   * Fetch templates.json from the configured repository with caching.
+   */
+  async fetchTemplateList(): Promise<TemplateListItem[]> {
+    const repo = process.env.CREWX_TEMPLATE_REPO || DEFAULT_TEMPLATE_REPO;
+
+    if (
+      this.templateListCache &&
+      this.templateListCache.repo === repo &&
+      this.templateListCache.expiresAt > Date.now()
+    ) {
+      return this.templateListCache.templates;
+    }
+
+    try {
+      const registryUrl = this.buildTemplatesRegistryUrl(repo);
+      const response = await fetch(registryUrl);
+
+      if (!response.ok) {
+        this.logger.warn(
+          `Failed to fetch templates.json from ${registryUrl} (HTTP ${response.status}). Returning empty list.`
+        );
+        return [];
+      }
+
+      const registry: TemplateRegistry = await response.json();
+      const templates = Array.isArray(registry?.templates) ? registry.templates : [];
+
+      this.templateListCache = {
+        repo,
+        expiresAt: Date.now() + TEMPLATE_LIST_CACHE_TTL_MS,
+        templates,
+      };
+
+      return templates;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch template list: ${error instanceof Error ? error.message : error}. Returning empty list.`
+      );
+      return [];
+    }
+  }
+
+  /**
    * Get available templates list
    */
   async listAvailableTemplates(version: string = 'main'): Promise<string[]> {
@@ -352,26 +417,98 @@ export class TemplateService {
   }
 
   /**
+   * Resolve GitHub repository components (owner/repo/ref)
+   */
+  private getTemplateRepositoryInfo(repoUrl: string): { owner: string; name: string; ref: string } {
+    const defaultRef = 'main';
+    const normalizeRepoName = (name: string) => name.replace(/\.git$/, '');
+
+    if (repoUrl.startsWith('github:')) {
+      const withoutPrefix = repoUrl.replace(/^github:/, '');
+      const [repoPath, ref] = withoutPrefix.split('#');
+      if (!repoPath) {
+        throw new Error(`Invalid GitHub repository: ${repoUrl}`);
+      }
+
+      const [owner, repo] = repoPath.split('/');
+      if (!owner || !repo) {
+        throw new Error(`Invalid GitHub repository: ${repoUrl}`);
+      }
+
+      return { owner, name: normalizeRepoName(repo), ref: ref || defaultRef };
+    }
+
+    try {
+      const parsed = new URL(repoUrl);
+      if (!parsed.hostname.includes('github.com')) {
+        throw new Error(`Repository must be hosted on GitHub: ${repoUrl}`);
+      }
+
+      const trimmedPath = parsed.pathname.replace(/^\/+|\/+$/g, '');
+      const segments = trimmedPath.split('/');
+      const owner = segments[0];
+      const repo = segments[1];
+
+      if (!owner || !repo) {
+        throw new Error(`Invalid GitHub repository URL: ${repoUrl}`);
+      }
+
+      let ref = defaultRef;
+      if (segments.length >= 4 && segments[2] === 'tree' && segments[3]) {
+        ref = segments[3];
+      }
+
+      if (parsed.hash) {
+        ref = parsed.hash.substring(1);
+      }
+
+      return { owner, name: normalizeRepoName(repo), ref: ref || defaultRef };
+    } catch (error) {
+      throw new Error(`Invalid GitHub repository URL: ${repoUrl}`);
+    }
+  }
+
+  private buildTemplatesRegistryUrl(repoUrl: string): string {
+    const { owner, name, ref } = this.getTemplateRepositoryInfo(repoUrl);
+    return `https://raw.githubusercontent.com/${owner}/${name}/${ref}/templates.json`;
+  }
+
+  /**
    * Parse GitHub URL to giget source format
    * @param url GitHub repository URL
    * @returns giget source string (e.g., "github:sowonlabs/crewx-templates")
    */
   private parseGitHubUrl(url: string): string {
-    // Remove trailing slash if present
-    const cleanUrl = url.replace(/\/$/, '');
-
-    // Extract owner/repo from GitHub URL
-    // Supports: https://github.com/owner/repo or github:owner/repo
-    if (cleanUrl.startsWith('github:')) {
-      return cleanUrl; // Already in giget format
+    if (url.startsWith('github:')) {
+      return url;
     }
 
-    const match = cleanUrl.match(/github\.com\/([^/]+\/[^/]+)/);
-    if (!match) {
-      throw new Error(`Invalid GitHub URL: ${url}. Expected format: https://github.com/owner/repo`);
+    const { owner, name, ref } = this.getTemplateRepositoryInfo(url);
+    const suffix = ref && ref !== 'main' ? `#${ref}` : '';
+    return `github:${owner}/${name}${suffix}`;
+  }
+
+  /**
+   * Recursively collect all file paths in a directory
+   */
+  private collectFiles(dir: string, baseDir: string = dir): string[] {
+    const files: string[] = [];
+    const entries = readdirSync(dir);
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry);
+      const stat = statSync(fullPath);
+
+      if (stat.isDirectory()) {
+        files.push(...this.collectFiles(fullPath, baseDir));
+      } else {
+        // Get relative path from base directory
+        const relativePath = fullPath.substring(baseDir.length + 1);
+        files.push(relativePath);
+      }
     }
 
-    return `github:${match[1]}`;
+    return files;
   }
 
   /**
@@ -380,8 +517,14 @@ export class TemplateService {
    *
    * @param templateName - Name of the template subdirectory (e.g., "wbs-automation")
    * @param targetDir - Target directory (usually process.cwd())
+   * @param force - Force overwrite existing files (default: false)
+   * @returns Object containing created and skipped file counts
    */
-  async scaffoldProject(templateName: string, targetDir: string): Promise<void> {
+  async scaffoldProject(
+    templateName: string,
+    targetDir: string,
+    force: boolean = false
+  ): Promise<{ created: number; skipped: number; createdFiles: string[]; skippedFiles: string[] }> {
     try {
       // Get repository from environment variable or use default
       const repo = process.env.CREWX_TEMPLATE_REPO || DEFAULT_TEMPLATE_REPO;
@@ -397,15 +540,73 @@ export class TemplateService {
       this.logger.log(`📥 Downloading: ${templateName}`);
       this.logger.log(`🎯 Target directory: ${targetDir}`);
 
-      // Download template using giget (uses GitHub tarball API, no Git CLI needed)
+      // Create a temporary directory for download
+      const tempDir = join(targetDir, '.crewx-temp-download');
+
+      // Download template to temporary directory first
       await downloadTemplate(fullSource, {
-        dir: targetDir,
-        force: true, // Overwrite existing files
-        forceClean: false, // Don't delete existing files
+        dir: tempDir,
+        force: true, // Always overwrite in temp directory
+        forceClean: false,
         offline: false,
       });
 
-      this.logger.log(`✅ Template downloaded successfully: ${templateName}`);
+      // Track file creation statistics
+      let createdCount = 0;
+      let skippedCount = 0;
+      const createdFiles: string[] = [];
+      const skippedFiles: string[] = [];
+
+      // Get all files from temporary directory
+      const templateFiles = this.collectFiles(tempDir);
+
+      // Copy files from temp to target, respecting force flag
+      for (const relativeFile of templateFiles) {
+        const sourceFile = join(tempDir, relativeFile);
+        const targetFile = join(targetDir, relativeFile);
+
+        // Check if file exists in target directory
+        const fileExists = existsSync(targetFile);
+
+        if (fileExists && !force) {
+          // Skip existing file
+          this.logger.log(`⚠️  Skipping existing file: ${relativeFile}`);
+          skippedCount++;
+          skippedFiles.push(relativeFile);
+        } else {
+          // Create target directory if needed
+          const targetFileDir = join(targetFile, '..');
+          if (!existsSync(targetFileDir)) {
+            mkdirSync(targetFileDir, { recursive: true });
+          }
+
+          // Copy file from temp to target
+          const content = readFileSync(sourceFile, 'utf8');
+          writeFileSync(targetFile, content, 'utf8');
+
+          if (fileExists) {
+            this.logger.log(`✅ Overwritten: ${relativeFile}`);
+          } else {
+            this.logger.log(`✅ Created: ${relativeFile}`);
+          }
+
+          createdCount++;
+          createdFiles.push(relativeFile);
+        }
+      }
+
+      // Clean up temporary directory
+      const fs = require('fs');
+      fs.rmSync(tempDir, { recursive: true, force: true });
+
+      this.logger.log(`✅ Template processing complete: ${templateName}`);
+
+      return {
+        created: createdCount,
+        skipped: skippedCount,
+        createdFiles,
+        skippedFiles,
+      };
 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
