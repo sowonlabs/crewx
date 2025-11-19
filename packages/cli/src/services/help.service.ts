@@ -70,6 +70,17 @@ their own specialization, and get results in parallel.
     );
 
     this.showCommandHelp(
+      'template',
+      'Manage project templates. Download and scaffold projects from Git repositories.',
+      [
+        'crewx template list',
+        'crewx template init <template-name>',
+        'crewx template show <template-name>',
+        'crewx template init <template-name> --force',
+      ],
+    );
+
+    this.showCommandHelp(
       'doctor',
       'Checks the health and status of your configured AI providers (e.g., Gemini, Claude, Copilot).',
       ['crewx doctor'],
