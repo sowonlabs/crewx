@@ -19,7 +19,8 @@
 11. [WBS-29: Slack Bot Network Isolation](#wbs-29-slack-bot-network-isolation-문제--대기)
 12. [WBS-30: Marketplace MVP](#wbs-30-marketplace-mvp--대기)
 13. [WBS-32: Project Templates](#wbs-32-project-templates-create--대기)
-14. [참고 문서](#참고-문서)
+14. [WBS-33: Template 서브커맨드 개선](#wbs-33-template-서브커맨드-개선--대기)
+15. [참고 문서](#참고-문서)
 
 ---
 
@@ -55,6 +56,7 @@
 | ⏸️  | WBS-30     | Marketplace MVP (전략)        | 비즈니스 모델 설계          | 완료       | P2     |
 | ⏸️  | WBS-31     | Marketplace 구현 (Phase 1)    | 실제 웹사이트 구축          | 4일       | P2     |
 | ✅   | WBS-32     | Project Templates (create)  | crewx template 스캐폴딩 | ~2h      | P0     |
+| ✅   | WBS-33     | Template 서브커맨드 개선 | 파일 보호 + 동적 리스트 | 2-3h     | P2     |
 
 ---
 
@@ -415,6 +417,53 @@ crewx template show wbs-automation
 
 ---
 
+## WBS-33: Template 서브커맨드 개선 (✅ 완료)
+> 📄 [wbs/wbs-33-template-enhancement.md](wbs/wbs-33-template-enhancement.md)
+
+**목표**: `crewx template` 서브커맨드 개선 (파일 보호 + 동적 리스트)
+
+**예상 소요**: 2-3시간 (AI 작업 기준)
+
+**전제 조건**: WBS-32 완료
+
+**완료 시 할 수 있는 것**:
+- `crewx template init` 재실행 시 기존 파일 보호 (덮어쓰기 방지)
+- `crewx template init --force`로 명시적 덮어쓰기 가능
+- `crewx template list`가 GitHub에서 동적으로 템플릿 목록 가져오기
+- 환경변수로 회사 템플릿 저장소 사용 시에도 동적 리스트 표시
+- 생성/스킵된 파일 개수 안내 메시지 출력
+
+**Phase 진행 상황**:
+- [✅] Phase 1: 파일 덮어쓰기 방지 (1-1.5시간) - 담당: crewx_claude_dev
+- [✅] Phase 2: 동적 템플릿 리스트 (1-1.5시간) - 담당: crewx_codex_dev
+
+**작업 시간 추적**:
+| Phase | 담당자 | 시작 | 완료 | 실제 소요 | 예상 소요 | 상태 |
+|-------|--------|------|------|----------|----------|------|
+| Phase 1 | crewx_claude_dev | 2025-11-19 17:09 | 2025-11-19 17:25 | ~16분 | 1-1.5h | ✅ |
+| Phase 2 | crewx_codex_dev | 2025-11-19 18:05 | 2025-11-19 18:45 | ~40분 | 1-1.5h | ✅ |
+
+**핵심 전략**:
+- **crewx-quickstart 패턴**: 파일 덮어쓰기 방지 + `--force` 플래그
+- **동적 템플릿 리스트**: GitHub에서 templates.json fetch + 캐싱
+
+**Phase 1 완료 내용** (2025-11-19):
+- ✅ `scaffoldProject()` 메서드에 파일 존재 체크 로직 추가
+- ✅ 기본값: 기존 파일 스킵 (덮어쓰기 방지)
+- ✅ `--force` 플래그 지원 (명시적 덮어쓰기)
+- ✅ 생성/스킵 파일 개수 추적 및 표시
+- ✅ TypeScript 빌드 검증 완료
+- 📄 Thread Summary: `.crewx/threads/wbs-33-phase1-summary.md`
+
+**Phase 2 완료 내용** (2025-11-19):
+- ✅ `fetchTemplateList()`로 GitHub templates.json 동적 로드
+- ✅ 저장소별 메모리 캐시 (5분 TTL) + 커스텀 repo 지원
+- ✅ `crewx template list/show`가 templates.json 기반으로 정보 표시
+- ✅ 네트워크/파싱 실패 시 빈 목록으로 폴백 + 경고 로그
+- 📄 Thread Summary: `.crewx/threads/wbs-33-phase2-summary.md`
+
+---
+
 ## 참고 문서
 
 ### WBS 상세 계획
@@ -428,6 +477,7 @@ crewx template show wbs-automation
 - [WBS-30: Marketplace MVP (전략)](wbs/wbs-30-marketplace-mvp.md)
 - [WBS-31: Marketplace 구현 (Phase 1)](wbs/wbs-31-marketplace-implementation.md)
 - [WBS-32: Project Templates](wbs/wbs-32-project-templates.md)
+- [WBS-33: Template 서브커맨드 개선](wbs/wbs-33-template-enhancement.md)
 
 ### 구현 문서
 - [API Provider 가이드](docs/api-provider-guide.md)
