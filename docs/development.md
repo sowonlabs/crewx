@@ -510,19 +510,31 @@ npm version 0.3.9-rc.2
 npm run build
 npm publish --tag next --access public
 
-# 5. 브랜치 및 태그 푸시 (⚠️ 중요: 누락하면 안됨)
+# 5. Docker 이미지 빌드 및 배포 (RC 버전)
+docker build -t sowonai/crewx:0.3.9-rc.2 -t sowonai/crewx:rc .
+docker push sowonai/crewx:0.3.9-rc.2
+docker push sowonai/crewx:rc
+
+# 6. Docker 이미지 검증
+docker pull sowonai/crewx:0.3.9-rc.2
+docker run --rm sowonai/crewx:0.3.9-rc.2 --version
+
+# 7. 브랜치 및 태그 푸시 (⚠️ 중요: 누락하면 안됨)
 git push -u origin release/0.3.9-rc.2
 git push origin v0.3.9-rc.2
 
-# 6. develop 머지
+# 8. develop 머지
 cd $(git rev-parse --show-toplevel)  # 프로젝트 루트로 이동
 git checkout develop
 git merge --no-ff release/0.3.9-rc.2
 git push origin develop
 
-# 7. 실제 환경 테스트 (Slack Bot 등)
+# 9. 실제 환경 테스트 (Slack Bot 등)
 npm install -g crewx@next
 # Slack Bot 재시작하여 수동 검증
+
+# Docker 이미지로도 테스트 가능
+docker run --rm -it sowonai/crewx:rc --help
 ```
 
 #### 2. 정식 릴리스
@@ -541,22 +553,31 @@ npm version 0.3.9
 npm run build
 npm publish --access public
 
-# 5. 브랜치 및 태그 푸시 (⚠️ 중요: 누락하면 안됨)
+# 5. Docker 이미지 빌드 및 배포 (프로덕션 버전)
+docker build -t sowonai/crewx:0.3.9 -t sowonai/crewx:latest .
+docker push sowonai/crewx:0.3.9
+docker push sowonai/crewx:latest
+
+# 6. Docker 이미지 검증
+docker pull sowonai/crewx:0.3.9
+docker run --rm sowonai/crewx:0.3.9 --version
+
+# 7. 브랜치 및 태그 푸시 (⚠️ 중요: 누락하면 안됨)
 git push -u origin release/0.3.9
 git push origin v0.3.9
 
-# 6. develop 브랜치 머지
+# 8. develop 브랜치 머지
 cd /Users/doha/git/crewx
 git checkout develop
 git merge --no-ff release/0.3.9
 git push origin develop
 
-# 7. main 브랜치 머지
+# 9. main 브랜치 머지
 git checkout main
 git merge --no-ff release/0.3.9
 git push origin main
 
-# 8. GitHub Release 생성
+# 10. GitHub Release 생성
 # - 릴리스 노트 작성
 # - 변경사항 요약
 # - 해결된 버그 목록
@@ -568,6 +589,8 @@ git push origin main
 - [ ] package.json 버전 업데이트
 - [ ] CHANGELOG.md 업데이트
 - [ ] npm publish 성공
+- [ ] Docker 이미지 빌드 및 푸시 성공 (sowonai/crewx:VERSION, sowonai/crewx:latest)
+- [ ] Docker 이미지 검증 완료 (docker run --version 테스트)
 - [ ] GitHub Release 생성
 - [ ] Slack Bot 업데이트 확인
 
