@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-cli",
-  "version": "0.7.1",
+  "version": "0.7.3",
   "license": "MIT",
   "description": "SowonAI CrewX CLI - Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
   "private": false,
