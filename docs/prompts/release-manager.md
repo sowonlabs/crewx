@@ -272,6 +272,11 @@ npm run build
 **Scenario:** RC version ready to publish to npm for testing
 **Branch stays same, only version changes**
 
+**CRITICAL: Must publish ALL 3 packages to NPM:**
+1. `@sowonai/crewx-sdk` - Core SDK
+2. `@sowonai/crewx-cli` - CLI implementation
+3. **`crewx`** - Main CLI wrapper (MOST IMPORTANT - users install this!)
+
 **Steps:**
 ```bash
 # 1. Navigate to release worktree
@@ -280,27 +285,38 @@ cd /Users/doha/git/crewx/worktree/release-0.6.0
 # 2. Verify build is current
 npm run build
 
-# 3. Publish all packages with 'next' tag
+# 3. ⚠️ CRITICAL: Publish ALL 3 packages with 'next' tag
+# Package 1: SDK
 cd packages/sdk
 npm publish --tag next --access public
 
+# Package 2: CLI
 cd ../cli
 npm publish --tag next --access public
 
+# Package 3: crewx wrapper (MAIN PACKAGE - DO NOT SKIP!)
 cd ../crewx
 npm publish --tag next --access public
 
-# 4. Create and push git tag
+# 4. Verify all 3 packages published
+npm view @sowonai/crewx-sdk@next version
+npm view @sowonai/crewx-cli@next version
+npm view crewx@next version
+
+# 5. Create and push git tag
 cd /Users/doha/git/crewx/worktree/release-0.6.0
 git tag v0.6.0-rc.3
 git push origin v0.6.0-rc.3
 
-# 5. Return to main directory
+# 6. Return to main directory
 cd /Users/doha/git/crewx
 git checkout develop
 
-# 6. Report to Dev Lead
-# - Published: 0.6.0-rc.3 to npm with 'next' tag
+# 7. Report to Dev Lead
+# - ✅ Published ALL 3 packages: 0.6.0-rc.3 to npm with 'next' tag
+#   - @sowonai/crewx-sdk@next
+#   - @sowonai/crewx-cli@next
+#   - crewx@next (main CLI package)
 # - Git tag: v0.6.0-rc.3 created
 # - Ready for QA testing from npm
 ```
@@ -342,15 +358,23 @@ Tested through rc.0 to rc.5, all tests passed."
 npm install
 npm run build
 
-# 4. Publish to npm with 'latest' tag (default)
+# 4. ⚠️ CRITICAL: Publish ALL 3 packages to npm with 'latest' tag (default)
+# Package 1: SDK
 cd packages/sdk
 npm publish --access public
 
+# Package 2: CLI
 cd ../cli
 npm publish --access public
 
+# Package 3: crewx wrapper (MAIN PACKAGE - DO NOT SKIP!)
 cd ../crewx
 npm publish --access public
+
+# 4b. Verify all 3 packages published
+npm view @sowonai/crewx-sdk version
+npm view @sowonai/crewx-cli version
+npm view crewx version
 
 # 5. Merge to main branch
 cd /Users/doha/git/crewx
@@ -500,15 +524,23 @@ npm install
 # 7. Build and verify
 npm run build
 
-# 8. Publish all packages to npm (latest tag)
+# 8. ⚠️ CRITICAL: Publish ALL 3 packages to npm (latest tag)
+# Package 1: SDK
 cd packages/sdk
 npm publish --access public
 
+# Package 2: CLI
 cd ../cli
 npm publish --access public
 
+# Package 3: crewx wrapper (MAIN PACKAGE - DO NOT SKIP!)
 cd ../crewx
 npm publish --access public
+
+# 8b. Verify all 3 packages published
+npm view @sowonai/crewx-sdk version
+npm view @sowonai/crewx-cli version
+npm view crewx version
 
 # 8. Return to main repo
 cd /Users/doha/git/crewx
