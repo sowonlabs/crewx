@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { CliOptions } from '../cli-options';
-import { TemplateService } from '../services/template.service';
+import { TemplateListItem, TemplateService } from '../services/template.service';
 
 const logger = new Logger('TemplateHandler');
 
@@ -42,7 +42,7 @@ export async function handleTemplate(app: any, args: CliOptions) {
 
 /**
  * Initialize a new project from template
- * Usage: crewx template init <template-name>
+ * Usage: crewx template init <template-name> [--force]
  */
 async function handleTemplateInit(templateService: TemplateService, args: CliOptions) {
   // Get template name from command line arguments
@@ -50,22 +50,44 @@ async function handleTemplateInit(templateService: TemplateService, args: CliOpt
 
   if (!templateName) {
     console.error('\n❌ Error: Template name is required\n');
-    console.log('Usage: crewx template init <template-name>\n');
+    console.log('Usage: crewx template init <template-name> [--force]\n');
+    console.log('Options:');
+    console.log('  --force    Overwrite existing files\n');
     console.log('Example:');
     console.log('  mkdir my-project && cd my-project');
     console.log('  crewx template init wbs-automation\n');
     process.exit(1);
   }
 
+  // Check for --force flag
+  const force = process.argv.includes('--force');
+
   // Show repository information
   const repo =
     process.env.CREWX_TEMPLATE_REPO || 'https://github.com/sowonlabs/crewx-templates';
 
   console.log(`\n📦 Downloading template: ${templateName}`);
-  console.log(`📋 Repository: ${repo}\n`);
+  console.log(`📋 Repository: ${repo}`);
+  if (force) {
+    console.log(`⚠️  Force mode: Existing files will be overwritten`);
+  }
+  console.log('');
 
   // Download template to current directory
-  await templateService.scaffoldProject(templateName, process.cwd());
+  const result = await templateService.scaffoldProject(templateName, process.cwd(), force);
+
+  // Display summary
+  console.log(`\n📊 Summary:`);
+  if (result.created > 0) {
+    console.log(`  Created: ${result.created} file${result.created > 1 ? 's' : ''}`);
+  }
+  if (result.skipped > 0) {
+    console.log(`  Skipped: ${result.skipped} file${result.skipped > 1 ? 's' : ''}`);
+  }
+
+  if (result.skipped > 0 && !force) {
+    console.log(`\nℹ️  Some files were skipped. Use --force to overwrite existing files.`);
+  }
 
   console.log(`\n✅ Template initialized successfully!\n`);
   console.log('Next steps:');
@@ -88,10 +110,40 @@ async function handleTemplateList(templateService: TemplateService) {
 
   console.log(`\n📦 Template Repository: ${repo}\n`);
 
-  console.log('Available templates:\n');
-  console.log('  • wbs-automation     - WBS project automation template');
-  console.log('  • docusaurus-admin   - Documentation management template (coming soon)');
-  console.log('  • dev-team           - Development team template (coming soon)\n');
+  const templates = await templateService.fetchTemplateList();
+
+  if (!templates.length) {
+    console.log('⚠️ No templates found in templates.json or the repository is unreachable.');
+    console.log('Add entries to templates.json or check your CREWX_TEMPLATE_REPO setting.\n');
+  } else {
+    const grouped = new Map<string, TemplateListItem[]>();
+    for (const template of templates) {
+      const category = template.category || 'General';
+      const list = grouped.get(category) || [];
+      list.push(template);
+      grouped.set(category, list);
+    }
+
+    const longestName = templates.reduce(
+      (max, template) => Math.max(max, (template.displayName || template.id).length),
+      0
+    );
+    const nameWidth = Math.max(longestName, 18);
+
+    console.log('Available templates:\n');
+    for (const category of [...grouped.keys()].sort((a, b) => a.localeCompare(b))) {
+      console.log(`${category}:`);
+      const entries = grouped.get(category) || [];
+      entries
+        .sort((a, b) => (a.displayName || a.id).localeCompare(b.displayName || b.id))
+        .forEach((template) => {
+          const name = (template.displayName || template.id).padEnd(nameWidth, ' ');
+          const description = template.description || 'No description provided';
+          console.log(`  • ${name} - ${description}`);
+        });
+      console.log('');
+    }
+  }
 
   console.log('Usage:');
   console.log('  mkdir my-project && cd my-project');
@@ -114,37 +166,41 @@ async function handleTemplateShow(templateService: TemplateService, args: CliOpt
     process.exit(1);
   }
 
-  console.log(`\n📦 Template: ${templateName}\n`);
+  const templates = await templateService.fetchTemplateList();
+  const normalized = templateName.toLowerCase();
+  const template = templates.find((entry) => entry.id.toLowerCase() === normalized);
 
-  // Show template-specific information
-  switch (templateName) {
-    case 'wbs-automation':
-      console.log('Description:');
-      console.log('  WBS (Work Breakdown Structure) automation template');
-      console.log('  Automatically tracks and manages project tasks\n');
+  if (!template) {
+    console.log(`\n⚠️ Template "${templateName}" not found in templates.json.`);
+    console.log('Use "crewx template list" to see available templates.\n');
+    return;
+  }
 
-      console.log('Features:');
-      console.log('  • Coordinator agent for WBS management');
-      console.log('  • Automated task tracking');
-      console.log('  • 5-minute loop for continuous monitoring');
-      console.log('  • Git integration for progress tracking\n');
+  const repo = template.repo || process.env.CREWX_TEMPLATE_REPO || 'https://github.com/sowonlabs/crewx-templates';
+  console.log(`\n📦 Template: ${template.displayName || template.id}`);
+  console.log(`ID: ${template.id}`);
+  console.log(`Repository: ${repo}`);
+  if (template.category) {
+    console.log(`Category: ${template.category}`);
+  }
+  if (template.tags?.length) {
+    console.log(`Tags: ${template.tags.join(', ')}`);
+  }
+  console.log('');
 
-      console.log('Files included:');
-      console.log('  • crewx.yaml      - Agent configuration');
-      console.log('  • wbs.md          - WBS document template');
-      console.log('  • wbs-loop.sh     - Automation script');
-      console.log('  • README.md       - Setup instructions\n');
-      break;
+  if (template.description) {
+    console.log('Description:');
+    console.log(`  ${template.description}\n`);
+  }
 
-    default:
-      console.log(`Template "${templateName}" details not available.`);
-      console.log(`Use "crewx template list" to see available templates.\n`);
-      break;
+  if (template.readme) {
+    console.log('Documentation:');
+    console.log(`  ${template.readme}\n`);
   }
 
   console.log('To initialize:');
   console.log(`  mkdir my-project && cd my-project`);
-  console.log(`  crewx template init ${templateName}\n`);
+  console.log(`  crewx template init ${template.id}\n`);
 }
 
 /**
@@ -157,9 +213,12 @@ function showTemplateHelp() {
 Download and scaffold project templates from Git repositories.
 
 Available commands:
-  crewx template init <name>   - Download and initialize a template
-  crewx template list           - List available templates
-  crewx template show <name>    - Show template details
+  crewx template init <name> [--force]   - Download and initialize a template
+  crewx template list                     - List available templates
+  crewx template show <name>              - Show template details
+
+Options:
+  --force    Overwrite existing files (default: skip existing files)
 
 Templates are downloaded from:
   ${process.env.CREWX_TEMPLATE_REPO || 'https://github.com/sowonlabs/crewx-templates'}
@@ -168,6 +227,9 @@ Examples:
   # Initialize a new WBS automation project
   mkdir my-wbs-bot && cd my-wbs-bot
   crewx template init wbs-automation
+
+  # Overwrite existing files
+  crewx template init wbs-automation --force
 
   # List available templates
   crewx template list
