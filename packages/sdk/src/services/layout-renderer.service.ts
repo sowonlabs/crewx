@@ -326,7 +326,10 @@ Previous conversation ({{messagesCount}} messages):
 
     if (typeof vars.user_input === 'string') {
       sanitizedVars.user_input_raw = vars.user_input;
-      sanitizedVars.user_input = this.handlebars.escapeExpression(vars.user_input);
+      // Escape Handlebars tokens first to prevent template injection
+      const escapedHandlebars = vars.user_input.replace(/\{\{/g, '&#123;&#123;').replace(/\}\}/g, '&#125;&#125;');
+      // Then escape HTML entities for XSS protection
+      sanitizedVars.user_input = this.handlebars.escapeExpression(escapedHandlebars);
     }
 
     return sanitizedVars;
