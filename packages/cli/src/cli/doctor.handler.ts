@@ -172,7 +172,7 @@ export class DoctorHandler {
 
   private async checkLogsDirectory(workingDir: string): Promise<DiagnosticResult> {
     const logsDir = join(workingDir, '.crewx', 'logs');
-    
+
     if (!existsSync(logsDir)) {
       return {
         name: 'Logs Directory',
@@ -190,30 +190,149 @@ export class DoctorHandler {
     };
   }
 
+  /**
+   * Generate platform-specific installation script for CLI provider
+   */
+  private generateInstallScript(providerMetadata: {
+    name: string;
+    npm: string | null;
+    brew: string | null;
+    curl: string | null;
+    windows: string | null;
+    docs: string;
+  }): string {
+    const platform = process.platform;
+    const { name, npm, brew, curl, windows, docs } = providerMetadata;
+
+    let script = `Installation instructions for ${name.toUpperCase()} CLI:\n\n`;
+
+    // Platform-specific installation
+    if (platform === 'darwin') {
+      // macOS
+      if (brew) {
+        script += `# macOS (Homebrew - Recommended)\n`;
+        script += `brew tap ${brew.split('/').slice(0, 2).join('/')}\n`;
+        script += `brew install ${brew.split('/').pop()}\n\n`;
+      }
+      if (npm) {
+        script += `# macOS (npm)\n`;
+        script += `npm install -g ${npm}\n\n`;
+      }
+      if (curl) {
+        script += `# macOS (curl)\n`;
+        script += `curl -fsSL ${curl} | sh\n\n`;
+      }
+    } else if (platform === 'win32') {
+      // Windows
+      if (windows) {
+        script += `# Windows\n`;
+        script += `${windows}\n\n`;
+      }
+      if (npm) {
+        script += `# Windows (npm - alternative)\n`;
+        script += `npm install -g ${npm}\n\n`;
+      }
+    } else {
+      // Linux and others
+      if (npm) {
+        script += `# Linux (npm - Recommended)\n`;
+        script += `npm install -g ${npm}\n\n`;
+      }
+      if (curl) {
+        script += `# Linux (curl)\n`;
+        script += `curl -fsSL ${curl} | sh\n\n`;
+      }
+    }
+
+    // Authentication setup (provider-specific)
+    script += `# Authentication Setup\n`;
+    if (name === 'claude') {
+      script += `export ANTHROPIC_API_KEY=your_api_key_here\n`;
+      script += `# Get API key from: https://console.anthropic.com/\n\n`;
+    } else if (name === 'gemini') {
+      script += `export GOOGLE_API_KEY=your_api_key_here\n`;
+      script += `# Get API key from: https://makersuite.google.com/\n\n`;
+    } else if (name === 'copilot') {
+      script += `# GitHub Copilot requires GitHub account authentication\n`;
+      script += `# Sign in through GitHub CLI or VS Code extension\n\n`;
+    } else if (name === 'codex') {
+      script += `# CrewX Codex uses local configuration\n`;
+      script += `# No API key required for basic usage\n\n`;
+    }
+
+    // Documentation link
+    script += `# Documentation: ${docs}`;
+
+    return script;
+  }
+
   private async checkAIProviders(): Promise<DiagnosticResult[]> {
-    const cliProviders = ['claude', 'gemini', 'copilot', 'codex'];
+    // CLI provider metadata with installation instructions
+    const cliProviders = [
+      {
+        name: 'claude',
+        npm: '@anthropic-ai/sdk',
+        brew: 'anthropic/tap/claude',
+        curl: 'https://api.anthropic.com/v1/install.sh',
+        windows: 'npm install -g @anthropic-ai/claude-cli',
+        docs: 'https://docs.anthropic.com/claude/docs/cli'
+      },
+      {
+        name: 'gemini',
+        npm: '@google/generative-ai',
+        brew: null,
+        curl: null,
+        windows: 'npm install -g @google/gemini-cli',
+        docs: 'https://ai.google.dev/docs/cli'
+      },
+      {
+        name: 'copilot',
+        npm: null,
+        brew: null,
+        curl: null,
+        windows: 'Install GitHub Copilot extension',
+        docs: 'https://github.com/features/copilot'
+      },
+      {
+        name: 'codex',
+        npm: '@sowonai/crewx-codex',
+        brew: null,
+        curl: null,
+        windows: 'npm install -g @sowonai/crewx-codex',
+        docs: 'https://github.com/sowonai/crewx-codex'
+      }
+    ];
     const diagnostics: DiagnosticResult[] = [];
 
     // Check CLI providers
-    for (const provider of cliProviders) {
+    for (const providerMetadata of cliProviders) {
       try {
-        const providerInstance = this.aiProviderService.getProvider(`cli/${provider}` as any);
+        const providerInstance = this.aiProviderService.getProvider(`cli/${providerMetadata.name}` as any);
         const isAvailable = providerInstance ? await providerInstance.isAvailable() : false;
 
-        diagnostics.push({
-          name: `${provider.toUpperCase()} CLI`,
-          status: isAvailable ? 'success' : 'warning',
-          message: isAvailable ? 'Installed and available' : 'Not installed or not available',
-          details: isAvailable ?
-            `${provider} CLI is ready for use` :
-            `Install ${provider} CLI to use ${provider} agents`
-        });
+        if (isAvailable) {
+          diagnostics.push({
+            name: `${providerMetadata.name.toUpperCase()} CLI`,
+            status: 'success',
+            message: 'Installed and available',
+            details: `${providerMetadata.name} CLI is ready for use`
+          });
+        } else {
+          // Generate installation script for missing provider
+          const installScript = this.generateInstallScript(providerMetadata);
+          diagnostics.push({
+            name: `${providerMetadata.name.toUpperCase()} CLI`,
+            status: 'warning',
+            message: 'Not installed or not available',
+            details: installScript
+          });
+        }
       } catch (error) {
         diagnostics.push({
-          name: `${provider.toUpperCase()} CLI`,
+          name: `${providerMetadata.name.toUpperCase()} CLI`,
           status: 'error',
           message: 'Check failed',
-          details: `Error checking ${provider}: ${error instanceof Error ? error.message : String(error)}`
+          details: `Error checking ${providerMetadata.name}: ${error instanceof Error ? error.message : String(error)}`
         });
       }
     }
