@@ -60,6 +60,11 @@ export class CLIHandler {
           await handleLog(app, args);
           break;
 
+        case 'slack:files':
+          const { handleSlackFiles } = await import('./slack-files.handler');
+          await handleSlackFiles(app, args);
+          break;
+
         case 'help':
           const { handleHelp } = await import('./help.handler');
           await handleHelp(app);

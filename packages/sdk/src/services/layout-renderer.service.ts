@@ -168,6 +168,14 @@ export class LayoutRenderer {
       return typeof options?.fn === 'function' ? options.fn(this) : '';
     });
 
+    // Format file size in human-readable format
+    this.handlebars.registerHelper('formatFileSize', function(bytes: number): string {
+      if (bytes === 0) return '0 B';
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
+    });
+
     const handlebarsInstance = this.handlebars;
 
     this.handlebars.registerHelper('formatConversation', (messages: any, platform: any, options?: any) => {
