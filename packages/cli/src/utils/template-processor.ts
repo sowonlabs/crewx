@@ -185,6 +185,15 @@ function registerHandlebarsHelpers() {
     return 0;
   });
 
+  // Helper to escape Handlebars tokens in user content
+  Handlebars.registerHelper('escapeHandlebars', function(text: string): string {
+    if (typeof text !== 'string') {
+      return '';
+    }
+    // Escape {{ and }} to prevent secondary template compilation
+    return text.replace(/\{\{/g, '&#123;&#123;').replace(/\}\}/g, '&#125;&#125;');
+  });
+
   // Format conversation helper - supports both default and custom templates
   // 
   // Usage 1: Use default template (recommended)
@@ -272,7 +281,7 @@ Previous conversation ({{messagesCount}} messages):
 **Assistant{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
 {{else}}
 **{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
-{{/if}}: {{{text}}}
+{{/if}}: {{{escapeHandlebars text}}}
 {{/each}}{{/if}}`;
       }
 
