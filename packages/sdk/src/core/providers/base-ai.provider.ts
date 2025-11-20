@@ -2,6 +2,7 @@ import { spawn, execSync } from 'child_process';
 import { writeFileSync, appendFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { getTimeoutConfig, type TimeoutConfig } from '../../config/timeout.config';
+import { getLogConfig, type LogConfig } from '../../config/log.config';
 import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.interface';
 import type { BaseAIProviderOptions, LoggerLike } from './base-ai.types';
 import type { ToolCallHandler } from './tool-call.types';
@@ -36,11 +37,13 @@ export abstract class BaseAIProvider implements AIProvider {
   private readonly crewxVersion: string;
   private cachedPath: string | null = null;
   protected readonly timeoutConfig: TimeoutConfig;
+  protected readonly logConfig: LogConfig;
 
   constructor(loggerContext: string, options: BaseAIProviderOptions = {}) {
     this.logger = options.logger ?? new ConsoleLogger(loggerContext);
     this.toolCallHandler = options.toolCallHandler;
     this.timeoutConfig = options.timeoutConfig ?? getTimeoutConfig();
+    this.logConfig = options.logConfig ?? getLogConfig();
     this.logsDir = options.logsDir ?? join(process.cwd(), '.crewx', 'logs');
     this.crewxVersion = options.crewxVersion ?? 'unknown';
 
@@ -664,10 +667,10 @@ Started: ${timestamp}
       this.appendTaskLog(taskId, 'INFO', `Final Args: ${JSON.stringify(args)}`);
       this.appendTaskLog(taskId, 'INFO', `Starting ${this.name} execute mode`);
       this.appendTaskLog(taskId, 'INFO', `Prompt length: ${prompt.length} characters`);
-      
+
       // Log prompt content
-      const promptPreview = prompt.length > 500 ? 
-        prompt.substring(0, 500) + '...[truncated]' : 
+      const promptPreview = prompt.length > this.logConfig.promptMaxLength ?
+        prompt.substring(0, this.logConfig.promptMaxLength) + '...[truncated]' :
         prompt;
       this.appendTaskLog(taskId, 'INFO', `Prompt content:\n${promptPreview}`);
 
