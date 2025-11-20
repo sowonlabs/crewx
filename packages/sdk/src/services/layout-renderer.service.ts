@@ -168,6 +168,15 @@ export class LayoutRenderer {
       return typeof options?.fn === 'function' ? options.fn(this) : '';
     });
 
+    // Helper to escape Handlebars tokens in user content
+    this.handlebars.registerHelper('escapeHandlebars', function(text: string): string {
+      if (typeof text !== 'string') {
+        return '';
+      }
+      // Escape {{ and }} to prevent secondary template compilation
+      return text.replace(/\{\{/g, '&#123;&#123;').replace(/\}\}/g, '&#125;&#125;');
+    });
+
     const handlebarsInstance = this.handlebars;
 
     this.handlebars.registerHelper('formatConversation', (messages: any, platform: any, options?: any) => {
@@ -219,7 +228,7 @@ Previous conversation ({{messagesCount}} messages):
 **Assistant{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
 {{else}}
 **{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
-{{/if}}: {{{text}}}
+{{/if}}: {{{escapeHandlebars text}}}
 {{/each}}{{/if}}`;
       }
 
