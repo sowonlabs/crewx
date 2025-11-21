@@ -21,6 +21,7 @@ export async function handleTemplate(app: any, args: CliOptions) {
         break;
 
       case 'list':
+      case 'ls':
         await handleTemplateList(templateService);
         break;
 
@@ -215,6 +216,7 @@ Download and scaffold project templates from Git repositories.
 Available commands:
   crewx template init <name> [--force]   - Download and initialize a template
   crewx template list                     - List available templates
+  crewx template ls                       - Alias for list
   crewx template show <name>              - Show template details
 
 Options:
