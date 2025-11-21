@@ -30,6 +30,7 @@ import {
   normalizeAPIProviderConfig,
   type ModePermissionBuckets,
 } from '../../utils/api-provider-normalizer';
+import { getLogConfig, type LogConfig } from '../../config/log.config';
 
 /**
  * MastraAPIProvider
@@ -57,6 +58,7 @@ export class MastraAPIProvider implements AIProvider {
   private filteredToolSets: Record<string, any[]> = {};
   private readonly permissionsByMode: Record<string, ModePermissionBuckets>;
   private readonly defaultMode: ProviderExecutionMode;
+  private readonly logConfig: LogConfig;
 
   constructor(config: APIProviderConfig, mode: ProviderExecutionMode = 'query') {
     const normalizedConfig = normalizeAPIProviderConfig(config);
@@ -64,6 +66,7 @@ export class MastraAPIProvider implements AIProvider {
     this.permissionsByMode = normalizedConfig.permissionsByMode;
     this.defaultMode = mode;
     this.name = this.config.provider;
+    this.logConfig = getLogConfig();
   }
 
   /**
@@ -373,9 +376,9 @@ export class MastraAPIProvider implements AIProvider {
 
       if (toolResultValue) {
         const resultPreview = typeof toolResultValue === 'string'
-          ? toolResultValue.substring(0, 200)
-          : JSON.stringify(toolResultValue).substring(0, 200);
-        console.log(`[INFO] Tool result preview: ${resultPreview}${(typeof toolResultValue === 'string' ? toolResultValue.length : JSON.stringify(toolResultValue).length) > 200 ? '...' : ''}`);
+          ? toolResultValue.substring(0, this.logConfig.toolResultMaxLength)
+          : JSON.stringify(toolResultValue).substring(0, this.logConfig.toolResultMaxLength);
+        console.log(`[INFO] Tool result preview: ${resultPreview}${(typeof toolResultValue === 'string' ? toolResultValue.length : JSON.stringify(toolResultValue).length) > this.logConfig.toolResultMaxLength ? '...' : ''}`);
       }
 
       response.toolCall = {
