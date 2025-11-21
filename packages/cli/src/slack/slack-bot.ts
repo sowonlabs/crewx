@@ -5,12 +5,14 @@ import { SlackMessageFormatter } from './formatters/message.formatter';
 import { SlackConversationHistoryProvider } from '../conversation/slack-conversation-history.provider';
 import { ConfigService } from '../services/config.service';
 import { AIProviderService } from '../ai-provider.service';
+import { SlackFileDownloadService } from './services/slack-file-download.service';
 
 export class SlackBot {
   private readonly logger = new Logger(SlackBot.name);
   private app: App;
   private formatter: SlackMessageFormatter;
   private conversationHistory: SlackConversationHistoryProvider;
+  private fileDownloadService: SlackFileDownloadService;
   private defaultAgent: string;
   private botUserId: string | null = null;
   private botId: string | null = null;
@@ -45,6 +47,7 @@ export class SlackBot {
     this.mentionOnly = mentionOnly;
     this.formatter = new SlackMessageFormatter();
     this.conversationHistory = new SlackConversationHistoryProvider();
+    this.fileDownloadService = new SlackFileDownloadService(this.configService);
 
     if (this.configService.shouldLogSlackConversations()) {
       this.logger.log('📝 Slack conversation logging enabled (local storage).');
@@ -234,6 +237,11 @@ export class SlackBot {
       this.logger.debug(`📨 Received message event: ${JSON.stringify(event).substring(0, 200)}`);
     });
 
+    // Handle file uploads (file_shared event)
+    this.app.event('file_shared', async ({ event, client }) => {
+      await this.handleFileShared(event, client);
+    });
+
     // Handle app mentions (when bot is @mentioned)
     this.app.event('app_mention', async ({ event, say, client }) => {
       // Check if THIS bot was mentioned (not another bot)
@@ -254,6 +262,11 @@ export class SlackBot {
       // Ignore bot messages and threaded replies to avoid loops
       if ((message as any).subtype || (message as any).bot_id) {
         return;
+      }
+
+      // Handle files attached to message
+      if ('files' in message && (message as any).files && (message as any).files.length > 0) {
+        await this.handleMessageWithFiles(message, client);
       }
 
       const text = (message as any).text || '';
@@ -378,6 +391,9 @@ export class SlackBot {
                 contextText = historyContext; // Use only clean history, no metadata
                 this.logger.log(`📚 Including ${thread.messages.length} previous messages in context`);
               }
+
+              // Download files from historical messages (mid-conversation scenario)
+              await this.downloadHistoricalFiles(thread.messages, threadTs, message.channel, client);
             }
           } catch (error: any) {
             this.logger.warn(`Failed to fetch thread history: ${error.message}`);
@@ -530,6 +546,118 @@ export class SlackBot {
         },
       });
     }
+  }
+
+  /**
+   * Handle file_shared event
+   * Downloads file when user uploads in a channel/thread
+   */
+  private async handleFileShared(event: any, client: any) {
+    try {
+      const fileId = event.file_id;
+      const channelId = event.channel_id;
+      const userId = event.user_id;
+      const threadTs = event.thread_ts || event.ts;
+
+      this.logger.log(`📎 File shared event: ${fileId} in ${channelId}`);
+
+      // Get file info from event
+      const fileInfo = await client.files.info({ file: fileId });
+      const file = fileInfo.file as any;
+
+      if (!file) {
+        this.logger.warn(`File not found: ${fileId}`);
+        return;
+      }
+
+      // Download file
+      const metadata = await this.fileDownloadService.downloadFile(
+        client,
+        fileId,
+        file.name,
+        threadTs,
+        channelId,
+        userId
+      );
+
+      this.logger.log(`✅ File downloaded: ${metadata.fileName} (${this.formatFileSize(metadata.fileSize)})`);
+    } catch (error: any) {
+      this.logger.error(`Failed to handle file_shared: ${error.message}`);
+    }
+  }
+
+  /**
+   * Handle message with files attached
+   * Downloads all files attached to a message
+   */
+  private async handleMessageWithFiles(message: any, client: any) {
+    const threadTs = message.thread_ts || message.ts;
+    const channelId = message.channel;
+    const userId = message.user;
+
+    for (const file of message.files) {
+      try {
+        const metadata = await this.fileDownloadService.downloadFile(
+          client,
+          file.id,
+          file.name,
+          threadTs,
+          channelId,
+          userId
+        );
+
+        this.logger.log(`✅ File downloaded from message: ${metadata.fileName} (${this.formatFileSize(metadata.fileSize)})`);
+      } catch (error: any) {
+        this.logger.error(`Failed to download file ${file.name}: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Download files from historical messages (mid-conversation scenario)
+   * Ensures all files in conversation history are downloaded
+   */
+  private async downloadHistoricalFiles(
+    messages: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>,
+    threadTs: string,
+    channelId: string,
+    client: any
+  ) {
+    let downloadedCount = 0;
+
+    for (const msg of messages) {
+      if (msg.metadata?.slack?.files) {
+        for (const file of msg.metadata.slack.files) {
+          try {
+            // Use ensureFileDownloaded to skip if already exists
+            await this.fileDownloadService.ensureFileDownloaded(
+              client,
+              file.id,
+              file.name,
+              threadTs,
+              channelId,
+              msg.metadata.slack.user || 'unknown'
+            );
+            downloadedCount++;
+          } catch (error: any) {
+            this.logger.warn(`Failed to download historical file ${file.name}: ${error.message}`);
+          }
+        }
+      }
+    }
+
+    if (downloadedCount > 0) {
+      this.logger.log(`📎 Downloaded ${downloadedCount} historical file(s)`);
+    }
+  }
+
+  /**
+   * Format file size for human-readable display
+   */
+  private formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   }
 
   private async handleViewDetails({ ack, body, client }: any) {

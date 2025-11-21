@@ -5,6 +5,7 @@ import {
   ConversationMessage,
   ConversationThread,
   FetchHistoryOptions,
+  MessageFileAttachment,
 } from '@sowonai/crewx-sdk';
 import { ConversationStorageService } from '@sowonai/crewx-sdk/internal';
 
@@ -169,12 +170,23 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
             msg.username || // 3순위: username
             (msg.bot_id ? 'unknown_bot' : undefined); // 4순위: bot_id
 
+          // Extract file attachments if present
+          const files: MessageFileAttachment[] | undefined = msg.files?.map((file: any) => ({
+            id: file.id,
+            name: file.name,
+            mimetype: file.mimetype,
+            size: file.size,
+            localPath: `.crewx/slack-files/${msg.thread_ts || threadTs}/${file.name}`,
+            url: file.url_private,
+          }));
+
           return {
             id: msg.ts,
             userId: msg.bot_id ? 'assistant' : msg.user,
             text: this.sanitizeMessage(this.extractMessageContent(msg)),
             timestamp: new Date(parseFloat(msg.ts) * 1000),
             isAssistant: !!msg.bot_id,
+            files,
             metadata: {
               ts: msg.ts,
               thread_ts: msg.thread_ts,

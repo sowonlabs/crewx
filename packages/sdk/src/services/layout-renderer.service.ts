@@ -177,6 +177,14 @@ export class LayoutRenderer {
       return text.replace(/\{\{/g, '&#123;&#123;').replace(/\}\}/g, '&#125;&#125;');
     });
 
+    // Format file size in human-readable format
+    this.handlebars.registerHelper('formatFileSize', function(bytes: number): string {
+      if (bytes === 0) return '0 B';
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
+    });
+
     const handlebarsInstance = this.handlebars;
 
     this.handlebars.registerHelper('formatConversation', (messages: any, platform: any, options?: any) => {
@@ -229,6 +237,11 @@ Previous conversation ({{messagesCount}} messages):
 {{else}}
 **{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
 {{/if}}: {{{escapeHandlebars text}}}
+{{#if files}}
+{{#each files}}
+📎 {{name}} ({{formatFileSize size}}) - Local: {{localPath}}
+{{/each}}
+{{/if}}
 {{/each}}{{/if}}`;
       }
 
