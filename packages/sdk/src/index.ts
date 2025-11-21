@@ -33,6 +33,7 @@ export type {
   ConversationThread,
   FetchHistoryOptions,
   IConversationHistoryProvider,
+  MessageFileAttachment,
 } from './conversation/conversation-history.interface';
 export type { ConversationConfig } from './conversation/conversation-config';
 export {

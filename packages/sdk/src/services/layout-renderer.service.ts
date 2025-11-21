@@ -228,6 +228,11 @@ Previous conversation ({{messagesCount}} messages):
 {{else}}
 **{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
 {{/if}}: {{{text}}}
+{{#if files}}
+{{#each files}}
+📎 {{name}} ({{mimetype}}, {{size}} bytes) - Local: {{localPath}}
+{{/each}}
+{{/if}}
 {{/each}}{{/if}}`;
       }
 
