@@ -13,6 +13,7 @@ export class SlackBot {
   private conversationHistory: SlackConversationHistoryProvider;
   private defaultAgent: string;
   private botUserId: string | null = null;
+  private botId: string | null = null;
   private readonly mode: 'query' | 'execute';
   private readonly mentionOnly: boolean;
 
@@ -80,7 +81,8 @@ export class SlackBot {
     try {
       const authResponse = await client.auth.test();
       this.botUserId = authResponse.user_id as string;
-      this.logger.log(`🤖 Bot User ID: ${this.botUserId}`);
+      this.botId = authResponse.bot_id as string;
+      this.logger.log(`🤖 Bot User ID: ${this.botUserId}, Bot ID: ${this.botId}`);
       return this.botUserId;
     } catch (error: any) {
       this.logger.error(`Failed to get bot user ID: ${error.message}`);
@@ -204,11 +206,12 @@ export class SlackBot {
         this.logger.log(`⚠️  No bot messages with metadata found in thread`);
 
         // If no bot messages found, check if bot has participated at all
+        // Bot messages have bot_id, user messages have user
         const botParticipated = threadHistory.messages.some(
-          (msg: any) => msg.user === botUserId
+          (msg: any) => msg.user === botUserId || msg.bot_id === this.botId
         );
 
-        this.logger.log(`🔍 Bot participation check (by user ID): ${botParticipated}`);
+        this.logger.log(`🔍 Bot participation check (by user ID or bot ID): ${botParticipated}`);
 
         if (botParticipated) {
           this.logger.log(`✅ DECISION: Bot participated (fallback) → RESPOND`);
