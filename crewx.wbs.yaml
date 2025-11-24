@@ -12,7 +12,7 @@ agents:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
-      system_prompt: |
+      prompt: |
         당신은 CrewX WBS 기반 작업 관리 코디네이터입니다.
 
         ## 현재 환경

@@ -110,19 +110,7 @@ work_cycle() {
     cycle_temp_log=$(mktemp -t crewx-cycle-XXXXXX)
 
     set +e
-    $CREWX_CMD execute "@coordinator 사이클 #$cycle: wbs.md 확인하고 미처리 Phase들을 찾아서 즉시 병렬로 진행해주세요.
-
-⚠️ 중요: 각 워커 에이전트(@crewx_claude_dev, @crewx_codex_dev, @crewx_crush_dev)에게 작업 지시할 때 반드시 다음을 포함하세요:
-1. 작업 시작 시: echo \"[\$(date +'%Y-%m-%d %H:%M:%S')] START | WBS-X Phase N | 에이전트명\" >> wbs-progress.log
-2. 작업 완료 시: echo \"[\$(date +'%Y-%m-%d %H:%M:%S')] COMPLETE | WBS-X Phase N | 에이전트명\" >> wbs-progress.log
-
-예시:
-- echo \"[\$(date +'%Y-%m-%d %H:%M:%S')] START | WBS-33 Phase 1 | crewx_claude_dev\" >> wbs-progress.log
-- (작업 수행)
-- echo \"[\$(date +'%Y-%m-%d %H:%M:%S')] COMPLETE | WBS-33 Phase 1 | crewx_claude_dev\" >> wbs-progress.log
-
-작업 완료 후 wbs-progress.log를 파싱해서 실제 시작/완료 시간을 wbs.md에 반영하세요.
-사용자에게 물어보지 말고 바로 실행하세요." \
+    $CREWX_CMD execute "@coordinator Cycle #$cycle: Check wbs.md and execute pending phases in parallel. Include progress logging for all worker agents. Do not ask user - execute immediately." \
         --config $CONFIG_FILE \
         --thread $CONTEXT_THREAD \
         --timeout "$COORDINATOR_TIMEOUT" 2>&1 | tee -a "$PROGRESS_FILE" | tee "$cycle_temp_log"
