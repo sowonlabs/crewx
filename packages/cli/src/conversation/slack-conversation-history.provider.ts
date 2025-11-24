@@ -74,7 +74,6 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
           userId: authResult.user_id,
           username: authResult.user as string,
         };
-        this.logger.debug(`✅ Fetched bot info: ${this.botInfo.username} (${this.botInfo.userId})`);
         return this.botInfo;
       }
     } catch (error: any) {
@@ -104,7 +103,6 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
     // 1. Check memory cache for performance
     const cached = this.getCachedThread(threadId);
     if (cached) {
-      this.logger.debug(`Using cached thread history for ${threadId}`);
       await this.persistThread(cached);
       return cached;
     }
@@ -146,7 +144,6 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
           const userInfo = await this.client.users.info({ user: userId });
           if (userInfo.ok && userInfo.user) {
             userInfoMap.set(userId, userInfo.user);
-            this.logger.debug(`✅ Fetched user info for ${userId}: ${userInfo.user.profile?.display_name || userInfo.user.name}`);
           }
         } catch (error) {
           this.logger.warn(`Failed to fetch user info for ${userId}: ${error}`);
@@ -158,11 +155,6 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
           // Get user info from cache
           const userInfo = msg.user ? userInfoMap.get(msg.user) : undefined;
           
-          // Debug: Log message structure to understand what data is available
-          if (!msg.bot_id && msg.user) {
-            this.logger.debug(`User message data: user=${msg.user}, has userInfo=${!!userInfo}, display_name=${userInfo?.profile?.display_name || 'N/A'}`);
-          }
-
           // agentId fallback 전략
           const agentId =
             msg.metadata?.event_payload?.agent_id || // 1순위: metadata
@@ -171,14 +163,32 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
             (msg.bot_id ? 'unknown_bot' : undefined); // 4순위: bot_id
 
           // Extract file attachments if present
-          const files: MessageFileAttachment[] | undefined = msg.files?.map((file: any) => ({
-            id: file.id,
-            name: file.name,
-            mimetype: file.mimetype,
-            size: file.size,
-            localPath: `.crewx/slack-files/${msg.thread_ts || threadTs}/${file.name}`,
-            url: file.url_private,
-          }));
+          const files: MessageFileAttachment[] | undefined = msg.files?.map((file: any) => {
+            // Build local path matching the actual saved filename format
+            // Format: .crewx/slack-files/channelId:threadTs/FILEID.ext
+            const sanitizedFileName = this.sanitizeFileName(file.name);
+            const lastDotIndex = sanitizedFileName.lastIndexOf('.');
+            const ext = lastDotIndex === -1 ? '' : sanitizedFileName.substring(lastDotIndex);
+            const savedFileName = `${file.id}${ext}`;
+
+            // Sanitize threadId for directory name (replace : with _)
+            const safeThreadDir = threadId.replace(/:/g, '_');
+
+            const fileAttachment = {
+              id: file.id,
+              name: file.name,
+              mimetype: file.mimetype,
+              size: file.size,
+              localPath: `.crewx/slack-files/${safeThreadDir}/${savedFileName}`,
+              url: file.url_private,
+            };
+
+            return fileAttachment;
+          });
+
+          if (files && files.length > 0) {
+            this.logger.log(`📁 Message ${msg.ts} has ${files.length} file(s)`);
+          }
 
           return {
             id: msg.ts,
@@ -334,6 +344,32 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
   }
 
   /**
+   * Sanitize filename for local storage (matches SlackFileDownloadService logic)
+   * Supports Unicode characters (Korean, Chinese, Japanese)
+   */
+  private sanitizeFileName(fileName: string): string {
+    // Remove path separators
+    let safeName = fileName.replace(/[\/\\]/g, '_');
+
+    // Remove dot-dot patterns
+    safeName = safeName.replace(/\.\./g, '_');
+
+    // Remove dangerous characters but allow Unicode
+    safeName = safeName.replace(/[\x00-\x1f\x80-\x9f<>:"|?*]/g, '_');
+
+    // Remove leading/trailing dots
+    safeName = safeName.replace(/^\.+|\.+$/g, '');
+
+    // Trim and fallback
+    safeName = safeName.trim();
+    if (!safeName || safeName === '') {
+      safeName = 'unnamed_file';
+    }
+
+    return safeName;
+  }
+
+  /**
    * Get cached thread if still valid
    */
   private getCachedThread(threadId: string): ConversationThread | null {
@@ -386,7 +422,6 @@ export class SlackConversationHistoryProvider extends BaseConversationHistoryPro
    */
   invalidateCache(threadId: string): void {
     this.cache.delete(threadId);
-    this.logger.debug(`🗑️  Cache invalidated for thread: ${threadId}`);
   }
 
   private async persistThread(thread: ConversationThread): Promise<void> {

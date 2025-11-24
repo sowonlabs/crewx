@@ -62,8 +62,8 @@ export class AppModule {
           useFactory: () => {
             // Point to templates/agents directory in the installed package
             const candidatePaths = [
-              path.join(__dirname, '..', 'templates', 'agents'),
               path.join(__dirname, '..', '..', '..', 'templates', 'agents'),
+              path.join(__dirname, '..', 'templates', 'agents'),
               path.resolve(process.cwd(), 'templates', 'agents'),
             ];
 

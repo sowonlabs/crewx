@@ -108,10 +108,13 @@ export class SlackFileDownloadService {
         });
       }
 
-      // 3. Build save path with sanitized filename
-      const savePath = path.join(this.downloadDir, threadId, sanitizedFileName);
+      // 3. Build save path with unique filename (includes message TS and file ID)
+      const uniqueFileName = this.makeUniqueFileName(sanitizedFileName, fileId, threadId);
+      // Sanitize threadId for directory name (replace : with _)
+      const safeThreadDir = threadId.replace(/:/g, '_');
+      const savePath = path.join(this.downloadDir, safeThreadDir, uniqueFileName);
 
-      // 4. Duplicate prevention - check if file already exists
+      // 4. Duplicate prevention - check if file already exists (by file ID)
       if (fs.existsSync(savePath)) {
         const stats = fs.statSync(savePath);
         this.logInfo('download.skip_existing', {
@@ -122,7 +125,7 @@ export class SlackFileDownloadService {
 
         return {
           fileId,
-          fileName: sanitizedFileName,
+          fileName: uniqueFileName,
           filePath: savePath,
           fileSize: stats.size,
           mimeType: fileInfo.mimetype,
@@ -271,9 +274,25 @@ export class SlackFileDownloadService {
   }
 
   /**
+   * Make unique filename with file ID
+   * Uses simple FILEID.ext format to avoid encoding issues and duplicates
+   * Format: "FILEID.ext"
+   * Example: "F09V9768A3T.jpg"
+   */
+  private makeUniqueFileName(sanitizedFileName: string, fileId: string, threadId: string): string {
+    // Split filename and extension
+    const lastDotIndex = sanitizedFileName.lastIndexOf('.');
+    const ext = lastDotIndex === -1 ? '' : sanitizedFileName.substring(lastDotIndex);
+
+    // Format: FILEID.ext
+    return `${fileId}${ext}`;
+  }
+
+  /**
    * Sanitize filename to prevent path injection attacks (WBS-35 Phase 4 - Security)
    * Removes special characters and path separators
    * Prevents directory traversal attacks (e.g., ../../../etc/passwd)
+   * Supports Unicode characters (e.g., Korean, Chinese, Japanese)
    */
   private sanitizeFileName(fileName: string): string {
     // Remove path separators (/, \\) to prevent directory traversal
@@ -282,8 +301,9 @@ export class SlackFileDownloadService {
     // Remove any dot-dot-slash patterns (., ..)
     safeName = safeName.replace(/\.\./g, '_');
 
-    // Remove special characters (allow only alphanumeric, ., _, -, space)
-    safeName = safeName.replace(/[^a-zA-Z0-9._\-\s]/g, '_');
+    // Remove dangerous characters but allow Unicode (including Korean, Chinese, Japanese)
+    // Block: null bytes, control characters, <, >, :, ", |, ?, *
+    safeName = safeName.replace(/[\x00-\x1f\x80-\x9f<>:"|?*]/g, '_');
 
     // Remove leading/trailing dots to prevent hidden files
     safeName = safeName.replace(/^\.+|\.+$/g, '');
@@ -302,7 +322,8 @@ export class SlackFileDownloadService {
    * Returns array of file paths
    */
   async getThreadFiles(threadId: string): Promise<string[]> {
-    const threadDir = path.join(this.downloadDir, threadId);
+    const safeThreadDir = threadId.replace(/:/g, '_');
+    const threadDir = path.join(this.downloadDir, safeThreadDir);
 
     try {
       if (!fs.existsSync(threadDir)) {
@@ -362,12 +383,12 @@ export class SlackFileDownloadService {
     userId: string,
   ): Promise<SlackFileMetadata> {
     const sanitizedFileName = this.sanitizeFileName(fileName);
-    const savePath = path.join(this.downloadDir, threadId, sanitizedFileName);
+    const safeThreadDir = threadId.replace(/:/g, '_');
+    const savePath = path.join(this.downloadDir, safeThreadDir, sanitizedFileName);
 
     // Check if file already exists
     if (fs.existsSync(savePath)) {
       const stats = fs.statSync(savePath);
-      this.logger.debug(`📎 File already exists (ensureFileDownloaded): ${sanitizedFileName}`);
 
       return {
         fileId,
@@ -640,6 +661,15 @@ export class SlackFileDownloadService {
         details: context,
       });
     }
+
+    // Log actual error for debugging
+    this.logger.error(`🔴 Raw error details: ${JSON.stringify({
+      message: error.message,
+      name: error.name,
+      stack: error.stack?.split('\n')[0],
+      code: error.code,
+      type: error.type,
+    })}`);
 
     return new SlackFileDownloadError('Network error while communicating with Slack.', {
       suggestion: 'Check your network connection and try again.',

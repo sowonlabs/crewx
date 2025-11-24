@@ -107,19 +107,6 @@ export class SlackBot {
     const botUserId = await this.getBotUserId(client);
     const text = message.text || '';
 
-    // 🔍 DEBUG: Log incoming message details
-    this.logger.log(`
-🔍 === shouldRespondToMessage DEBUG ===
-📝 Message text: "${text.substring(0, 100)}"
-👤 User: ${message.user}
-📍 Channel: ${message.channel}
-🧵 Thread TS: ${message.thread_ts || 'none'}
-⏰ Message TS: ${message.ts}
-🤖 Bot User ID: ${botUserId}
-🎯 Default Agent: ${this.defaultAgent}
-🔒 Mention-only mode: ${this.mentionOnly}
-    `);
-
     // 1. Check if bot is explicitly mentioned in this message
     if (text.includes(`<@${botUserId}>`)) {
       this.logger.log(`✅ DECISION: Bot mentioned in message → RESPOND`);
@@ -156,16 +143,6 @@ export class SlackBot {
           include_all_metadata: true, // 🔑 CRITICAL: Required to get event_payload in metadata!
         });
 
-        this.logger.log(`📚 Thread history (${threadHistory.messages.length} messages):`);
-        threadHistory.messages.forEach((msg: any, idx: number) => {
-          // Full metadata dump for debugging
-          const metadataStr = msg.metadata ? JSON.stringify(msg.metadata, null, 2) : 'none';
-          this.logger.log(`  [${idx}] ${msg.ts} | User: ${msg.user} | Text: "${(msg.text || '').substring(0, 50)}"`);
-          if (msg.metadata) {
-            this.logger.log(`       Metadata: ${metadataStr}`);
-          }
-        });
-
         // Find the last bot message (crewx_response) in the thread
         // Support both event types for compatibility with different bot implementations
         const lastBotMessage = [...threadHistory.messages]
@@ -190,13 +167,6 @@ export class SlackBot {
 
           const isLastSpeaker = lastAgentId === this.defaultAgent;
 
-          this.logger.log(`
-🔍 Last bot message found:
-  TS: ${lastBotMessage.ts}
-  Agent ID: ${lastAgentId} (from ${lastBotMessage.metadata?.event_payload?.agent_id ? 'metadata' : 'text parsing'})
-  Is Last Speaker: ${isLastSpeaker} (current: ${this.defaultAgent})
-          `);
-
           if (isLastSpeaker) {
             this.logger.log(`✅ DECISION: Bot is last speaker → RESPOND`);
             return true;
@@ -206,15 +176,11 @@ export class SlackBot {
           }
         }
 
-        this.logger.log(`⚠️  No bot messages with metadata found in thread`);
-
         // If no bot messages found, check if bot has participated at all
         // Bot messages have bot_id, user messages have user
         const botParticipated = threadHistory.messages.some(
           (msg: any) => msg.user === botUserId || msg.bot_id === this.botId
         );
-
-        this.logger.log(`🔍 Bot participation check (by user ID or bot ID): ${botParticipated}`);
 
         if (botParticipated) {
           this.logger.log(`✅ DECISION: Bot participated (fallback) → RESPOND`);
@@ -259,17 +225,24 @@ export class SlackBot {
 
     // Also handle direct messages to the bot
     this.app.message(async ({ message, say, client }) => {
-      // Ignore bot messages and threaded replies to avoid loops
-      if ((message as any).subtype || (message as any).bot_id) {
-        return;
-      }
+      const msg = message as any;
 
-      // Handle files attached to message
-      if ('files' in message && (message as any).files && (message as any).files.length > 0) {
+      // Log message details for debugging
+      this.logger.debug(`📬 Message handler: subtype=${msg.subtype}, bot_id=${msg.bot_id}, has_files=${!!msg.files}, files_count=${msg.files?.length || 0}`);
+
+      // Handle files BEFORE checking subtype (file_share messages have subtype)
+      if ('files' in message && msg.files && msg.files.length > 0) {
+        this.logger.log(`📎 Message with ${msg.files.length} file(s) detected`);
         await this.handleMessageWithFiles(message, client);
       }
 
-      const text = (message as any).text || '';
+      // Ignore bot messages and threaded replies to avoid loops
+      if (msg.subtype || msg.bot_id) {
+        this.logger.debug(`⏭️  Skipping message (subtype: ${msg.subtype}, bot_id: ${msg.bot_id})`);
+        return;
+      }
+
+      const text = msg.text || '';
       this.logger.debug(`💬 Message received: "${text.substring(0, 50)}..."`);
 
       // Get bot user ID
@@ -364,7 +337,7 @@ export class SlackBot {
         }
 
         // Fetch conversation thread messages for template processing
-        let conversationMessages: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }> = [];
+        let conversationMessages: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }> = [];
 
         // If this is a reply in a thread, fetch conversation history
         if (message.thread_ts) {
@@ -380,7 +353,8 @@ export class SlackBot {
               conversationMessages = thread.messages.map(msg => ({
                 text: msg.text,
                 isAssistant: msg.isAssistant,
-                metadata: msg.metadata // Include Slack metadata (user info, etc.)
+                metadata: msg.metadata, // Include Slack metadata (user info, etc.)
+                files: msg.files,
               }));
 
               const historyContext = await this.conversationHistory.formatForAI(thread, {
@@ -557,30 +531,13 @@ export class SlackBot {
       const fileId = event.file_id;
       const channelId = event.channel_id;
       const userId = event.user_id;
-      const threadTs = event.thread_ts || event.ts;
 
       this.logger.log(`📎 File shared event: ${fileId} in ${channelId}`);
+      this.logger.warn(`⚠️  file_shared event doesn't provide reliable thread context. Skipping. File will be handled via message event.`);
 
-      // Get file info from event
-      const fileInfo = await client.files.info({ file: fileId });
-      const file = fileInfo.file as any;
-
-      if (!file) {
-        this.logger.warn(`File not found: ${fileId}`);
-        return;
-      }
-
-      // Download file
-      const metadata = await this.fileDownloadService.downloadFile(
-        client,
-        fileId,
-        file.name,
-        threadTs,
-        channelId,
-        userId
-      );
-
-      this.logger.log(`✅ File downloaded: ${metadata.fileName} (${this.formatFileSize(metadata.fileSize)})`);
+      // Note: file_shared event doesn't include message context (thread_ts, ts)
+      // We rely on the subsequent message event which includes both file info and thread context
+      return;
     } catch (error: any) {
       this.logger.error(`Failed to handle file_shared: ${error.message}`);
     }
@@ -594,14 +551,18 @@ export class SlackBot {
     const threadTs = message.thread_ts || message.ts;
     const channelId = message.channel;
     const userId = message.user;
+    const threadId = `${channelId}:${threadTs}`;
+
+    this.logger.log(`📁 Processing ${message.files.length} file(s) for thread ${threadId}`);
 
     for (const file of message.files) {
       try {
+        this.logger.debug(`⬇️  Downloading: ${file.name} (${file.id})`);
         const metadata = await this.fileDownloadService.downloadFile(
           client,
           file.id,
           file.name,
-          threadTs,
+          threadId,  // ← Changed: now uses "channelId:threadTs" format
           channelId,
           userId
         );

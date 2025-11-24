@@ -187,7 +187,8 @@ export class LayoutRenderer {
 
     const handlebarsInstance = this.handlebars;
 
-    this.handlebars.registerHelper('formatConversation', (messages: any, platform: any, options?: any) => {
+    this.handlebars.registerHelper('formatConversation', function(this: any, messages: any, platform: any, options?: any) {
+      // Block helper: Always use block helper mode (template in default.yaml)
       const isBlockHelper = options && typeof options.fn === 'function';
 
       if (!Array.isArray(messages) || messages.length === 0) {
