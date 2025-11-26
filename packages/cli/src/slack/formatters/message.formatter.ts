@@ -28,7 +28,7 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
   // Default to ~100K tokens (approximately 400K characters for code-heavy content)
   // Can be overridden with SLACK_MAX_RESPONSE_LENGTH env var
   private readonly maxResponseLength: number;
-  private readonly maxBlockLength = 2900; // Per block limit with safety margin
+  private readonly maxBlockSize: number; // Per block limit with safety margin
   private markdownToSlackFn: ((text: string) => string) | null = null;
 
   constructor() {
@@ -38,6 +38,12 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
     this.maxResponseLength = parseInt(
       process.env.SLACK_MAX_RESPONSE_LENGTH || '400000',
       10
+    );
+    // Default: 2900 chars (max 3000 for Slack)
+    // Safety margin to avoid hitting Slack's 3000 char limit per block
+    this.maxBlockSize = Math.min(
+      parseInt(process.env.SLACK_MAX_BLOCK_SIZE || '2900', 10),
+      3000
     );
     this.loadMarkdownConverter();
   }
@@ -126,14 +132,23 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
 
     if (result.success) {
       // Success: Show only the response content (clean!)
-      const response = this.truncateForSlack(result.response, this.maxResponseLength);
+      let response = this.truncateForSlack(result.response, this.maxResponseLength);
 
       // Convert markdown to Slack mrkdwn format
-      const slackFormatted = this.convertMarkdownToMrkdwn(response);
+      let slackFormatted = this.convertMarkdownToMrkdwn(response);
+
+      // Check if we need additional truncation due to block limits
+      const adjustedMaxChars = this.validateBlockCount(slackFormatted, this.maxBlockSize);
+      const maxTotalLength = adjustedMaxChars * 48; // 48 blocks max
+
+      // If text still exceeds what we can fit in 48 blocks, truncate it
+      if (slackFormatted.length > maxTotalLength) {
+        response = this.truncateForSlack(result.response, maxTotalLength * 0.95); // Leave margin
+        slackFormatted = this.convertMarkdownToMrkdwn(response);
+      }
 
       // Handle large messages: split into multiple sections if needed
-      if (slackFormatted.length > 2900) {
-        const adjustedMaxChars = this.validateBlockCount(slackFormatted, 2900);
+      if (slackFormatted.length > this.maxBlockSize) {
         const sections = this.splitIntoSections(slackFormatted, adjustedMaxChars);
 
         sections.forEach((sectionText, index) => {
@@ -336,14 +351,25 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
 
   /**
    * Validate and adjust section size to stay within 50 block limit
+   * Also enforces the per-block character limit (SLACK_MAX_BLOCK_SIZE)
    */
   private validateBlockCount(response: string, maxCharsPerSection: number): number {
     const estimatedBlocks = Math.ceil(response.length / maxCharsPerSection);
     const MAX_BLOCKS = 48; // 50 block limit with margin for header/footer
 
     if (estimatedBlocks > MAX_BLOCKS) {
-      // Increase section size to fit within block limit
-      return Math.ceil(response.length / MAX_BLOCKS);
+      // Try to increase section size to fit within block limit
+      const idealSectionSize = Math.ceil(response.length / MAX_BLOCKS);
+
+      // If ideal section size exceeds block size limit, we must truncate
+      // This prevents invalid_blocks error from Slack API
+      if (idealSectionSize > this.maxBlockSize) {
+        // Keep section size at maximum allowed
+        // The text will be truncated in truncateForSlack() if needed
+        return this.maxBlockSize;
+      }
+
+      return idealSectionSize;
     }
 
     return maxCharsPerSection;
