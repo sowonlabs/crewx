@@ -290,6 +290,7 @@ export abstract class BaseAIProvider implements AIProvider {
   public parseProviderError(
     stderr: string,
     stdout: string,
+    exitCode?: number | null,
   ): { error: boolean; message: string } {
     // Check for CLI option errors (common across all providers)
     if (stderr && (stderr.toLowerCase().includes('unknown option') ||
@@ -298,6 +299,27 @@ export abstract class BaseAIProvider implements AIProvider {
         error: true,
         message: stderr.split('\n')[0]?.trim() || 'Invalid CLI option',
       };
+    }
+
+    // Known warning patterns that should not be treated as errors when exitCode is 0
+    const knownWarningPatterns = [
+      'YOLO mode is enabled',
+      'Loaded cached credentials',
+      'MaxListenersExceededWarning',
+      'MaxListeners is',
+      'Use events.setMaxListeners()',
+      'Use `node --trace-warnings',
+    ];
+
+    // If exitCode is 0, check if stderr only contains known warnings
+    if (exitCode === 0 && stderr && !stdout) {
+      const isOnlyWarnings = knownWarningPatterns.some(pattern =>
+        stderr.includes(pattern)
+      );
+      if (isOnlyWarnings) {
+        // Don't treat known warnings as errors when process succeeded
+        return { error: false, message: '' };
+      }
     }
 
     // Default implementation: Only treat stderr as error if there's no stdout
@@ -523,7 +545,7 @@ Started: ${timestamp}
           }
 
           // Otherwise check for errors
-          const providerError = this.parseProviderError(stderr, stdout);
+          const providerError = this.parseProviderError(stderr, stdout, exitCode);
           if (exitCode !== 0 || providerError.error) {
             const errorMessage = providerError.message || stderr || `Exit code ${exitCode}`;
             this.appendTaskLog(taskId, 'ERROR', `${this.name} CLI failed: ${errorMessage}`);
@@ -738,7 +760,7 @@ Started: ${timestamp}
           }
 
           // Otherwise check for errors
-          const providerError = this.parseProviderError(stderr, stdout);
+          const providerError = this.parseProviderError(stderr, stdout, exitCode);
           if (exitCode !== 0 || providerError.error) {
             const errorMessage = providerError.message || stderr || `Exit code ${exitCode}`;
             this.appendTaskLog(taskId, 'ERROR', `${this.name} CLI failed: ${errorMessage}`);
