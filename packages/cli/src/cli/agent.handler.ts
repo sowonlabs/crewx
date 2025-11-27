@@ -95,6 +95,10 @@ async function handleAgentList(crewXTool: CrewXTool, raw: boolean) {
         console.log(`   Team: ${agent.team}`);
       }
 
+      if (agent.description) {
+        console.log(`   Description: ${agent.description}`);
+      }
+
       if (agent.inline?.model) {
         console.log(`   Default Model: ${agent.inline.model}`);
       }

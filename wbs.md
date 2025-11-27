@@ -20,7 +20,9 @@
 12. [WBS-30: Marketplace MVP](#wbs-30-marketplace-mvp--대기)
 13. [WBS-32: Project Templates](#wbs-32-project-templates-create--대기)
 14. [WBS-33: Template 서브커맨드 개선](#wbs-33-template-서브커맨드-개선--대기)
-15. [참고 문서](#참고-문서)
+15. [WBS-34: Dynamic Tool Selection](#wbs-34-dynamic-tool-selection-동적-도구-선택--진행중)
+16. [WBS-35: Slack File Download](#wbs-35-slack-file-download-슬랙-파일-다운로드--대기)
+17. [참고 문서](#참고-문서)
 
 ---
 
@@ -57,6 +59,8 @@
 | ⏸️  | WBS-31     | Marketplace 구현 (Phase 1)    | 실제 웹사이트 구축          | 4일       | P2     |
 | ✅   | WBS-32     | Project Templates (create)  | crewx template 스캐폴딩 | ~2h      | P0     |
 | ✅   | WBS-33     | Template 서브커맨드 개선 | 파일 보호 + 동적 리스트 | 2-3h     | P2     |
+| ⏸️  | WBS-34     | Dynamic Tool Selection | vars 기반 동적 도구 선택 (Phase 2 완료) | 3-4h     | P2     |
+| ✅   | WBS-35     | Slack File Download | 슬랙 파일 다운로드 (Phase 1-5 완료) | ~57분   | P2     |
 
 ---
 
@@ -464,27 +468,116 @@ crewx template show wbs-automation
 
 ---
 
-## 참고 문서
+## WBS-34: Dynamic Tool Selection (동적 도구 선택) (⏸️ 보류)
+> 📄 [wbs/wbs-34-dynamic-tool-selection.md](wbs/wbs-34-dynamic-tool-selection.md)
 
-### WBS 상세 계획
-- [WBS-19: API Provider 설계](wbs/wbs-19-design-document.md)
-- [WBS-20: Mastra 통합](wbs/wbs-20-mastra-integration.md)
-- [WBS-23: YAML 파싱](wbs/wbs-23-yaml-parsing-agent-factory.md)
-- [WBS-24: CLI 통합](wbs/wbs-24-cli-integration.md)
-- [WBS-26: 문서화](wbs/wbs-26-documentation-examples.md)
-- [WBS-28: Provider 스펙 설계](wbs/wbs-28-provider-options-design.md)
-- [WBS-29: Slack Bot Network Isolation](wbs/wbs-29-slack-network-isolation.md)
-- [WBS-30: Marketplace MVP (전략)](wbs/wbs-30-marketplace-mvp.md)
-- [WBS-31: Marketplace 구현 (Phase 1)](wbs/wbs-31-marketplace-implementation.md)
-- [WBS-32: Project Templates](wbs/wbs-32-project-templates.md)
-- [WBS-33: Template 서브커맨드 개선](wbs/wbs-33-template-enhancement.md)
+**목표**: vars 시스템과 Handlebars 템플릿을 활용한 동적 도구 선택
 
-### 구현 문서
-- [API Provider 가이드](docs/api-provider-guide.md)
-- [마이그레이션 가이드](docs/migration-to-api-provider.md)
-- [SowonFlow 스펙 분석](wbs/wbs-19-sowonflow-spec-analysis.md)
+**예상 소요**: 3-4시간 (AI 작업 기준)
 
-### 코드
-- [MastraAPIProvider](packages/sdk/src/core/providers/MastraAPIProvider.ts)
-- [MastraToolAdapter](packages/sdk/src/adapters/MastraToolAdapter.ts)
-- [API Provider Types](packages/sdk/src/types/api-provider.types.ts)
+**상태**: ⏸️ 보류 (아이디어 정리 필요 - Phase 2까지 완료, Phase 3 재검토 예정)
+
+**전제 조건**: 없음 (기존 템플릿 시스템 활용)
+
+**완료 시 할 수 있는 것**:
+- 에이전트 프롬프트에서 `{{#if vars.xxx}}` 조건문으로 도구 안내 제어
+- 런타임 변수를 통해 도구 활성화 여부 동적 결정
+- 환경별/상황별로 다른 도구 세트 사용
+- CLI에서 `--vars` 옵션으로 런타임 제어 (Phase 3)
+
+**Phase 진행 상황**:
+- [⏸️] Phase 1: 프롬프트 조건부 (0분 - 이미 가능) - 보류
+- [⏸️] Phase 2: 도구 목록 템플릿 처리 (1-2시간) - 보류
+- [⏸️] Phase 3: CLI --vars 옵션 (2-3시간) - 보류 (아이디어 정리 필요)
+
+**작업 시간 추적**:
+| Phase | 담당자 | 시작 | 완료 | 실제 소요 | 예상 소요 | 상태 |
+|-------|--------|------|------|----------|----------|------|
+| Phase 1 | crewx_claude_dev | 2025-11-19 18:01 | 2025-11-20 03:05 | ~4분 | 0분 | ⏸️ |
+| Phase 2 | crewx_claude_dev | 2025-11-20 03:12 | 2025-11-20 03:45 | ~33분 | 1-2h | ⏸️ |
+
+**핵심 전략**:
+- **즉시 사용 가능**: 코드 변경 없이 현재 템플릿 시스템으로 조건부 프롬프트 구현
+- **점진적 개선**: Phase 2, 3은 필요시 추가 구현
+- **명시적 제어**: LLM 자동 선택이 아닌, vars로 명확한 제어
+
+**Phase 1 구현 내용** (2025-11-19):
+- ✅ 예제 에이전트 설정 생성 (examples/dynamic-tools/)
+  - crewx.yaml: 4가지 패턴 (Multi-tool toggle, Simple toggle, Environment-based, Multi-condition)
+  - README.md: 완전한 사용 가이드 및 예제
+  - test-simple.yaml: 최소 테스트 케이스
+  - VERIFICATION.md: 기술적 검증 문서
+- ✅ vars 기반 조건부 프롬프트 검증
+  - template-processor.ts의 vars 지원 확인 (line 57)
+  - Handlebars 헬퍼 확인: eq, and, or, not
+  - 빌드 검증 완료 (npm run build)
+- ✅ 기능 확인: 코드 변경 없이 즉시 사용 가능 (Phase 1 완료)
+
+**Phase 2 구현 내용** (2025-11-20):
+- ✅ agent-loader.service.ts에 tools 필드 템플릿 처리 로직 추가
+  - `processToolsField()` 메서드 구현 (line 818-861)
+  - 지원: `string[]` (배열) 및 `string` (템플릿) 형식
+  - Handlebars 조건부 로직 지원 (vars 기반)
+  - 후방 호환성 유지 (기존 배열 형식 그대로 작동)
+- ✅ 양쪽 agent 로딩 메서드에 적용
+  - `loadBuiltInAgents()` (line 279-285)
+  - `loadAgentsFromConfig()` (line 421-433)
+- ✅ 테스트 케이스 작성
+  - `tests/services/agent-loader-tools-template.test.ts`
+  - 11개 테스트: 배열/템플릿/조건부/복잡한 로직 검증
+- ✅ 빌드 검증 완료 (npm run build)
+- ✅ 문서화
+  - `docs/dynamic-tool-selection.md` 생성
+  - 사용 가이드, 예제, 마이그레이션 가이드 포함
+
+---
+
+## WBS-35: Slack File Download (슬랙 파일 다운로드) (✅ 완료)
+> 📄 [wbs/wbs-35-slack-file-download.md](wbs/wbs-35-slack-file-download.md)
+
+**목표**: 슬랙에서 파일 업로드 시 자동 다운로드 및 AI 에이전트 통합
+
+**실제 소요**: ~57분 (15+3+11+8+20분, AI 작업 기준, Phase 1-5)
+
+**예상 대비**: 14-22시간 → 1시간 (AI 효율성! 🚀)
+
+**전제 조건**: 없음 (독립적 기능)
+
+**상태**: ✅ Phase 1-5 완료 (2025-11-20) - Hybrid 방식 (자동 + 수동)
+- 🟢 구현 가능성: GREEN (100% 가능)
+- 🟡 아키텍처: YELLOW (중간 참여 시나리오 대응)
+- ✅ 핵심 개선: 중복 다운로드 방지 + CLI 명령어
+
+**완료 기능**:
+- ✅ 슬랙에서 파일 업로드 시 `.crewx/slack-files/{thread_ts}/`에 자동 다운로드
+- ✅ **중복 다운로드 방지** (파일 존재 체크, 에이전트 메모리 부족 대응)
+- ✅ **중간 참여 시나리오** 지원 (봇 없을 때 업로드된 파일도 히스토리 조회 시 다운로드)
+- ✅ **AI 에이전트가 Layout 템플릿으로 파일 정보 자동 인지** (platform='slack' 조건부)
+- ✅ **수동 다운로드 CLI 명령어** (`crewx slack:files --thread <id>`)
+- ✅ 파일 크기/타입 제한으로 보안 유지 (10MB 기본값)
+- ✅ 환경변수 재활용 (`SLACK_BOT_TOKEN`)
+
+**Phase 진행 상황**:
+- [✅] Phase 1: 기본 파일 다운로드 (5-7시간) - 자동 + 중복 방지 + 중간 참여
+- [✅] Phase 2: AI 에이전트 통합 (2-3시간) - Layout 템플릿 기반 자동 통합
+- [✅] Phase 3: CLI 명령어 추가 (2-3시간) - `crewx slack:files` 구현
+- [✅] Phase 4: 설정 및 제한 (2-3시간) - ConfigService 확장
+- [✅] Phase 5: 에러 처리 및 로깅 (2-3시간) - Rate limiting, 에러 핸들링, 성능 메트릭
+
+**작업 시간 추적**:
+| Phase | 담당자 | 시작 | 완료 | 실제 소요 | 예상 소요 | 상태 |
+|-------|--------|------|------|----------|----------|------|
+| Phase 1 | crewx_claude_dev | 2025-11-20 12:14:53 | 2025-11-20 12:29:52 | ~15분 | 5-7h | ✅ |
+| Phase 2 | crewx_claude_dev | 2025-11-20 12:33:15 | 2025-11-20 12:36:15 | ~3분 | 2-3h | ✅ |
+| Phase 3 | crewx_claude_dev | 2025-11-20 13:24:12 | 2025-11-20 13:35:00 | ~11분 | 2-3h | ✅ |
+| Phase 4 | crewx_claude_dev | 2025-11-20 14:26:38 | 2025-11-20 14:35:00 | ~8분 | 2-3h | ✅ |
+| Phase 5 | crewx_claude_dev | 2025-11-20 15:22:30 | 2025-11-20 15:42:30 | ~20분 | 2-3h | ✅ |
+
+**핵심 전략**:
+- **Hybrid 방식**: 자동 다운로드 (기본) + 수동 다운로드 (CLI)
+- **중복 방지**: `fs.existsSync()` 체크로 불필요한 API 호출 방지
+- **환경변수 재활용**: `SLACK_BOT_TOKEN` 사용 (별도 인증 불필요)
+- **Layout 통합**: `platform='slack'` 시 `<slack_files>` 블록 자동 렌더링
+- **보안**: 파일 크기 제한 (10MB), 타입 검증, 경로 인젝션 방지 (sanitization)
+
+**필요 권한**: Slack API - `files:read`, `files:write`

@@ -168,9 +168,27 @@ export class LayoutRenderer {
       return typeof options?.fn === 'function' ? options.fn(this) : '';
     });
 
+    // Helper to escape Handlebars tokens in user content
+    this.handlebars.registerHelper('escapeHandlebars', function(text: string): string {
+      if (typeof text !== 'string') {
+        return '';
+      }
+      // Escape {{ and }} to prevent secondary template compilation
+      return text.replace(/\{\{/g, '&#123;&#123;').replace(/\}\}/g, '&#125;&#125;');
+    });
+
+    // Format file size in human-readable format
+    this.handlebars.registerHelper('formatFileSize', function(bytes: number): string {
+      if (bytes === 0) return '0 B';
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
+    });
+
     const handlebarsInstance = this.handlebars;
 
-    this.handlebars.registerHelper('formatConversation', (messages: any, platform: any, options?: any) => {
+    this.handlebars.registerHelper('formatConversation', function(this: any, messages: any, platform: any, options?: any) {
+      // Block helper: Always use block helper mode (template in default.yaml)
       const isBlockHelper = options && typeof options.fn === 'function';
 
       if (!Array.isArray(messages) || messages.length === 0) {
@@ -219,7 +237,12 @@ Previous conversation ({{messagesCount}} messages):
 **Assistant{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
 {{else}}
 **{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
-{{/if}}: {{{text}}}
+{{/if}}: {{{escapeHandlebars text}}}
+{{#if files}}
+{{#each files}}
+📎 {{name}} ({{formatFileSize size}}) - Local: {{localPath}}
+{{/each}}
+{{/if}}
 {{/each}}{{/if}}`;
       }
 
@@ -317,7 +340,15 @@ Previous conversation ({{messagesCount}} messages):
 
     if (typeof vars.user_input === 'string') {
       sanitizedVars.user_input_raw = vars.user_input;
-      sanitizedVars.user_input = this.handlebars.escapeExpression(vars.user_input);
+      // Escape Handlebars tokens first to prevent template injection
+      // Handle both {{ }} (2 braces) and {{{ }}} (3 braces) syntax
+      const escapedHandlebars = vars.user_input
+        .replace(/\{\{\{/g, '&#123;&#123;&#123;')
+        .replace(/\}\}\}/g, '&#125;&#125;&#125;')
+        .replace(/\{\{/g, '&#123;&#123;')
+        .replace(/\}\}/g, '&#125;&#125;');
+      // Then escape HTML entities for XSS protection
+      sanitizedVars.user_input = this.handlebars.escapeExpression(escapedHandlebars);
     }
 
     return sanitizedVars;

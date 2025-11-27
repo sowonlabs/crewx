@@ -1,4 +1,22 @@
 /**
+ * File attachment information in conversation messages.
+ */
+export interface MessageFileAttachment {
+  /** File unique identifier */
+  id: string;
+  /** File name */
+  name: string;
+  /** MIME type (e.g., 'image/png', 'application/pdf') */
+  mimetype: string;
+  /** File size in bytes */
+  size: number;
+  /** Local path where file is downloaded (relative to project root) */
+  localPath: string;
+  /** Original URL (platform-specific, may be private) */
+  url?: string;
+}
+
+/**
  * Base message structure for template rendering.
  *
  * Contains minimal fields required for displaying conversation history in templates.
@@ -26,6 +44,8 @@ export interface ConversationMessage extends BaseMessage {
   userId: string;
   /** Message timestamp */
   timestamp: Date;
+  /** File attachments in this message */
+  files?: MessageFileAttachment[];
 }
 
 export interface ConversationThread {

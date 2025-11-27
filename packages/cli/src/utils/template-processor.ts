@@ -185,6 +185,23 @@ function registerHandlebarsHelpers() {
     return 0;
   });
 
+  // Helper to escape Handlebars tokens in user content
+  Handlebars.registerHelper('escapeHandlebars', function(text: string): string {
+    if (typeof text !== 'string') {
+      return '';
+    }
+    // Escape {{ and }} to prevent secondary template compilation
+    return text.replace(/\{\{/g, '&#123;&#123;').replace(/\}\}/g, '&#125;&#125;');
+  });
+
+  // Format file size in human-readable format
+  Handlebars.registerHelper('formatFileSize', function(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
+  });
+
   // Format conversation helper - supports both default and custom templates
   // 
   // Usage 1: Use default template (recommended)
@@ -272,7 +289,12 @@ Previous conversation ({{messagesCount}} messages):
 **Assistant{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
 {{else}}
 **{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
-{{/if}}: {{{text}}}
+{{/if}}: {{{escapeHandlebars text}}}
+{{#if files}}
+{{#each files}}
+📎 {{name}} ({{formatFileSize size}}) - Local: {{localPath}}
+{{/each}}
+{{/if}}
 {{/each}}{{/if}}`;
       }
 

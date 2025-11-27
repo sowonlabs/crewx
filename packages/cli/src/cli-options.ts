@@ -153,6 +153,24 @@ export function parseCliOptions(): CliOptions {
         type: 'string'
       });
     })
+    .command('slack:files', 'Download and manage Slack thread files', (yargs) => {
+      yargs.option('thread', {
+        alias: 't',
+        type: 'string',
+        description: 'Slack thread timestamp (e.g., 1234567890.123456)'
+      });
+      yargs.option('list', {
+        alias: 'l',
+        type: 'boolean',
+        default: false,
+        description: 'List downloaded files'
+      });
+      yargs.option('clean', {
+        type: 'boolean',
+        default: false,
+        description: 'Clean/delete downloaded files'
+      });
+    })
     .command('help', 'Show help', () => {})
     .option('install', {
       type: 'boolean',
