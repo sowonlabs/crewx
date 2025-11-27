@@ -61,7 +61,7 @@ export class CrewXTool implements OnModuleInit {
     mode: 'query' | 'execute';
     prompt: string;
     context?: string;
-    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
+    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'cli' | 'slack';
     model?: string;
   }): Promise<string> {
@@ -587,6 +587,14 @@ agents:
         text: z.string(),
         isAssistant: z.boolean(),
         metadata: z.record(z.any()).optional(),
+        files: z.array(z.object({
+          id: z.string(),
+          name: z.string(),
+          mimetype: z.string().optional(),
+          size: z.number().optional(),
+          localPath: z.string().optional(),
+          url: z.string().optional(),
+        })).optional(),
       })).describe('Conversation history to provide as context (oldest → newest)').optional(),
     },
     annotations: {
@@ -600,7 +608,7 @@ agents:
     query: string;
     context?: string;
     model?: string;
-    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
+    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'slack' | 'cli';
     provider?: string; // NEW: Optional provider specification
   }) {
@@ -1035,6 +1043,14 @@ Read-Only Mode: No files were modified.`
         text: z.string(),
         isAssistant: z.boolean(),
         metadata: z.record(z.any()).optional(),
+        files: z.array(z.object({
+          id: z.string(),
+          name: z.string(),
+          mimetype: z.string().optional(),
+          size: z.number().optional(),
+          localPath: z.string().optional(),
+          url: z.string().optional(),
+        })).optional(),
       })).describe('Conversation history to provide as context (oldest → newest)').optional(),
     },
     annotations: {
@@ -1049,7 +1065,7 @@ Read-Only Mode: No files were modified.`
     projectPath?: string;
     context?: string;
     model?: string;
-    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
+    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'slack' | 'cli';
     provider?: string; // NEW: Optional provider specification
   }) {
@@ -1502,7 +1518,7 @@ Task: ${task}
    * Get mode-specific options for a given agent and execution mode
    */
   private toConversationMessages(
-    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>,
+    messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>,
   ): ConversationMessage[] {
     if (!messages || messages.length === 0) {
       return [];
@@ -1536,6 +1552,7 @@ Task: ${task}
         timestamp,
         isAssistant: message.isAssistant,
         metadata: metadata as Record<string, any>,
+        files: message.files,
       } satisfies ConversationMessage;
     });
   }
@@ -1603,6 +1620,14 @@ Task: ${task}
           text: z.string(),
           isAssistant: z.boolean(),
           metadata: z.record(z.any()).optional(),
+          files: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            mimetype: z.string().optional(),
+            size: z.number().optional(),
+            localPath: z.string().optional(),
+            url: z.string().optional(),
+          })).optional(),
         })).describe('Conversation history to provide as context (oldest → newest)').optional(),
       })).describe('Array of queries to process in parallel'),
     },
@@ -1800,6 +1825,14 @@ Read-Only Mode: No files were modified.`
           text: z.string(),
           isAssistant: z.boolean(),
           metadata: z.record(z.any()).optional(),
+          files: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            mimetype: z.string().optional(),
+            size: z.number().optional(),
+            localPath: z.string().optional(),
+            url: z.string().optional(),
+          })).optional(),
         })).describe('Conversation history to provide as context (oldest → newest)').optional(),
       })).describe('Array of tasks to execute in parallel'),
     },

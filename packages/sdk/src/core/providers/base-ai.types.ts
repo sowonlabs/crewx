@@ -1,4 +1,5 @@
 import type { TimeoutConfig } from '../../config/timeout.config';
+import type { LogConfig } from '../../config/log.config';
 import type { ToolCallHandler } from './tool-call.types';
 
 export interface LoggerLike {
@@ -12,6 +13,7 @@ export interface BaseAIProviderOptions {
   toolCallHandler?: ToolCallHandler;
   logsDir?: string;
   timeoutConfig?: TimeoutConfig;
+  logConfig?: LogConfig;
   crewxVersion?: string;
 }
 

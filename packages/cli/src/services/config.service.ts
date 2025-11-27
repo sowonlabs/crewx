@@ -415,4 +415,44 @@ export class ConfigService implements OnModuleInit {
   isAPIProvider(agentId: string): boolean {
     return this.apiProviderConfigs.has(agentId);
   }
+
+  /**
+   * Get Slack file download directory (WBS-35 Phase 4)
+   * Default: .crewx/slack-files
+   */
+  getSlackFileDownloadDir(): string {
+    return process.env.CREWX_SLACK_FILE_DIR ||
+           path.join(process.cwd(), '.crewx', 'slack-files');
+  }
+
+  /**
+   * Check if Slack file download is enabled (WBS-35 Phase 4)
+   * Default: true
+   */
+  isSlackFileDownloadEnabled(): boolean {
+    return process.env.CREWX_SLACK_FILE_DOWNLOAD !== 'false';
+  }
+
+  /**
+   * Get maximum file size for Slack file downloads (WBS-35 Phase 4)
+   * Default: 10MB (10 * 1024 * 1024 bytes)
+   */
+  getSlackMaxFileSize(): number {
+    const envValue = process.env.CREWX_SLACK_MAX_FILE_SIZE;
+    return envValue ? parseInt(envValue, 10) : 10 * 1024 * 1024; // 10MB default
+  }
+
+  /**
+   * Get allowed MIME types for Slack file downloads (WBS-35 Phase 4)
+   * Default: [] (empty array = all types allowed)
+   * Format: Comma-separated string in env var (e.g., "application/pdf,image/png")
+   */
+  getSlackAllowedMimeTypes(): string[] {
+    const envValue = process.env.CREWX_SLACK_ALLOWED_MIME_TYPES;
+    if (!envValue || envValue.trim() === '') {
+      return []; // Empty = allow all types
+    }
+
+    return envValue.split(',').map(t => t.trim()).filter(t => t.length > 0);
+  }
 }

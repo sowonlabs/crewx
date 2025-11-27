@@ -159,7 +159,31 @@ layouts:
 
       {{#if messages.length}}
       <conversation_history platform="{{platform}}">
-        {{{formatConversation messages platform}}}
+        {{#formatConversation messages platform}}
+        {{#if primaryAgentId}}
+        Primary agent: @{{primaryAgentId}}
+        {{/if}}
+        {{#if agentIds}}
+        Agents involved: {{#each agentIds}}{{#if @index}}, {{/if}}@{{this}}{{/each}}
+        {{/if}}
+        Total {{messagesCount}} messages:
+        {{#if (eq platform "slack")}}
+        (This messages in slack thread)
+
+        {{/if}}
+        {{#each messages}}
+        {{#if isAssistant}}
+        **{{#if metadata.slack}}{{#with metadata.slack}}{{#if bot_username}}{{bot_username}}{{else}}Assistant{{/if}}{{#if bot_user_id}} (<@{{bot_user_id}}>){{/if}}{{/with}}{{else}}Assistant{{/if}}{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
+        {{else}}
+        **{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User{{/if}}{{#if user_id}} (<@{{user_id}}>){{/if}}{{/with}}{{else}}User{{/if}}**
+        {{/if}}: {{{escapeHandlebars text}}}
+        {{#if files}}
+        {{#each files}}
+        📎 {{name}}{{#if size}} ({{formatFileSize size}}){{/if}}{{#if localPath}} - Local: {{localPath}}{{/if}}
+        {{/each}}
+        {{/if}}
+        {{/each}}
+        {{/formatConversation}}
       </conversation_history>
       {{/if}}
     </system_prompt>

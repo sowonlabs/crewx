@@ -21,6 +21,8 @@ oauth_config:
       - im:history
       - groups:history
       - users:read
+      - files:read
+      - files:write
 settings:
   event_subscriptions:
     bot_events:

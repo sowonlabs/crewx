@@ -19,6 +19,7 @@ import { openai, createOpenAI } from '@ai-sdk/openai';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.interface';
 import type {
   APIProviderConfig,
@@ -30,6 +31,7 @@ import {
   normalizeAPIProviderConfig,
   type ModePermissionBuckets,
 } from '../../utils/api-provider-normalizer';
+import { getLogConfig, type LogConfig } from '../../config/log.config';
 
 /**
  * MastraAPIProvider
@@ -57,6 +59,7 @@ export class MastraAPIProvider implements AIProvider {
   private filteredToolSets: Record<string, any[]> = {};
   private readonly permissionsByMode: Record<string, ModePermissionBuckets>;
   private readonly defaultMode: ProviderExecutionMode;
+  private readonly logConfig: LogConfig;
 
   constructor(config: APIProviderConfig, mode: ProviderExecutionMode = 'query') {
     const normalizedConfig = normalizeAPIProviderConfig(config);
@@ -64,6 +67,7 @@ export class MastraAPIProvider implements AIProvider {
     this.permissionsByMode = normalizedConfig.permissionsByMode;
     this.defaultMode = mode;
     this.name = this.config.provider;
+    this.logConfig = getLogConfig();
   }
 
   /**
@@ -109,23 +113,20 @@ export class MastraAPIProvider implements AIProvider {
       case 'api/litellm':
       case 'api/ollama':
       case 'api/sowonai': {
-        // Set provider-specific defaults
-        let defaultURL = 'http://localhost:4000'; // LiteLLM default
+        let defaultURL = 'http://localhost:4000';
         let defaultKey = 'dummy';
-
         if (provider === 'api/ollama') {
           defaultURL = 'http://localhost:11434/v1';
           defaultKey = 'ollama';
         } else if (provider === 'api/sowonai') {
           defaultURL = 'https://api.sowon.ai/v1';
         }
-
-        const customOpenAI = createOpenAI({
-          apiKey: apiKey || defaultKey,
+        const providerInstance = createOpenAICompatible({
+          name: provider.replace('api/', ''),
           baseURL: url || defaultURL,
+          apiKey: apiKey || defaultKey,
         });
-        // Use chat() method explicitly for chat completions endpoint
-        return customOpenAI.chat(model);
+        return providerInstance(model);
       }
 
       case 'api/anthropic': {
@@ -373,9 +374,9 @@ export class MastraAPIProvider implements AIProvider {
 
       if (toolResultValue) {
         const resultPreview = typeof toolResultValue === 'string'
-          ? toolResultValue.substring(0, 200)
-          : JSON.stringify(toolResultValue).substring(0, 200);
-        console.log(`[INFO] Tool result preview: ${resultPreview}${(typeof toolResultValue === 'string' ? toolResultValue.length : JSON.stringify(toolResultValue).length) > 200 ? '...' : ''}`);
+          ? toolResultValue.substring(0, this.logConfig.toolResultMaxLength)
+          : JSON.stringify(toolResultValue).substring(0, this.logConfig.toolResultMaxLength);
+        console.log(`[INFO] Tool result preview: ${resultPreview}${(typeof toolResultValue === 'string' ? toolResultValue.length : JSON.stringify(toolResultValue).length) > this.logConfig.toolResultMaxLength ? '...' : ''}`);
       }
 
       response.toolCall = {
