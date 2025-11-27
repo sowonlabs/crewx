@@ -45,8 +45,11 @@ export async function processDocumentTemplate(
   }
 
   // Build context object with all available data
+  // Use pre-loaded documents from additionalContext if available (passed from crewx.tool.ts)
+  // Note: documents is passed via 'as any' cast from crewx.tool.ts
+  const additionalContextAny = additionalContext as any;
   const context: any = {
-    documents: {},
+    documents: additionalContextAny?.documents || {},
     env: additionalContext?.env || process.env,
     agent: additionalContext?.agent || {},
     agentMetadata: additionalContext?.agentMetadata || {},
@@ -65,7 +68,11 @@ export async function processDocumentTemplate(
   const pattern = /(\{\{\{|\{\{)documents\.([^.}]+)\.([^}]+)}}}?/g;
   const matches = [...template.matchAll(pattern)];
 
-  if (matches.length > 0 && documentLoader.isInitialized()) {
+  // Skip loading from documentLoader if documents already provided via additionalContext
+  // (crewx.tool.ts pre-loads all documents and passes them in additionalContext.documents)
+  const hasPreloadedDocuments = additionalContextAny?.documents && Object.keys(additionalContextAny.documents).length > 0;
+
+  if (!hasPreloadedDocuments && matches.length > 0 && documentLoader.isInitialized()) {
     const docProps = new Map<string, Map<string, string[]>>();
 
     for (const match of matches) {
