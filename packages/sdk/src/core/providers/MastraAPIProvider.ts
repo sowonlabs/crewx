@@ -127,8 +127,8 @@ export class MastraAPIProvider implements AIProvider {
           apiKey: apiKey || defaultKey,
           baseURL: url || defaultURL,
         });
-        // Use chat() method explicitly for chat completions endpoint
-        return customOpenAI.chat(model);
+        // Return AI SDK v5 compatible model (not .chat() which is v4)
+        return customOpenAI(model);
       }
 
       case 'api/anthropic': {
