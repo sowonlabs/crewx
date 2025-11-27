@@ -159,6 +159,23 @@ export class CrewXTool implements OnModuleInit {
       agent.description ||
       `You are an expert ${agent.id}.`;
 
+    // Load documents from DocumentLoaderService for template rendering
+    // Declare outside if block to be accessible in both layout and fallback paths
+    const documentsForTemplate: Record<string, { content: string; toc: string; summary: string }> = {};
+    if (this.documentLoaderService.isInitialized()) {
+      const docNames = this.documentLoaderService.getDocumentNames();
+      for (const docName of docNames) {
+        const content = await this.documentLoaderService.getDocumentContent(docName);
+        const toc = await this.documentLoaderService.getDocumentToc(docName);
+        const summary = await this.documentLoaderService.getDocumentSummary(docName);
+        documentsForTemplate[docName] = {
+          content: content || '',
+          toc: toc || '',
+          summary: summary || '',
+        };
+      }
+    }
+
     const layoutSpec = inlineLayout ?? 'crewx/default';
 
     if (layoutSpec) {
@@ -198,22 +215,6 @@ export class CrewXTool implements OnModuleInit {
           vars: templateContext.vars ?? {},
           tools: templateContext.tools ?? null,
         };
-
-        // Load documents from DocumentLoaderService for template rendering
-        const documentsForTemplate: Record<string, { content: string; toc: string; summary: string }> = {};
-        if (this.documentLoaderService.isInitialized()) {
-          const docNames = this.documentLoaderService.getDocumentNames();
-          for (const docName of docNames) {
-            const content = await this.documentLoaderService.getDocumentContent(docName);
-            const toc = await this.documentLoaderService.getDocumentToc(docName);
-            const summary = await this.documentLoaderService.getDocumentSummary(docName);
-            documentsForTemplate[docName] = {
-              content: content || '',
-              toc: toc || '',
-              summary: summary || '',
-            };
-          }
-        }
 
         // Load skills for the agent
         const agentSkills = await this.skillLoaderService.loadAgentSkills(agent.skills);
@@ -272,7 +273,11 @@ export class CrewXTool implements OnModuleInit {
         this.logger.debug(`Layout rendered successfully for agent ${agent.id}`);
 
         const { processDocumentTemplate } = await import('./utils/template-processor');
-        const finalSystemPrompt = await processDocumentTemplate(rendered, this.documentLoaderService, templateContext as any);
+        const finalSystemPrompt = await processDocumentTemplate(
+          rendered,
+          this.documentLoaderService,
+          { ...templateContext, documents: documentsForTemplate } as any
+        );
 
         return finalSystemPrompt;
       } catch (error) {
@@ -294,7 +299,11 @@ export class CrewXTool implements OnModuleInit {
     // Process template variables if present
     if (systemPrompt) {
       const { processDocumentTemplate } = await import('./utils/template-processor');
-      systemPrompt = await processDocumentTemplate(systemPrompt, this.documentLoaderService, templateContext as any);
+      systemPrompt = await processDocumentTemplate(
+        systemPrompt,
+        this.documentLoaderService,
+        { ...templateContext, documents: documentsForTemplate } as any
+      );
     }
 
     return systemPrompt;
