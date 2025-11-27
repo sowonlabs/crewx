@@ -19,6 +19,7 @@ import { openai, createOpenAI } from '@ai-sdk/openai';
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.interface';
 import type {
   APIProviderConfig,
@@ -112,23 +113,20 @@ export class MastraAPIProvider implements AIProvider {
       case 'api/litellm':
       case 'api/ollama':
       case 'api/sowonai': {
-        // Set provider-specific defaults
-        let defaultURL = 'http://localhost:4000'; // LiteLLM default
+        let defaultURL = 'http://localhost:4000';
         let defaultKey = 'dummy';
-
         if (provider === 'api/ollama') {
           defaultURL = 'http://localhost:11434/v1';
           defaultKey = 'ollama';
         } else if (provider === 'api/sowonai') {
           defaultURL = 'https://api.sowon.ai/v1';
         }
-
-        const customOpenAI = createOpenAI({
-          apiKey: apiKey || defaultKey,
+        const providerInstance = createOpenAICompatible({
+          name: provider.replace('api/', ''),
           baseURL: url || defaultURL,
+          apiKey: apiKey || defaultKey,
         });
-        // Return AI SDK v5 compatible model (not .chat() which is v4)
-        return customOpenAI(model);
+        return providerInstance(model);
       }
 
       case 'api/anthropic': {
@@ -320,7 +318,7 @@ export class MastraAPIProvider implements AIProvider {
         : {};
 
       console.log(`[INFO] Sending request to AI model...`);
-      const fullOutput = await agent.generateLegacy(prompt, generateOptions);
+      const fullOutput = await agent.generate(prompt, generateOptions);
       console.log(`[INFO] Received response from AI model`);
 
       return this.convertResponse(fullOutput, taskId);
