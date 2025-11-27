@@ -64,8 +64,9 @@ export class CrewXTool implements OnModuleInit {
     messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'cli' | 'slack';
     model?: string;
+    platformMetadata?: Record<string, any>;
   }): Promise<string> {
-    const { agentId, provider, mode, prompt, context, messages, platform, model } = params;
+    const { agentId, provider, mode, prompt, context, messages, platform, model, platformMetadata } = params;
     const safeMessages = Array.isArray(messages) ? messages : [];
 
     let formattedHistory = '';
@@ -104,6 +105,7 @@ export class CrewXTool implements OnModuleInit {
         messageCount: safeMessages.length,
         generatedAt: new Date().toISOString(),
         originalContext: normalizedContext,
+        ...platformMetadata, // Include platform-specific metadata (e.g., Slack channel_id, thread_ts)
       },
     };
 
@@ -611,8 +613,9 @@ agents:
     messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'slack' | 'cli';
     provider?: string; // NEW: Optional provider specification
+    metadata?: Record<string, any>; // NEW: Platform-specific metadata (e.g., Slack channel_id, thread_ts)
   }) {
-    const { agentId, query, context, model, messages, platform } = args;
+    const { agentId, query, context, model, messages, platform, metadata } = args;
 
     // Load agent first to get correct provider
     let taskId: string;
@@ -758,6 +761,7 @@ ${errorMessage}`,
         props: {},
         mode: 'query',
         platform: platform, // Pass platform information (slack/cli)
+        metadata: metadata, // Pass platform-specific metadata (e.g., Slack channel_id, thread_ts)
         env: process.env,
         tools: this.buildToolsContext(),
       };
@@ -893,6 +897,7 @@ ${query}
         messages,
         platform: platform || 'cli',
         model: modelToUse,
+        platformMetadata: metadata,
       });
 
       const runtimeMessages = this.toConversationMessages(messages);
@@ -1068,8 +1073,9 @@ Read-Only Mode: No files were modified.`
     messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'slack' | 'cli';
     provider?: string; // NEW: Optional provider specification
+    metadata?: Record<string, any>; // NEW: Platform-specific metadata (e.g., Slack channel_id, thread_ts)
   }) {
-    const { agentId, task, projectPath, context, model, messages, platform } = args;
+    const { agentId, task, projectPath, context, model, messages, platform, metadata } = args;
 
     // Load agent first to get correct provider
     let taskId: string;
@@ -1213,6 +1219,7 @@ Please check the agent ID and try again.`
         props: {},
         mode: 'execute',
         platform: platform, // Pass platform information (slack/cli)
+        metadata: metadata, // Pass platform-specific metadata (e.g., Slack channel_id, thread_ts)
         env: process.env,
         tools: this.buildToolsContext(),
       };
@@ -1342,6 +1349,7 @@ Task: ${task}
         messages,
         platform: platform || 'cli',
         model: modelToUse,
+        platformMetadata: metadata,
       });
 
       const runtimeMessages = this.toConversationMessages(messages);
