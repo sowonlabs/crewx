@@ -130,6 +130,8 @@ export interface RenderContext {
   mode?: 'query' | 'execute';
   /** Platform identifier (cli, slack, mcp, etc.) */
   platform?: string;
+  /** Platform-specific metadata (e.g., Slack channel_id, thread_ts) */
+  metadata?: Record<string, any>;
   /** Environment variables */
   env?: Record<string, any>;
   /** Available tools metadata */
