@@ -128,7 +128,7 @@ export class MastraAPIProvider implements AIProvider {
           baseURL: url || defaultURL,
         });
         // Return AI SDK v5 compatible model (not .chat() which is v4)
-        return customOpenAI(model);
+        return customOpenAI.responses(model);
       }
 
       case 'api/anthropic': {
