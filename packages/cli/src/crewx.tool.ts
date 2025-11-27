@@ -251,6 +251,7 @@ export class CrewXTool implements OnModuleInit {
           tools: templateContext.tools,
           session: sessionInfo,
           env: templateContext.env ?? {},
+          metadata: (templateContext as any).metadata ?? {}, // Platform-specific metadata (e.g., Slack channel_id, thread_ts)
           context: {
             mode: templateContext.mode ?? 'query',
             platform: templateContext.platform ?? 'cli',
