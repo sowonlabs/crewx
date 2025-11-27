@@ -128,7 +128,7 @@ export class MastraAPIProvider implements AIProvider {
           baseURL: url || defaultURL,
         });
         // Return AI SDK v5 compatible model (not .chat() which is v4)
-        return customOpenAI.responses(model);
+        return customOpenAI(model);
       }
 
       case 'api/anthropic': {
@@ -320,7 +320,7 @@ export class MastraAPIProvider implements AIProvider {
         : {};
 
       console.log(`[INFO] Sending request to AI model...`);
-      const fullOutput = await agent.generate(prompt, generateOptions);
+      const fullOutput = await agent.generateLegacy(prompt, generateOptions);
       console.log(`[INFO] Received response from AI model`);
 
       return this.convertResponse(fullOutput, taskId);
