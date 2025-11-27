@@ -320,7 +320,7 @@ export class MastraAPIProvider implements AIProvider {
         : {};
 
       console.log(`[INFO] Sending request to AI model...`);
-      const fullOutput = await agent.generate(prompt, generateOptions);
+      const fullOutput = await agent.generateLegacy(prompt, generateOptions);
       console.log(`[INFO] Received response from AI model`);
 
       return this.convertResponse(fullOutput, taskId);
