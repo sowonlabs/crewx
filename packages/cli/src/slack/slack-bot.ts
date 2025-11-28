@@ -382,7 +382,7 @@ export class SlackBot {
           context: contextText || undefined,
           messages: conversationMessages.length > 0 ? conversationMessages : undefined,
           platform: 'slack' as const,
-          platformMetadata: {
+          metadata: {
             channel_id: message.channel,
             thread_ts: threadTs,
           },
