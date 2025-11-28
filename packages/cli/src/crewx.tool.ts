@@ -608,6 +608,8 @@ agents:
           url: z.string().optional(),
         })).optional(),
       })).describe('Conversation history to provide as context (oldest → newest)').optional(),
+      platform: z.enum(['cli', 'slack']).optional(),
+      metadata: z.record(z.any()).optional(),
     },
     annotations: {
       title: 'Query Specialist Agent (Read-Only)',
@@ -1067,6 +1069,8 @@ Read-Only Mode: No files were modified.`
           url: z.string().optional(),
         })).optional(),
       })).describe('Conversation history to provide as context (oldest → newest)').optional(),
+      platform: z.enum(['cli', 'slack']).optional(),
+      metadata: z.record(z.any()).optional(),
     },
     annotations: {
       title: 'Execute Agent Task (Can Modify Files)',
