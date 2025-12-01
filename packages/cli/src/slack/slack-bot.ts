@@ -143,48 +143,48 @@ export class SlackBot {
           include_all_metadata: true, // 🔑 CRITICAL: Required to get event_payload in metadata!
         });
 
-        // Find the last bot message (crewx_response) in the thread
-        // Support both event types for compatibility with different bot implementations
-        const lastBotMessage = [...threadHistory.messages]
-          .reverse()
-          .find((msg: any) =>
-            msg.metadata?.event_type === 'crewx_response'
-          );
+        // Find the LAST MESSAGE in the thread (user or bot)
+        // Exclude the current incoming message by checking timestamp
+        const lastMessage = [...threadHistory.messages]
+          .filter((msg: any) => msg.ts !== message.ts) // Exclude current message
+          .reverse()[0]; // Get the last message (most recent before current)
 
-        if (lastBotMessage) {
-          // Check if the last bot message was from this agent
-          let lastAgentId = lastBotMessage.metadata?.event_payload?.agent_id;
+        if (!lastMessage) {
+          // No previous messages in thread, bot should respond (first message in thread)
+          this.logger.log(`✅ DECISION: No previous messages in thread → RESPOND`);
+          return true;
+        }
 
-          // FALLBACK: Parse agent ID from message text if metadata is missing
-          // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
-          if (!lastAgentId && lastBotMessage.text) {
-            const agentMatch = lastBotMessage.text.match(/@([a-zA-Z0-9_]+)\)/);
-            if (agentMatch) {
-              lastAgentId = agentMatch[1];
-              this.logger.log(`🔧 Fallback: Extracted agent ID from message text: ${lastAgentId}`);
-            }
-          }
+        // Check if last message was from a bot
+        const lastMessageIsBot = !!lastMessage.bot_id || lastMessage.metadata?.event_type === 'crewx_response';
 
-          const isLastSpeaker = lastAgentId === this.defaultAgent;
+        if (!lastMessageIsBot) {
+          // Last message was from a user → bot should respond
+          this.logger.log(`✅ DECISION: Last message from user → RESPOND`);
+          return true;
+        }
 
-          if (isLastSpeaker) {
-            this.logger.log(`✅ DECISION: Bot is last speaker → RESPOND`);
-            return true;
-          } else {
-            this.logger.log(`⏭️  DECISION: Another bot is last speaker (${lastAgentId}) → SKIP`);
-            return false;
+        // Last message was from a bot → check if it was THIS bot's agent
+        let lastAgentId = lastMessage.metadata?.event_payload?.agent_id;
+
+        // FALLBACK: Parse agent ID from message text if metadata is missing
+        // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
+        if (!lastAgentId && lastMessage.text) {
+          const agentMatch = lastMessage.text.match(/@([a-zA-Z0-9_]+)\)/);
+          if (agentMatch) {
+            lastAgentId = agentMatch[1];
+            this.logger.log(`🔧 Fallback: Extracted agent ID from message text: ${lastAgentId}`);
           }
         }
 
-        // If no bot messages found, check if bot has participated at all
-        // Bot messages have bot_id, user messages have user
-        const botParticipated = threadHistory.messages.some(
-          (msg: any) => msg.user === botUserId || msg.bot_id === this.botId
-        );
+        const isLastSpeaker = lastAgentId === this.defaultAgent;
 
-        if (botParticipated) {
-          this.logger.log(`✅ DECISION: Bot participated (fallback) → RESPOND`);
+        if (isLastSpeaker) {
+          this.logger.log(`✅ DECISION: This bot was last speaker → RESPOND`);
           return true;
+        } else {
+          this.logger.log(`⏭️  DECISION: Another bot was last speaker (${lastAgentId}) → SKIP`);
+          return false;
         }
       } catch (error: any) {
         this.logger.warn(`Failed to check thread participation: ${error.message}`);
