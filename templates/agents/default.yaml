@@ -184,6 +184,13 @@ layouts:
         {{/if}}
         {{/each}}
         {{/formatConversation}}
+
+      {{#if (eq platform 'slack')}}
+      <slack_context>
+      Channel ID: {{metadata.channel_id}}
+      Thread TS: {{metadata.thread_ts}}
+      </slack_context>
+      {{/if}}
       </conversation_history>
       {{/if}}
     </system_prompt>

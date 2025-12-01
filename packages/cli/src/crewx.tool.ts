@@ -64,8 +64,9 @@ export class CrewXTool implements OnModuleInit {
     messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'cli' | 'slack';
     model?: string;
+    platformMetadata?: Record<string, any>;
   }): Promise<string> {
-    const { agentId, provider, mode, prompt, context, messages, platform, model } = params;
+    const { agentId, provider, mode, prompt, context, messages, platform, model, platformMetadata } = params;
     const safeMessages = Array.isArray(messages) ? messages : [];
 
     let formattedHistory = '';
@@ -104,6 +105,7 @@ export class CrewXTool implements OnModuleInit {
         messageCount: safeMessages.length,
         generatedAt: new Date().toISOString(),
         originalContext: normalizedContext,
+        ...platformMetadata, // Include platform-specific metadata (e.g., Slack channel_id, thread_ts)
       },
     };
 
@@ -157,6 +159,23 @@ export class CrewXTool implements OnModuleInit {
       agent.description ||
       `You are an expert ${agent.id}.`;
 
+    // Load documents from DocumentLoaderService for template rendering
+    // Declare outside if block to be accessible in both layout and fallback paths
+    const documentsForTemplate: Record<string, { content: string; toc: string; summary: string }> = {};
+    if (this.documentLoaderService.isInitialized()) {
+      const docNames = this.documentLoaderService.getDocumentNames();
+      for (const docName of docNames) {
+        const content = await this.documentLoaderService.getDocumentContent(docName);
+        const toc = await this.documentLoaderService.getDocumentToc(docName);
+        const summary = await this.documentLoaderService.getDocumentSummary(docName);
+        documentsForTemplate[docName] = {
+          content: content || '',
+          toc: toc || '',
+          summary: summary || '',
+        };
+      }
+    }
+
     const layoutSpec = inlineLayout ?? 'crewx/default';
 
     if (layoutSpec) {
@@ -197,22 +216,6 @@ export class CrewXTool implements OnModuleInit {
           tools: templateContext.tools ?? null,
         };
 
-        // Load documents from DocumentLoaderService for template rendering
-        const documentsForTemplate: Record<string, { content: string; toc: string; summary: string }> = {};
-        if (this.documentLoaderService.isInitialized()) {
-          const docNames = this.documentLoaderService.getDocumentNames();
-          for (const docName of docNames) {
-            const content = await this.documentLoaderService.getDocumentContent(docName);
-            const toc = await this.documentLoaderService.getDocumentToc(docName);
-            const summary = await this.documentLoaderService.getDocumentSummary(docName);
-            documentsForTemplate[docName] = {
-              content: content || '',
-              toc: toc || '',
-              summary: summary || '',
-            };
-          }
-        }
-
         // Load skills for the agent
         const agentSkills = await this.skillLoaderService.loadAgentSkills(agent.skills);
 
@@ -250,6 +253,7 @@ export class CrewXTool implements OnModuleInit {
           tools: templateContext.tools,
           session: sessionInfo,
           env: templateContext.env ?? {},
+          metadata: (templateContext as any).metadata ?? {}, // Platform-specific metadata (e.g., Slack channel_id, thread_ts)
           context: {
             mode: templateContext.mode ?? 'query',
             platform: templateContext.platform ?? 'cli',
@@ -270,7 +274,11 @@ export class CrewXTool implements OnModuleInit {
         this.logger.debug(`Layout rendered successfully for agent ${agent.id}`);
 
         const { processDocumentTemplate } = await import('./utils/template-processor');
-        const finalSystemPrompt = await processDocumentTemplate(rendered, this.documentLoaderService, templateContext as any);
+        const finalSystemPrompt = await processDocumentTemplate(
+          rendered,
+          this.documentLoaderService,
+          { ...templateContext, documents: documentsForTemplate } as any
+        );
 
         return finalSystemPrompt;
       } catch (error) {
@@ -292,7 +300,11 @@ export class CrewXTool implements OnModuleInit {
     // Process template variables if present
     if (systemPrompt) {
       const { processDocumentTemplate } = await import('./utils/template-processor');
-      systemPrompt = await processDocumentTemplate(systemPrompt, this.documentLoaderService, templateContext as any);
+      systemPrompt = await processDocumentTemplate(
+        systemPrompt,
+        this.documentLoaderService,
+        { ...templateContext, documents: documentsForTemplate } as any
+      );
     }
 
     return systemPrompt;
@@ -596,6 +608,8 @@ agents:
           url: z.string().optional(),
         })).optional(),
       })).describe('Conversation history to provide as context (oldest → newest)').optional(),
+      platform: z.enum(['cli', 'slack']).optional(),
+      metadata: z.record(z.any()).optional(),
     },
     annotations: {
       title: 'Query Specialist Agent (Read-Only)',
@@ -611,8 +625,9 @@ agents:
     messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'slack' | 'cli';
     provider?: string; // NEW: Optional provider specification
+    metadata?: Record<string, any>; // NEW: Platform-specific metadata (e.g., Slack channel_id, thread_ts)
   }) {
-    const { agentId, query, context, model, messages, platform } = args;
+    const { agentId, query, context, model, messages, platform, metadata } = args;
 
     // Load agent first to get correct provider
     let taskId: string;
@@ -758,6 +773,7 @@ ${errorMessage}`,
         props: {},
         mode: 'query',
         platform: platform, // Pass platform information (slack/cli)
+        metadata: metadata, // Pass platform-specific metadata (e.g., Slack channel_id, thread_ts)
         env: process.env,
         tools: this.buildToolsContext(),
       };
@@ -893,6 +909,7 @@ ${query}
         messages,
         platform: platform || 'cli',
         model: modelToUse,
+        platformMetadata: metadata,
       });
 
       const runtimeMessages = this.toConversationMessages(messages);
@@ -1052,6 +1069,8 @@ Read-Only Mode: No files were modified.`
           url: z.string().optional(),
         })).optional(),
       })).describe('Conversation history to provide as context (oldest → newest)').optional(),
+      platform: z.enum(['cli', 'slack']).optional(),
+      metadata: z.record(z.any()).optional(),
     },
     annotations: {
       title: 'Execute Agent Task (Can Modify Files)',
@@ -1068,8 +1087,9 @@ Read-Only Mode: No files were modified.`
     messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any>; files?: any[] }>;
     platform?: 'slack' | 'cli';
     provider?: string; // NEW: Optional provider specification
+    metadata?: Record<string, any>; // NEW: Platform-specific metadata (e.g., Slack channel_id, thread_ts)
   }) {
-    const { agentId, task, projectPath, context, model, messages, platform } = args;
+    const { agentId, task, projectPath, context, model, messages, platform, metadata } = args;
 
     // Load agent first to get correct provider
     let taskId: string;
@@ -1213,6 +1233,7 @@ Please check the agent ID and try again.`
         props: {},
         mode: 'execute',
         platform: platform, // Pass platform information (slack/cli)
+        metadata: metadata, // Pass platform-specific metadata (e.g., Slack channel_id, thread_ts)
         env: process.env,
         tools: this.buildToolsContext(),
       };
@@ -1342,6 +1363,7 @@ Task: ${task}
         messages,
         platform: platform || 'cli',
         model: modelToUse,
+        platformMetadata: metadata,
       });
 
       const runtimeMessages = this.toConversationMessages(messages);
