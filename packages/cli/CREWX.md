@@ -356,6 +356,11 @@ Specialties: {{#each agent.specialties}}{{this}}, {{/each}}
 
 When fixing template-related bugs, verify:
 
+- [ ] **Step 0: Zod Schema Sync (crewx.tool.ts - queryAgent/executeAgent schemas)**
+  - [ ] Are new fields added to BOTH TypeScript args AND Zod schema?
+  - [ ] queryAgent schema와 executeAgent schema 모두 동기화되었는가?
+  - [ ] Zod schema에 없는 필드는 validation 시 제거됨 주의!
+
 - [ ] **Step 1: Initial Context (crewx.tool.ts - runQuery/runExecute methods)**
   - [ ] Is the data added to `templateContext`?
   - [ ] Are all required fields populated (user_input, agent, documents, vars, mode, platform)?
@@ -387,6 +392,21 @@ When fixing template-related bugs, verify:
   - [ ] Validate Handlebars compilation doesn't fail
 
 ### Common Template Bugs and Fixes
+
+#### Bug: Data passed but not reaching template (Zod schema mismatch)
+
+**Root Cause:** Field exists in TypeScript args but missing from Zod schema
+
+**Fix:** Add field to BOTH queryAgent and executeAgent Zod schemas
+```typescript
+// In crewx.tool.ts - queryAgent @McpTool schema
+schema: {
+  // ... existing fields
+  platform: z.enum(['cli', 'slack']).optional(),
+  metadata: z.record(z.any()).optional(),
+}
+// ALSO add to executeAgent schema!
+```
 
 #### Bug: Template field is undefined
 
