@@ -319,17 +319,97 @@ crewx execute \
 
 ## Environment Variables
 
+### Slack Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SLACK_BOT_TOKEN` | - | Slack Bot Token (required for Slack integration) |
+| `SLACK_SIGNING_SECRET` | - | Slack Signing Secret (required for Slack integration) |
+| `SLACK_APP_TOKEN` | - | Slack App Token (required for Socket Mode) |
+| `SLACK_MAX_RESPONSE_LENGTH` | `400000` | Maximum total response length (characters) |
+| `SLACK_MAX_BLOCK_SIZE` | `2900` | Maximum characters per block (max: 3000) |
+
+### CrewX Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CREWX_DEBUG` | - | Enable debug logging |
+| `CREWX_CONFIG` | - | Custom path to crewx.yaml configuration file |
+| `CREWX_PROVIDER` | - | Default AI provider |
+| `CREWX_SLACK_LOG_CONVERSATIONS` | `false` | Enable Slack conversation logging |
+| `CREWX_ENABLE_REMOTE_TEMPLATES` | `false` | Enable remote template repository |
+| `CREWX_TEMPLATE_REPO` | - | Remote template repository URL |
+
+### Provider Timeout Configuration (milliseconds)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CREWCODE_TIMEOUT_CLAUDE_EXECUTE` | - | Claude execute mode timeout |
+| `CREWCODE_TIMEOUT_CLAUDE_QUERY` | - | Claude query mode timeout |
+| `CREWCODE_TIMEOUT_GEMINI_EXECUTE` | - | Gemini execute mode timeout |
+| `CREWCODE_TIMEOUT_GEMINI_QUERY` | - | Gemini query mode timeout |
+| `CREWCODE_TIMEOUT_COPILOT_EXECUTE` | - | Copilot execute mode timeout |
+| `CREWCODE_TIMEOUT_COPILOT_QUERY` | - | Copilot query mode timeout |
+
+### Other Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3000` | MCP server port |
+| `DEBUG` | - | Debug namespace (e.g., `crewx:*`) |
+
+### Usage Examples
+
+**Slack Bot with Custom Limits:**
 ```bash
-# Slack configuration
-SLACK_BOT_TOKEN=xoxb-...
-SLACK_SIGNING_SECRET=...
-SLACK_APP_TOKEN=xapp-...
+export SLACK_BOT_TOKEN=xoxb-your-token
+export SLACK_SIGNING_SECRET=your-secret
+export SLACK_APP_TOKEN=xapp-your-app-token
+export SLACK_MAX_RESPONSE_LENGTH=500000
+export SLACK_MAX_BLOCK_SIZE=2800
 
-# MCP server port
-PORT=3000
+crewx slack --log
+```
 
-# Debug logging
-DEBUG=crewx:*
+**Custom Configuration Path:**
+```bash
+export CREWX_CONFIG=/path/to/custom/crewx.yaml
+crewx query "@claude analyze this"
+```
+
+**Provider Timeout Configuration:**
+```bash
+# Set longer timeout for complex execute tasks
+export CREWCODE_TIMEOUT_CLAUDE_EXECUTE=600000  # 10 minutes
+export CREWCODE_TIMEOUT_CLAUDE_QUERY=180000    # 3 minutes
+
+crewx execute "@claude complex task"
+```
+
+**Debug Logging:**
+```bash
+# Enable all CrewX debug logs
+export DEBUG=crewx:*
+export CREWX_DEBUG=true
+
+crewx query "@claude test"
+```
+
+**Using .env File:**
+Create a `.env.slack` file:
+```env
+SLACK_BOT_TOKEN=xoxb-your-token
+SLACK_SIGNING_SECRET=your-secret
+SLACK_APP_TOKEN=xapp-your-app-token
+SLACK_MAX_RESPONSE_LENGTH=400000
+SLACK_MAX_BLOCK_SIZE=2900
+CREWX_SLACK_LOG_CONVERSATIONS=true
+```
+
+Then load it:
+```bash
+source .env.slack
+npm run start:slack
 ```
 
 ## Architecture

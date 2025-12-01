@@ -100,9 +100,101 @@ node dist/main.js execute \
 node dist/main.js query "@claude:haiku test" --thread "test-thread"
 ```
 
+## Smoke Test Checklist (RC Testing)
+
+**🚨 CRITICAL: Always include these smoke tests in RC integration testing**
+
+### 1. Document Rendering Test (MANDATORY)
+**Purpose:** Verify that the document system works correctly with layout templates
+
+**Test Steps:**
+1. Verify `crewx.yaml` has documents defined:
+   ```yaml
+   documents:
+     test-doc:
+       path: "docs/test.md"
+       summary: "Test document"
+       type: "markdown"
+   ```
+
+2. Create a test agent with document reference in layout template:
+   ```yaml
+   agents:
+     - id: "test_agent"
+       inline:
+         prompt: |
+           {{{documents.test-doc.content}}}
+   ```
+
+3. Run query command and verify document content appears in agent prompt:
+   ```bash
+   crewx query "@test_agent test"
+   ```
+
+4. Check logs/output to confirm document was rendered correctly
+
+**Expected Result:**
+- ✅ Document content appears in rendered prompt
+- ✅ No Handlebars compilation errors
+- ✅ Template variables (if any) are properly substituted
+- ✅ No "undefined" or empty document content
+
+**Failure Indicators:**
+- ❌ `{{{documents.X.content}}}` appears literally in output
+- ❌ Document content is empty or missing
+- ❌ Handlebars compilation error
+- ❌ Template rendering fails
+
+**Why This Is Critical:**
+- Documents are a core feature of CrewX agent system
+- Layout templates depend on document rendering
+- Previous bugs (97b5631, 98a6656) broke document flow
+- Must verify in EVERY RC to prevent regressions
+
+### 2. Template Context Data Flow Test
+**Purpose:** Verify all context data flows through the template pipeline
+
+**Test Steps:**
+1. Test agent metadata access:
+   ```yaml
+   prompt: |
+     Agent ID: {{agent.id}}
+     Platform: {{platform}}
+     Mode: {{mode}}
+   ```
+
+2. Verify vars are accessible:
+   ```yaml
+   prompt: |
+     Security Key: {{vars.security_key}}
+   ```
+
+3. Test platform-specific metadata (if applicable)
+
+**Expected Result:**
+- All template variables resolve correctly
+- No "undefined" or missing values
+
+### 3. Multi-Platform Test (CLI + MCP)
+**Purpose:** Verify features work across platforms
+
+**Test Steps:**
+1. Test same agent configuration in CLI mode:
+   ```bash
+   crewx query "@agent test"
+   ```
+
+2. Test in MCP mode (if applicable):
+   - Via MCP tool interface
+
+**Expected Result:**
+- Both platforms render templates correctly
+- Same behavior across platforms
+
 ## Important Notes:
 - Use small models (haiku) to minimize costs (90% haiku, 10% sonnet)
 - Focus on parallel execution tests (most common bug area)
 - Create detailed test reports with execution times and results
 - Always use the Bash tool to run CLI commands, not MCP tools
 - Check if files are created in the correct working_directory
+- **ALWAYS run document rendering smoke test for RC releases**
