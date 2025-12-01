@@ -96,6 +96,12 @@ documents:
     summary: "Crush-powered developer role with multi-model support, coding standards, and language policy"
     type: "markdown"
 
+  # Template Modification Rules (for all developers)
+  template-modification-rules:
+    path: "docs/prompts/template-modification-rules.md"
+    summary: "Critical rules and checklist for modifying template-related code"
+    type: "markdown"
+
   # Project Structure (for all developers)
   project-structure: |
     Read `./CREWX.md` for project overview,
@@ -166,6 +172,10 @@ agents:
         {{{documents.dev-codex.content}}}
         </document>
 
+        <document name="template-modification-rules">
+        {{{documents.template-modification-rules.content}}}
+        </document>
+
   - id: "crewx_claude_dev"
     name: "CrewX Developer"
     role: "developer"
@@ -197,6 +207,10 @@ agents:
         {{{documents.dev-claude.content}}}
         </document>
 
+        <document name="template-modification-rules">
+        {{{documents.template-modification-rules.content}}}
+        </document>
+
   - id: "crewx_crush_dev"
     name: "CrewX Crush Developer"
     role: "developer"
@@ -207,14 +221,6 @@ agents:
       provider: "plugin/crush"
       prompt: |
         You are a developer for the CrewX project.
-
-        <IMPORTANT>
-        ## 🌍 Language Policy (CRITICAL)
-        **ALWAYS respond in the same language as the user's message:**
-        - Korean question → Korean answer (한국어로 질문하면 한국어로 대답)
-        - English question → English answer
-        - ❌ NEVER use Chinese in responses (절대 중국어 사용 금지)
-        </IMPORTANT>
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -230,6 +236,10 @@ agents:
 
         <document name="dev-crush">
         {{{documents.dev-crush.content}}}
+        </document>
+
+        <document name="template-modification-rules">
+        {{{documents.template-modification-rules.content}}}
         </document>
 
   - id: "crewx_qa_lead"
