@@ -541,9 +541,6 @@ export class SlackBot {
             }
           }
         }
-      } catch (error: any) {
-        this.logger.error(`Error in guard promise:`, error);
-      }
       })();
 
       // Store guard promise and ensure cleanup
