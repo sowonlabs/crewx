@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-cli",
-  "version": "0.7.6-rc.3",
+  "version": "0.7.7",
   "license": "MIT",
   "description": "SowonAI CrewX CLI - Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
   "private": false,
@@ -69,7 +69,7 @@
     "@nestjs/platform-express": "^11.0.0",
     "@slack/bolt": "^4.4.0",
     "@slack/web-api": "^7.10.0",
-    "@sowonai/crewx-sdk": "^0.7.6-rc.1",
+    "@sowonai/crewx-sdk": "^0.7.7",
     "@sowonai/nestjs-mcp-adapter": "^0.1.3",
     "@types/js-yaml": "^4.0.9",
     "@types/mdast": "^4.0.4",
