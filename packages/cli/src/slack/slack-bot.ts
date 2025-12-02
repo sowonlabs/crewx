@@ -18,6 +18,7 @@ export class SlackBot {
   private botId: string | null = null;
   private readonly mode: 'query' | 'execute';
   private readonly mentionOnly: boolean;
+  private readonly threadGuards: Map<string, Promise<void>> = new Map();
 
   constructor(
     private readonly crewXTool: CrewXTool,
@@ -143,48 +144,61 @@ export class SlackBot {
           include_all_metadata: true, // 🔑 CRITICAL: Required to get event_payload in metadata!
         });
 
-        // Find the last bot message (crewx_response) in the thread
-        // Support both event types for compatibility with different bot implementations
-        const lastBotMessage = [...threadHistory.messages]
-          .reverse()
-          .find((msg: any) =>
-            msg.metadata?.event_type === 'crewx_response'
-          );
+        // Find the LAST MESSAGE in the thread (user or bot)
+        // Exclude the current incoming message by checking timestamp
+        const lastMessage = [...threadHistory.messages]
+          .filter((msg: any) => msg.ts !== message.ts) // Exclude current message
+          .reverse()[0]; // Get the last message (most recent before current)
 
-        if (lastBotMessage) {
-          // Check if the last bot message was from this agent
-          let lastAgentId = lastBotMessage.metadata?.event_payload?.agent_id;
+        if (!lastMessage) {
+          // No previous messages in thread, bot should respond (first message in thread)
+          this.logger.log(`✅ DECISION: No previous messages in thread → RESPOND`);
+          return true;
+        }
 
-          // FALLBACK: Parse agent ID from message text if metadata is missing
-          // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
-          if (!lastAgentId && lastBotMessage.text) {
-            const agentMatch = lastBotMessage.text.match(/@([a-zA-Z0-9_]+)\)/);
-            if (agentMatch) {
-              lastAgentId = agentMatch[1];
-              this.logger.log(`🔧 Fallback: Extracted agent ID from message text: ${lastAgentId}`);
-            }
-          }
+        // Check if last message was from a bot
+        const lastMessageIsBot = !!lastMessage.bot_id || lastMessage.metadata?.event_type === 'crewx_response';
 
-          const isLastSpeaker = lastAgentId === this.defaultAgent;
+        if (!lastMessageIsBot) {
+          // Last message was from a user → bot should respond
+          this.logger.log(`✅ DECISION: Last message from user → RESPOND`);
+          return true;
+        }
 
-          if (isLastSpeaker) {
-            this.logger.log(`✅ DECISION: Bot is last speaker → RESPOND`);
-            return true;
-          } else {
-            this.logger.log(`⏭️  DECISION: Another bot is last speaker (${lastAgentId}) → SKIP`);
-            return false;
+        // Last message was from a bot → check if it was THIS bot's agent
+        let lastAgentId = lastMessage.metadata?.event_payload?.agent_id;
+
+        // FALLBACK 1: Parse agent ID from message text if metadata is missing
+        // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
+        if (!lastAgentId && lastMessage.text) {
+          const agentMatch = lastMessage.text.match(/@([a-zA-Z0-9_]+)\)/);
+          if (agentMatch) {
+            lastAgentId = agentMatch[1];
+            this.logger.log(`🔧 Fallback 1: Extracted agent ID from message text: ${lastAgentId}`);
           }
         }
 
-        // If no bot messages found, check if bot has participated at all
-        // Bot messages have bot_id, user messages have user
-        const botParticipated = threadHistory.messages.some(
-          (msg: any) => msg.user === botUserId || msg.bot_id === this.botId
-        );
+        // FALLBACK 2: Check bot_id if metadata is still missing
+        // If the last bot message has bot_id === this.botId, it's from this bot
+        if (!lastAgentId && lastMessage.bot_id === this.botId) {
+          lastAgentId = this.defaultAgent;
+          this.logger.log(`🔧 Fallback 2: bot_id matches this bot (${this.botId}) → treating as ${this.defaultAgent}`);
+          this.logger.warn(`⚠️  Metadata missing for bot message! bot_id=${lastMessage.bot_id}, assuming agent=${this.defaultAgent}`);
+        }
 
-        if (botParticipated) {
-          this.logger.log(`✅ DECISION: Bot participated (fallback) → RESPOND`);
+        // If still no agent ID identified, log warning
+        if (!lastAgentId) {
+          this.logger.warn(`⚠️  Could not identify last speaker! No metadata, no text match, bot_id=${lastMessage.bot_id}`);
+        }
+
+        const isLastSpeaker = lastAgentId === this.defaultAgent;
+
+        if (isLastSpeaker) {
+          this.logger.log(`✅ DECISION: This bot was last speaker → RESPOND`);
           return true;
+        } else {
+          this.logger.log(`⏭️  DECISION: Another bot was last speaker (${lastAgentId}) → SKIP`);
+          return false;
         }
       } catch (error: any) {
         this.logger.warn(`Failed to check thread participation: ${error.message}`);
@@ -304,6 +318,25 @@ export class SlackBot {
         return;
       }
 
+      const threadTs = message.thread_ts || message.ts;
+      const threadId = `${message.channel}:${threadTs}`;
+
+      // Per-thread guard: Prevent concurrent responses in the same thread
+      const existingGuard = this.threadGuards.get(threadId);
+      if (existingGuard) {
+        this.logger.warn(`⚠️  Thread ${threadId} is already being processed, skipping duplicate request`);
+        try {
+          await client.reactions.add({
+            channel: message.channel,
+            timestamp: message.ts,
+            name: 'hourglass_flowing_sand', // ⏳ emoji - processing in progress
+          });
+        } catch (reactionError) {
+          this.logger.warn(`Could not add hourglass reaction: ${reactionError}`);
+        }
+        return;
+      }
+
       this.logger.log(`🚀 Processing Slack request from user ${message.user}`);
 
       // Add "processing" reaction to original message (eyes = watching/processing)
@@ -317,15 +350,14 @@ export class SlackBot {
         this.logger.warn(`Could not add reaction: ${reactionError}`);
       }
 
-      const threadTs = message.thread_ts || message.ts;
-      const threadId = `${message.channel}:${threadTs}`;
+      // Create guard promise for this thread
+      const guardPromise = (async () => {
+        try {
+          // Initialize conversation history provider with Slack client
+          this.conversationHistory.initialize(client);
 
-      try {
-        // Initialize conversation history provider with Slack client
-        this.conversationHistory.initialize(client);
-
-        // Build context with thread history (clean, no internal metadata)
-        let contextText = '';
+          // Build context with thread history (clean, no internal metadata)
+          let contextText = '';
 
         // Invalidate cache to ensure fresh data on next fetch from Slack API
         try {
@@ -462,67 +494,67 @@ export class SlackBot {
             timestamp: message.ts,
             name: 'white_check_mark', // ✅ emoji
           });
-        } catch (reactionError) {
-          this.logger.warn(`Could not update reaction: ${reactionError}`);
-        }
-      } catch (error: any) {
-        this.logger.error(`Error executing request:`, error);
-        
-        // Send error message as thread reply
-        await say({
-          text: `❌ Error: ${error.message}`,
-          thread_ts: message.thread_ts || message.ts,
-          metadata: {
-            event_type: 'crewx_response',
-            event_payload: {
-              agent_id: this.defaultAgent,
-              provider: this.defaultAgent,
-              task_id: 'execution_error',
-            },
-          },
-        });
+          } catch (reactionError) {
+            this.logger.warn(`Could not update reaction: ${reactionError}`);
+          }
+        } catch (error: any) {
+          this.logger.error(`Error executing request:`, error);
 
-        // Remove "processing" reaction and add "error" reaction
-        try {
-          await client.reactions.remove({
-            channel: message.channel,
-            timestamp: message.ts,
-            name: 'eyes',
+          // Send error message as thread reply
+          await say({
+            text: `❌ Error: ${error.message}`,
+            thread_ts: message.thread_ts || message.ts,
+            metadata: {
+              event_type: 'crewx_response',
+              event_payload: {
+                agent_id: this.defaultAgent,
+                provider: this.defaultAgent,
+                task_id: 'execution_error',
+              },
+            },
           });
-          await client.reactions.add({
-            channel: message.channel,
-            timestamp: message.ts,
-            name: 'x', // ❌ emoji
-          });
-        } catch (reactionError) {
-          this.logger.warn(`Could not update reaction: ${reactionError}`);
-        }
-      } finally {
-        if (this.conversationHistory.isLocalLoggingEnabled()) {
+
+          // Remove "processing" reaction and add "error" reaction
           try {
-            await this.conversationHistory.fetchHistory(threadId, {
-              limit: 100,
-              maxContextLength: 4000,
+            await client.reactions.remove({
+              channel: message.channel,
+              timestamp: message.ts,
+              name: 'eyes',
+          });
+            await client.reactions.add({
+              channel: message.channel,
+              timestamp: message.ts,
+              name: 'x', // ❌ emoji
             });
-          } catch (logError: any) {
-            this.logger.warn(`Failed to refresh Slack conversation log: ${logError.message}`);
+          } catch (reactionError) {
+            this.logger.warn(`Could not update reaction: ${reactionError}`);
+          }
+        } finally {
+          if (this.conversationHistory.isLocalLoggingEnabled()) {
+            try {
+              await this.conversationHistory.fetchHistory(threadId, {
+                limit: 100,
+                maxContextLength: 4000,
+              });
+            } catch (logError: any) {
+              this.logger.warn(`Failed to refresh Slack conversation log: ${logError.message}`);
+            }
           }
         }
+      })();
+
+      // Store guard promise and ensure cleanup
+      this.threadGuards.set(threadId, guardPromise);
+
+      try {
+        await guardPromise;
+      } finally {
+        // Always remove guard after completion (success or error)
+        this.threadGuards.delete(threadId);
+        this.logger.debug(`🧹 Cleaned up guard for thread ${threadId}`);
       }
     } catch (error: any) {
-      this.logger.error(`Error handling command:`, error);
-      await say({
-        text: `❌ Internal error: ${error.message}`,
-        thread_ts: (message as any).thread_ts || (message as any).ts,
-        metadata: {
-          event_type: 'crewx_response',
-          event_payload: {
-            agent_id: this.defaultAgent,
-            provider: this.defaultAgent,
-            task_id: 'internal_error',
-          },
-        },
-      });
+      this.logger.error(`Error in handleCommand wrapper:`, error);
     }
   }
 
