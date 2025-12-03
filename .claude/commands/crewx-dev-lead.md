@@ -17,31 +17,31 @@ reports/status.md 파일을 먼저 읽어보세요.
 - **[WBS 작업 가이드](skills/crewx-wbs/)**: WBS 기반 기능 개발 프로세스 (작성법, 브랜치 전략, 릴리스 플로우)
 - **[리서치 리포트](reports/summary.md)**: 기술 조사 및 분석 문서 요약 (중요도별 분류, 킬러피처 및 로드맵 참고용)
 
-## 🐛 버그 관리 (git-bug)
+## 🐛 Bug Management (GitHub Issues)
 ```bash
-# 버그 목록 조회
-git-bug bug                           # 전체 목록
-git-bug bug ls -s open                  # 열린 버그만
-git-bug bug ls -l target_release:0.7.5  # 특정 릴리스 대상
+# List issues
+gh issue list --label "type:bug"                    # All bugs
+gh issue list --label "type:bug" --state open       # Open bugs only
+gh issue list --label "release:0.7.5" --state open  # Specific release target
 
-# 버그 상세 확인
-git-bug bug show <bug-id>               # 7자 해시 (예: 2eaa762)
+# View issue details
+gh issue view 42                                    # Issue number (e.g., #42)
 
-# 라벨 관리
-git-bug bug label <bug-id>              # 현재 라벨 확인
-git-bug bug label new <bug-id> "label"  # 라벨 추가
-git-bug bug label rm <bug-id> "label"   # 라벨 제거
+# Label management
+gh issue view 42                                    # Check current labels
+gh issue edit 42 --add-label "label"                # Add label
+gh issue edit 42 --remove-label "label"             # Remove label
 
-# 코멘트 추가
-git-bug bug comment new <bug-id> -m "메시지"
+# Add comment
+gh issue comment 42 --body "message"
 ```
 
-**라벨 컨벤션:**
-- `affected-version:X.X.X` - 버그 발생 버전
-- `target_release:X.X.X` - 수정 포함될 릴리스
-- `status:resolved/in-progress/rejected` - 작업 상태
-- `priority:높음/중간` - 우선순위
-- `component:sdk/cli/slack` - 영향 컴포넌트
+**Label Conventions:**
+- `affected-version:X.X.X` - Version where bug occurred
+- `release:X.X.X` - Target release for fix
+- `status:resolved/in-progress/rejected` - Work status
+- `priority:high/medium` - Priority level
+- `component:sdk/cli/slack` - Affected component
 
 ## 🎯 당신의 역할
 
@@ -220,3 +220,53 @@ crewx execute "@crewx_qa_lead Test X.Y.Z-rc.0"
 - ✅ **모니터링**: 작업 진행 상황 확인 및 조율
 - ✅ **의사결정**: 우선순위, 릴리스 계획 등 결정
 - ✅ **이슈 관리**: 버그 등록, rejected 사유 코멘트 추가
+- ✅ **status.md 관리**: 프로젝트 현황판 업데이트 (작업 추가/완료 시 반드시 갱신)
+
+## 📋 Issue-Based Work Process
+
+**All work is tracked through GitHub Issues.**
+
+### 1. Issue Registration
+```bash
+# Create issue
+gh issue create --title "Issue title" --body "Detailed description" --label "type:bug,priority:medium"
+
+# Add labels
+gh issue edit 42 --add-label "release:0.7.8"
+gh issue edit 42 --add-label "priority:medium"
+```
+
+### 2. Delegate to Developer
+```bash
+crewx x "@crewx_claude_dev Work on issue #42.
+
+## Task
+[Task description]
+
+## Process
+1. Create feature/42 branch using worktree
+2. [Specific task details]
+3. Commit
+4. Add comment to issue when done
+
+Follow docs/process/development-workflow.md process."
+```
+
+### 3. After Task Completion (Team Lead Must Do)
+1. **Update status.md**: Add new issue or change status
+2. **Check worktrees**: `git worktree list`
+3. **Check issue status**: `gh issue view 42`
+
+### Branch Naming Convention
+| Type | Branch Name | Example |
+|------|-------------|---------|
+| Bug fix | `bugfix/<issue-number>` | `bugfix/42` |
+| Feature | `feature/<issue-number>` | `feature/55` |
+| WBS-based | `feature/wbs-<number>` | `feature/wbs-35` |
+
+### Worktree Cleanup
+```bash
+# Clean up worktrees after release
+git worktree list                        # Check
+git worktree remove worktree/<name>      # Remove
+```
