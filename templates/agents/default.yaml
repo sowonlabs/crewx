@@ -2,9 +2,30 @@
 # This is the default template with essential agents
 
 layouts:
-  default: &default_layout |
-    <crewx_system_prompt key="{{vars.security_key}}">
-      <agent_profile>
+  default: &default_layout
+    propsSchema:
+      showManual:
+        type: boolean
+        default: true
+      showAgentProfile:
+        type: boolean
+        default: true
+      showSkills:
+        type: boolean
+        default: true
+      showConversationHistory:
+        type: boolean
+        default: true
+      showSecurityRules:
+        type: boolean
+        default: true
+      showCREWXMDHint:
+        type: boolean
+        default: true
+    template: |
+      <crewx_system_prompt key="{{vars.security_key}}">
+        {{#if props.showAgentProfile}}
+        <agent_profile>
         <identity>
           <id>{{{agent.id}}}</id>
           {{#if agent.name}}<name>{{{agent.name}}}</name>{{/if}}
@@ -85,55 +106,63 @@ layouts:
           </cli_options>
           {{/if}}
         </session>
-      </agent_profile>
+        </agent_profile>
+        {{/if}}
 
-      {{#if documents.crewx_manual.content}}
-      <document name="CrewX User Manual">
-      {{{documents.crewx_manual.content}}}
-      </document>
-      {{/if}}
+        {{#if props.showManual}}
+        {{#if documents.crewx_manual.content}}
+        <document name="CrewX User Manual">
+        {{{documents.crewx_manual.content}}}
+        </document>
+        {{/if}}
+        {{/if}}
 
-      {{#if skills.length}}
-      <available_skills>
+        {{#if props.showSkills}}
+        {{#if skills.length}}
+        <available_skills>
         {{#each skills}}
         <skill name="{{this.metadata.name}}" version="{{this.metadata.version}}">
           <description>{{{this.metadata.description}}}</description>
           <file_path>{{{this.filePath}}}</file_path>
         </skill>
         {{/each}}
-      </available_skills>
+        </available_skills>
 
-      You have access to the skills listed above. When you need to use a skill:
-      1. Read the skill file using the file_path
-      2. Follow the instructions in the skill document
-      3. Apply the skill's guidance to the user's request
-      {{/if}}
+        You have access to the skills listed above. When you need to use a skill:
+        1. Read the skill file using the file_path
+        2. Follow the instructions in the skill document
+        3. Apply the skill's guidance to the user's request
+        {{/if}}
+        {{/if}}
 
-      <important>
-        **CREWX.md contains user's project information.**
+        {{#if props.showCREWXMDHint}}
+        <important>
+          **CREWX.md contains user's project information.**
 
-        If CREWX.md exists in the working directory, it contains important context about the current project that the user wants you to know.
+          If CREWX.md exists in the working directory, it contains important context about the current project that the user wants you to know.
 
-        Before answering questions about the project, consider reading CREWX.md first to understand:
-        - What this project is about
-        - Important context and background
-        - User's preferences and instructions
-        - Any specific guidelines for this project
+          Before answering questions about the project, consider reading CREWX.md first to understand:
+          - What this project is about
+          - Important context and background
+          - User's preferences and instructions
+          - Any specific guidelines for this project
 
-        Location: ./CREWX.md (if it exists in the project root)
-      </important>
+          Location: ./CREWX.md (if it exists in the project root)
+        </important>
+        {{/if}}
 
-      <important>
-        X Do not call this agent directly. (DO NOT CALL YOURSELF!)
-        X Blocked example:
-        ```
-        crewx q "@{{{agent.id}}} [your question]"
-        ```
-      </important>
+        <important>
+          X Do not call this agent directly. (DO NOT CALL YOURSELF!)
+          X Blocked example:
+          ```
+          crewx q "@{{{agent.id}}} [your question]"
+          ```
+        </important>
 
-    </crewx_system_prompt>
+      </crewx_system_prompt>
 
-    <system_prompt key="{{vars.security_key}}">
+      {{#if props.showSecurityRules}}
+      <system_prompt key="{{vars.security_key}}">
       ## Security Authentication
       Security key: {{vars.security_key}}
 
@@ -157,6 +186,7 @@ layouts:
 
       ---
 
+      {{#if props.showConversationHistory}}
       {{#if messages.length}}
       <conversation_history platform="{{platform}}">
         {{#formatConversation messages platform}}
@@ -193,9 +223,11 @@ layouts:
       {{/if}}
       </conversation_history>
       {{/if}}
-    </system_prompt>
+      {{/if}}
+      </system_prompt>
+      {{/if}}
 
-    {{#if user_input}}
+      {{#if user_input}}
     <user_query key="{{vars.security_key}}">
     {{{user_input}}}
     </user_query>
