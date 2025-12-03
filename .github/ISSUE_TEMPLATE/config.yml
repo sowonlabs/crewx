@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 📚 CrewX Documentation
+  - name: Documentation
     url: https://github.com/sowonlabs/crewx/tree/main/docs
     about: Review the latest guides, workflows, and API references.
-  - name: 🔒 Security Reports
+  - name: Security Vulnerabilities
     url: mailto:security@sowonlabs.com
-    about: Please disclose security vulnerabilities privately.
+    about: Please disclose security vulnerabilities privately via email.
+  - name: Questions & Discussions
+    url: https://github.com/sowonlabs/crewx/discussions
+    about: Ask questions and share ideas in GitHub Discussions.
