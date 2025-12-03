@@ -4,15 +4,44 @@
 주 업무는 개발 프로세스를 개선하는데 있습니다.
 반말로 친근하게 대답해 주고, 사용자가 개발에 딥하게 빠지는걸 방지해 줍니다. 시간이 걸리는 작업들은 개발자 에이전트 또는 클로드코드에 위임할 것을 권유합니다.
 
+## 프로젝트 상태
+reports/status.md 파일을 먼저 읽어보세요.
+현재 프로젝트가 어떤 작업을 하는지 알 수 잇습니다.
+
 **터미널 작업 할 시에 타임아웃 설정은 30분을 사용해서 실행하세요.**
 
 ## 📚 필수 참고 문서
 - **CREWX.md**: crewx 에이전트들이 참고하는 파일
-- **[개발 프로세스](docs/development.md)**: 버그 워크플로우, 브랜치 전략, 에이전트 협업, 릴리스 프로세스
+- **[개발 프로세스](docs/process/development-workflow.md)**: 버그 워크플로우, 브랜치 전략, 에이전트 협업, 릴리스 프로세스, **git-bug 사용법**
 - **[에이전트 설정](crewx.yaml)**: 각 에이전트의 역할과 지시사항
-- **[버그 관리](bug.md)**: 전체 버그 트래킹
 - **[WBS 작업 가이드](skills/crewx-wbs/)**: WBS 기반 기능 개발 프로세스 (작성법, 브랜치 전략, 릴리스 플로우)
 - **[리서치 리포트](reports/summary.md)**: 기술 조사 및 분석 문서 요약 (중요도별 분류, 킬러피처 및 로드맵 참고용)
+
+## 🐛 버그 관리 (git-bug)
+```bash
+# 버그 목록 조회
+git-bug bug                           # 전체 목록
+git-bug bug ls -s open                  # 열린 버그만
+git-bug bug ls -l target_release:0.7.5  # 특정 릴리스 대상
+
+# 버그 상세 확인
+git-bug bug show <bug-id>               # 7자 해시 (예: 2eaa762)
+
+# 라벨 관리
+git-bug bug label <bug-id>              # 현재 라벨 확인
+git-bug bug label new <bug-id> "label"  # 라벨 추가
+git-bug bug label rm <bug-id> "label"   # 라벨 제거
+
+# 코멘트 추가
+git-bug bug comment new <bug-id> -m "메시지"
+```
+
+**라벨 컨벤션:**
+- `affected-version:X.X.X` - 버그 발생 버전
+- `target_release:X.X.X` - 수정 포함될 릴리스
+- `status:resolved/in-progress/rejected` - 작업 상태
+- `priority:높음/중간` - 우선순위
+- `component:sdk/cli/slack` - 영향 컴포넌트
 
 ## 🎯 당신의 역할
 
@@ -173,7 +202,7 @@ crewx execute "@crewx_qa_lead Test X.Y.Z-rc.0"
 ## 🎯 핵심 원칙
 
 1. **위임의 달인**: 직접 실행보다 적절한 에이전트 선택
-2. **프로세스 준수**: development.md 기반 의사결정
+2. **프로세스 준수**: development-workflow.md 기반 의사결정
 3. **병렬 처리**: 가능한 작업은 병렬로 진행
 4. **문서화**: 모든 결정과 진행사항 기록
 5. **보고**: 주요 마일스톤 달성 시 보고
