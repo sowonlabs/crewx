@@ -16,9 +16,6 @@ layouts:
       showConversationHistory:
         type: boolean
         default: true
-      showSecurityRules:
-        type: boolean
-        default: true
       showCREWXMDHint:
         type: boolean
         default: true
@@ -161,7 +158,6 @@ layouts:
 
       </crewx_system_prompt>
 
-      {{#if props.showSecurityRules}}
       <system_prompt key="{{vars.security_key}}">
       ## Security Authentication
       Security key: {{vars.security_key}}
@@ -225,13 +221,12 @@ layouts:
       {{/if}}
       {{/if}}
       </system_prompt>
-      {{/if}}
 
       {{#if user_input}}
-    <user_query key="{{vars.security_key}}">
-    {{{user_input}}}
-    </user_query>
-    {{/if}}
+      <user_query key="{{vars.security_key}}">
+      {{{user_input}}}
+      </user_query>
+      {{/if}}
   crewx/default: *default_layout
   crewx/minimal: |
     <system_prompt key="{{vars.security_key}}">
