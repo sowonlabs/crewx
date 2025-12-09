@@ -1,12 +1,12 @@
 # Release Manager Documentation
 
-**Version:** 1.0
-**Last Updated:** 2025-11-20
+**Version:** 1.1
+**Last Updated:** 2025-12-09
 **Owner:** Release Manager Agent (crewx_release_manager)
 
 ---
 
-## 📋 목차
+## 📋 Table of Contents
 1. [Workflow Completion Philosophy](#workflow-completion-philosophy)
 2. [Your Role](#your-role)
 3. [Scenario Selection Logic](#scenario-selection-logic)
@@ -73,7 +73,7 @@ The 0.7.5 release failure occurred because workflows were split across multiple 
 
 **Core Responsibilities:**
 - ✅ **Execute Git workflows**: Branch creation, merging, tagging
-- ✅ **RC branch management**: Create RC branches, merge bugfix/feature branches
+- ✅ **RC branch management**: Create RC branches, merge feature branches (for bugs & features)
 - ✅ **Build verification**: Run builds after merges, verify no conflicts
 - ✅ **Release preparation**: Version updates, npm publish, GitHub releases
 - ✅ **Changelog writing**: Create meaningful commit messages that explain WHAT changed for users
@@ -151,7 +151,7 @@ Before reporting to Dev Lead, verify ALL of these are complete:
 - [ ] **Merges Complete**
   - [ ] Navigated to main repo and on develop branch
   - [ ] Created RC worktree with correct branch naming
-  - [ ] Merged ALL resolved bugs in order (using bug IDs)
+  - [ ] Merged ALL resolved bugs in order (using issue numbers)
   - [ ] No unresolved merge conflicts
   - [ ] Git log shows all merge commits
 
@@ -174,7 +174,7 @@ Before reporting to Dev Lead, verify ALL of these are complete:
 
 - [ ] **Dev Lead Report**
   - [ ] Reported release branch created with version
-  - [ ] Listed exact number of bugs merged (with bug IDs)
+  - [ ] Listed exact number of bugs merged (with issue numbers)
   - [ ] Noted any merge conflicts or issues
   - [ ] Confirmed build status: ✅ SUCCESS
   - [ ] Provided worktree location for QA access
@@ -183,13 +183,8 @@ Before reporting to Dev Lead, verify ALL of these are complete:
 #### Steps
 
 ```bash
-# 1. CRITICAL: Get resolved bugs from git-bug
-git bug bug | grep 'status:resolved'
-
-# Get bug-IDs from hash map
-for hash in $(git bug bug | grep 'status:resolved' | awk '{print $1}'); do
-   grep ":$hash" /Users/doha/git/crewx/.crewx/bug-hash-map.txt | cut -d: -f1
-done
+# 1. CRITICAL: Get resolved bugs from GitHub Issues
+gh issue list --label 'status:resolved'
 
 # 2. Verify you're in the main repo AND on develop branch
 cd /Users/doha/git/crewx
@@ -202,16 +197,19 @@ git worktree add worktree/release-0.1.14 -b release/0.1.14 main
 # 4. Navigate to release worktree
 cd worktree/release-0.1.14
 
-# 5. Merge ONLY the resolved bugfix branches (--no-ff for merge commits)
-git merge --no-ff bugfix/bug-00000027
-git merge --no-ff bugfix/bug-00000021
+# 5. Merge ONLY the resolved feature branches (--no-ff for merge commits)
+# Branch format: feature/<issue-number>-<short-description>
+git merge --no-ff feature/42-fix-mcp-parsing
+git merge --no-ff feature/55-add-layout-props
 
 # 6. Copy release documentation from develop branch
 git checkout develop -- reports/releases/0.1.14/
 git add reports/releases/0.1.14/
 git commit -m "docs: add release documentation for 0.1.14"
 
-# 7. CRITICAL: Generate meaningful changelog from test plan or commit history
+# 7. CRITICAL: Generate meaningful changelog from GitHub Issues and test plan
+# Check issue details for changelog
+gh issue view 42
 cat reports/releases/0.1.14/test-plan.md
 
 # 8. Update ALL package.json versions to FIRST RC (X.X.X-rc.0)
@@ -262,11 +260,11 @@ git branch
 **Task:** Create release/0.1.14-rc.0 and integrate all resolved bugs
 
 **Executed:**
-1. Identified 10 resolved bugs from git-bug
+1. Identified 10 resolved bugs from GitHub Issues
 2. Created RC worktree: /Users/doha/git/crewx/worktree/release-0.1.14
-3. Merged all 10 bugfix branches with --no-ff:
-   - bugfix/bug-00000027 ✅
-   - bugfix/bug-00000021 ✅
+3. Merged all 10 feature branches with --no-ff:
+   - feature/27-bug-fix-a ✅
+   - feature/21-bug-fix-b ✅
    - [... list all ...]
 4. Updated ALL package versions to 0.1.14-rc.0
 5. Build verification: npm run build ✅ SUCCESS
@@ -300,7 +298,7 @@ Before reporting to Dev Lead, verify ALL of these are complete:
 
 - [ ] **Additional Merges**
   - [ ] Navigated to existing RC worktree
-  - [ ] Merged all missing bugfix branches
+  - [ ] Merged all missing feature branches
   - [ ] No merge conflicts
   - [ ] Git log shows new merge commits
 
@@ -331,9 +329,9 @@ Before reporting to Dev Lead, verify ALL of these are complete:
 # 1. Navigate to existing RC worktree
 cd /Users/doha/git/crewx/worktree/release-0.6.0
 
-# 2. Merge additional bugfix branches
-git merge --no-ff bugfix/bug-00000025
-git merge --no-ff bugfix/bug-00000026
+# 2. Merge additional feature branches
+git merge --no-ff feature/25-missing-bug-fix
+git merge --no-ff feature/26-another-fix
 
 # 3. Increment RC version (rc.0 → rc.1 or rc.2 → rc.3, etc.)
 # Update all packages
@@ -348,8 +346,8 @@ git add package.json packages/*/package.json
 git commit -m "chore: version 0.6.0-rc.3 - add missing bugs
 
 Added bugs:
-- bug-00000025: [description]
-- bug-00000026: [description]
+- #25: [description]
+- #26: [description]
 
 Incremented from rc.2 due to integration requirements."
 
@@ -372,7 +370,7 @@ git status
 **Task:** Add missing bugs to release/0.6.0 and increment version
 
 **Executed:**
-1. Merged 2 additional bugfix branches
+1. Merged 2 additional feature branches
 2. Incremented version from rc.2 to rc.3
 3. Build verification: npm run build ✅ SUCCESS
 4. Returned to main repo on develop branch
@@ -680,4 +678,4 @@ When reporting to Dev Lead, include:
 ---
 
 **Document Status:** Active
-**Last Review:** 2025-11-20
+**Last Review:** 2025-12-09
