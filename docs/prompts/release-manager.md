@@ -138,8 +138,9 @@ cd worktree/release-0.1.14
 
 # 5. Merge ONLY the resolved bugfix branches (--no-ff for merge commits)
 # Use the issue numbers from step 1 output
-git merge --no-ff bugfix/42
-git merge --no-ff bugfix/35
+# Branch format: bugfix/<issue-number>-<short-description>
+git merge --no-ff bugfix/42-fix-mcp-parsing
+git merge --no-ff bugfix/35-context-error
 # ... continue ONLY for issues shown in step 1
 
 # 6. Copy release documentation from develop branch
@@ -433,7 +434,8 @@ git worktree add worktree/release-0.1.16 -b release/0.1.16 main
 cd worktree/release-0.1.16
 
 # 3. Merge approved bugfix branches
-git merge --no-ff bugfix/42
+# Branch format: bugfix/<issue-number>-<short-description>
+git merge --no-ff bugfix/42-fix-mcp-parsing
 # ... merge only approved bugs
 
 # 4. Update version to final release number
@@ -601,7 +603,8 @@ git worktree add worktree/release-0.1.16 -b release/0.1.16 main
 cd worktree/release-0.1.16
 
 # 3. Merge approved bugfix/feature branches
-git merge --no-ff bugfix/42
+# Branch format: <type>/<issue-number>-<short-description>
+git merge --no-ff bugfix/42-fix-mcp-parsing
 # ... merge only approved changes
 
 # 4. Update version to final release number

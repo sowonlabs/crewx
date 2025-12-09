@@ -27,16 +27,46 @@ created → analyzed → in-progress → resolved → closed
 ## Branch Strategy
 
 ```
-Individual bugs:     bugfix/bug-XXXXX
+All issues:          feature/<issue-number>-<short-description>
 Integration testing: release/X.X.X-rc.N
 Stable development:  develop
 Production:          main
 ```
 
+**Branch naming rules:**
+- ALL branches use `feature/` prefix (bug/feature/chore distinction via GitHub Labels)
+- Description should be kebab-case (lowercase with hyphens)
+- Max 3-4 words in description
+- Examples: `feature/42-fix-mcp-parsing`, `feature/55-add-layout-props`, `feature/60-cleanup-tests`
+
 **Workflow:**
 ```
-bugfix/bug-XXXXX → release/X.X.X-rc.N → develop → main
+feature/<issue>-<desc> → release/X.X.X-rc.N → develop → main
 ```
+
+## Agent Work Tracking
+
+Track which agent worked on an issue via GitHub Issue comments.
+
+### 1. When Starting Work
+```bash
+gh issue comment <issue-number> --body '🤖 **@<agent-name>** started working'
+```
+
+### 2. When Work is Completed
+```bash
+gh issue comment <issue-number> --body '✅ **@<agent-name>** implementation completed
+- Branch: <branch-name>
+- Commit: <commit-hash>'
+```
+
+### 3. Add Label (Optional)
+```bash
+gh issue edit <issue-number> --add-label 'worker:<agent-name>'
+```
+
+### 4. Update status.md
+Record the agent name in the worker column
 
 ## Checking Current Release Status
 
@@ -65,7 +95,7 @@ git branch -r | grep "release/"
 NPM version: 0.3.16
 Latest tag: v0.3.16
 Latest RC reports: 0.3.16-rc.2 (PASS)
-Resolved bugs: 3개
+Resolved bugs: 3
 
 → Conclusion: 0.3.16 already released
 → Next RC: 0.3.17-rc.0 (with 3 resolved bugs)

@@ -1,32 +1,32 @@
 ---
 name: crewx-github
-description: GitHub Issues/PR 관리 가이드. 이슈 생성, 라벨 사용, PR 생성/리뷰 시 활성화.
+description: GitHub Issues/PR management guide. Activate when creating issues, using labels, or creating/reviewing PRs.
 version: 0.0.1
 ---
 
 # CrewX GitHub Skill
 
-에이전트들이 GitHub Issues/PR을 일관되게 관리할 수 있도록 하는 가이드 스킬입니다.
+A guide skill for agents to manage GitHub Issues/PRs consistently.
 
-## 목적
+## Purpose
 
-- GitHub Issues와 PR 관리 표준화
-- 라벨 사용 규칙 통일
-- `gh` CLI를 활용한 자동화 지원
+- Standardize GitHub Issues and PR management
+- Unify label usage rules
+- Support automation using `gh` CLI
 
-## 빠른 시작
+## Quick Start
 
-### 이슈 생성
+### Create Issue
 
 ```bash
-# 버그 리포트
+# Bug report
 gh issue create --template bug_report.yml
 
-# 기능 요청
+# Feature request
 gh issue create --template feature_request.yml
 ```
 
-### PR 생성
+### Create PR
 
 ```bash
 gh pr create --template PULL_REQUEST_TEMPLATE.md
@@ -36,362 +36,362 @@ gh pr create --template PULL_REQUEST_TEMPLATE.md
 
 # GitHub Labels Guide
 
-CrewX 프로젝트의 GitHub 라벨 시스템입니다. 모든 라벨은 `scripts/setup-github-labels.sh`로 설정됩니다.
+GitHub label system for the CrewX project. All labels are configured via `scripts/setup-github-labels.sh`.
 
-## 라벨 카테고리
+## Label Categories
 
-### Type Labels (유형)
+### Type Labels
 
-이슈/PR의 종류를 분류합니다.
+Classifies the type of issue/PR.
 
-| 라벨 | 색상 | 설명 | 사용 예시 |
-|------|------|------|----------|
-| `type:bug` | #d73a4a (빨강) | 버그, 오작동 | 크래시, 에러, 예상과 다른 동작 |
-| `type:feature` | #a2eeef (하늘) | 새 기능 요청 | 새 CLI 명령어, API 추가 |
-| `type:docs` | #0075ca (파랑) | 문서 개선 | README 업데이트, 가이드 추가 |
-| `type:refactor` | #fbca04 (노랑) | 코드 리팩토링 | 구조 변경 (기능 변화 없음) |
-| `type:test` | #bfd4f2 (연보라) | 테스트 개선 | 테스트 추가, 테스트 수정 |
-| `type:security` | #b60205 (진빨강) | 보안 관련 | 취약점, 보안 패치 |
-| `type:performance` | #d4c5f9 (연보라) | 성능 개선 | 속도 최적화, 메모리 개선 |
-| `type:maintenance` | #c5def5 (연파랑) | 유지보수 | 의존성 업데이트, 정리 작업 |
+| Label | Color | Description | Usage Examples |
+|-------|-------|-------------|----------------|
+| `type:bug` | #d73a4a (red) | Bug, malfunction | Crash, error, unexpected behavior |
+| `type:feature` | #a2eeef (sky) | New feature request | New CLI command, API addition |
+| `type:docs` | #0075ca (blue) | Documentation improvement | README update, guide addition |
+| `type:refactor` | #fbca04 (yellow) | Code refactoring | Structure change (no functional change) |
+| `type:test` | #bfd4f2 (light purple) | Test improvement | Add tests, fix tests |
+| `type:security` | #b60205 (dark red) | Security related | Vulnerability, security patch |
+| `type:performance` | #d4c5f9 (light purple) | Performance improvement | Speed optimization, memory improvement |
+| `type:maintenance` | #c5def5 (light blue) | Maintenance | Dependency update, cleanup |
 
-### Priority Labels (우선순위)
+### Priority Labels
 
-작업 긴급도를 표시합니다.
+Indicates work urgency.
 
-| 라벨 | 색상 | 설명 | 대응 시간 |
-|------|------|------|----------|
-| `priority:critical` | #b60205 (진빨강) | 즉시 수정 필요 | 당일 |
-| `priority:high` | #d93f0b (주황) | 빠른 수정 필요 | 1-2일 |
-| `priority:medium` | #fbca04 (노랑) | 일반 우선순위 | 스프린트 내 |
-| `priority:low` | #0e8a16 (녹색) | 낮은 우선순위 | 여유 있을 때 |
+| Label | Color | Description | Response Time |
+|-------|-------|-------------|---------------|
+| `priority:critical` | #b60205 (dark red) | Immediate fix required | Same day |
+| `priority:high` | #d93f0b (orange) | Quick fix required | 1-2 days |
+| `priority:medium` | #fbca04 (yellow) | Normal priority | Within sprint |
+| `priority:low` | #0e8a16 (green) | Low priority | When available |
 
-### Status Labels (상태)
+### Status Labels
 
-현재 진행 상태를 표시합니다.
+Indicates current progress status.
 
-| 라벨 | 색상 | 설명 |
-|------|------|------|
-| `status:triage` | #ededed (회색) | 분류 및 평가 필요 |
-| `status:confirmed` | #c2e0c6 (연녹색) | 확인됨, 작업 가능 |
-| `status:in-progress` | #0052cc (파랑) | 현재 작업 중 |
-| `status:blocked` | #b60205 (빨강) | 외부 의존성으로 차단됨 |
-| `status:needs-info` | #d876e3 (분홍) | 추가 정보 필요 |
-| `status:wontfix` | #ffffff (흰색) | 수정하지 않음 |
-| `status:duplicate` | #cfd3d7 (연회색) | 중복 이슈 |
+| Label | Color | Description |
+|-------|-------|-------------|
+| `status:triage` | #ededed (gray) | Needs classification and evaluation |
+| `status:confirmed` | #c2e0c6 (light green) | Confirmed, ready to work |
+| `status:in-progress` | #0052cc (blue) | Currently in progress |
+| `status:blocked` | #b60205 (red) | Blocked by external dependency |
+| `status:needs-info` | #d876e3 (pink) | Additional information needed |
+| `status:wontfix` | #ffffff (white) | Will not fix |
+| `status:duplicate` | #cfd3d7 (light gray) | Duplicate issue |
 
-### Component Labels (컴포넌트)
+### Component Labels
 
-영향받는 패키지/모듈을 표시합니다.
+Indicates affected package/module.
 
-| 라벨 | 색상 | 설명 |
-|------|------|------|
-| `component:cli` | #5319e7 (보라) | CLI 패키지 (packages/cli) |
-| `component:sdk` | #1d76db (파랑) | SDK 패키지 (packages/sdk) |
-| `component:slack` | #4a154b (슬랙보라) | Slack Bot 통합 |
-| `component:mcp` | #6f42c1 (보라) | MCP Server |
-| `component:docs` | #0075ca (파랑) | 문서 |
-| `component:ci` | #333333 (검정) | CI/CD, GitHub Actions |
+| Label | Color | Description |
+|-------|-------|-------------|
+| `component:cli` | #5319e7 (purple) | CLI package (packages/cli) |
+| `component:sdk` | #1d76db (blue) | SDK package (packages/sdk) |
+| `component:slack` | #4a154b (slack purple) | Slack Bot integration |
+| `component:mcp` | #6f42c1 (purple) | MCP Server |
+| `component:docs` | #0075ca (blue) | Documentation |
+| `component:ci` | #333333 (black) | CI/CD, GitHub Actions |
 
-### Release Labels (릴리즈)
+### Release Labels
 
-릴리즈 계획을 표시합니다.
+Indicates release plan.
 
-| 라벨 | 색상 | 설명 |
-|------|------|------|
-| `release:breaking` | #b60205 (빨강) | Breaking changes 포함 |
-| `release:next-minor` | #c5def5 (연파랑) | 다음 마이너 릴리즈 타겟 |
-| `release:next-patch` | #c2e0c6 (연녹색) | 다음 패치 릴리즈 타겟 |
-| `release:next-major` | #fbca04 (노랑) | 다음 메이저 릴리즈 타겟 |
+| Label | Color | Description |
+|-------|-------|-------------|
+| `release:breaking` | #b60205 (red) | Contains breaking changes |
+| `release:next-minor` | #c5def5 (light blue) | Target next minor release |
+| `release:next-patch` | #c2e0c6 (light green) | Target next patch release |
+| `release:next-major` | #fbca04 (yellow) | Target next major release |
 
-### Workflow Labels (워크플로우)
+### Workflow Labels
 
-특수한 워크플로우 상태를 표시합니다.
+Indicates special workflow status.
 
-| 라벨 | 색상 | 설명 |
-|------|------|------|
-| `good-first-issue` | #7057ff (보라) | 신규 기여자에게 적합 |
-| `help-wanted` | #008672 (청록) | 추가 관심 필요 |
-| `discussion` | #cc317c (분홍) | 구현 전 논의 필요 |
-| `rfc` | #fbca04 (노랑) | 설계 의견 요청 |
-| `needs-review` | #0e8a16 (녹색) | 코드 리뷰 필요 |
+| Label | Color | Description |
+|-------|-------|-------------|
+| `good-first-issue` | #7057ff (purple) | Suitable for new contributors |
+| `help-wanted` | #008672 (teal) | Extra attention needed |
+| `discussion` | #cc317c (pink) | Discussion needed before implementation |
+| `rfc` | #fbca04 (yellow) | Request for comments on design |
+| `needs-review` | #0e8a16 (green) | Code review needed |
 
-## 라벨 조합 규칙
+## Label Combination Rules
 
-### 필수 라벨
+### Required Labels
 
-모든 이슈에는 최소 다음 라벨이 필요합니다:
+All issues require at least the following labels:
 
-1. **type:** 라벨 (1개 필수)
-2. **priority:** 라벨 (1개 필수)
+1. **type:** label (1 required)
+2. **priority:** label (1 required)
 
-### 권장 조합
+### Recommended Combinations
 
-| 시나리오 | 권장 라벨 조합 |
-|----------|---------------|
-| 긴급 버그 | `type:bug` + `priority:critical` + `component:*` + `status:in-progress` |
-| 새 기능 | `type:feature` + `priority:*` + `component:*` + `status:triage` |
-| 보안 이슈 | `type:security` + `priority:critical` + `component:*` |
-| 문서 개선 | `type:docs` + `priority:low` + `good-first-issue` |
-| Breaking 변경 | `type:feature` + `release:breaking` + `release:next-major` |
+| Scenario | Recommended Label Combination |
+|----------|-------------------------------|
+| Critical bug | `type:bug` + `priority:critical` + `component:*` + `status:in-progress` |
+| New feature | `type:feature` + `priority:*` + `component:*` + `status:triage` |
+| Security issue | `type:security` + `priority:critical` + `component:*` |
+| Documentation improvement | `type:docs` + `priority:low` + `good-first-issue` |
+| Breaking change | `type:feature` + `release:breaking` + `release:next-major` |
 
-### 상태 전이
+### Status Transitions
 
 ```
-status:triage → status:confirmed → status:in-progress → (PR 머지) → 종료
+status:triage → status:confirmed → status:in-progress → (PR merged) → closed
                               ↘ status:wontfix
                               ↘ status:duplicate
                               ↘ status:needs-info → status:confirmed
 ```
 
-## gh CLI로 라벨 관리
+## Managing Labels with gh CLI
 
-### 라벨 조회
+### List Labels
 
 ```bash
-# 모든 라벨 목록
+# List all labels
 gh label list
 
-# 특정 패턴 검색
+# Search specific pattern
 gh label list | grep "type:"
 ```
 
-### 라벨 추가/제거
+### Add/Remove Labels
 
 ```bash
-# 이슈에 라벨 추가
-gh issue edit <번호> --add-label "priority:high,status:in-progress"
+# Add label to issue
+gh issue edit <number> --add-label "priority:high,status:in-progress"
 
-# 이슈에서 라벨 제거
-gh issue edit <번호> --remove-label "status:triage"
+# Remove label from issue
+gh issue edit <number> --remove-label "status:triage"
 ```
 
-### 라벨로 이슈 검색
+### Search Issues by Label
 
 ```bash
-# 특정 라벨 이슈 검색
+# Search issues with specific label
 gh issue list --label "type:bug,priority:critical"
 
-# 여러 라벨 조합 검색
+# Search with multiple labels
 gh issue list --label "type:bug" --label "component:cli"
 ```
 
-## 라벨 설정
+## Label Setup
 
-새 저장소에서 라벨 설정:
+Set up labels in a new repository:
 
 ```bash
 ./scripts/setup-github-labels.sh sowonlabs/crewx
 ```
 
-이 스크립트는 기존 라벨을 업데이트하고, 레거시 라벨(`bug`, `enhancement`, `documentation`)을 삭제합니다.
+This script updates existing labels and deletes legacy labels (`bug`, `enhancement`, `documentation`).
 
 ---
 
 # GitHub Issues Guide
 
-GitHub Issues 생성 및 관리 가이드입니다.
+A guide for creating and managing GitHub Issues.
 
-## 이슈 템플릿
+## Issue Templates
 
-CrewX는 3가지 이슈 템플릿을 제공합니다:
+CrewX provides 3 issue templates:
 
-| 템플릿 | 파일 | 용도 |
-|--------|------|------|
-| Bug Report | `.github/ISSUE_TEMPLATE/bug_report.yml` | 버그 리포트 |
-| Feature Request | `.github/ISSUE_TEMPLATE/feature_request.yml` | 기능 요청 |
-| Question | `.github/ISSUE_TEMPLATE/question.md` | 질문 |
+| Template | File | Purpose |
+|----------|------|---------|
+| Bug Report | `.github/ISSUE_TEMPLATE/bug_report.yml` | Bug report |
+| Feature Request | `.github/ISSUE_TEMPLATE/feature_request.yml` | Feature request |
+| Question | `.github/ISSUE_TEMPLATE/question.md` | Question |
 
-## 이슈 생성 방법
+## How to Create Issues
 
-### 1. 웹 UI 사용
+### 1. Using Web UI
 
 ```
 https://github.com/sowonlabs/crewx/issues/new/choose
 ```
 
-### 2. gh CLI 사용 (권장)
+### 2. Using gh CLI (Recommended)
 
-#### 버그 리포트
+#### Bug Report
 
 ```bash
 gh issue create --template bug_report.yml
 ```
 
-#### 기능 요청
+#### Feature Request
 
 ```bash
 gh issue create --template feature_request.yml
 ```
 
-#### 직접 생성 (템플릿 없이)
+#### Direct Creation (Without Template)
 
 ```bash
 gh issue create \
-  --title "[Bug]: 이슈 제목" \
-  --body "이슈 내용" \
+  --title "[Bug]: Issue title" \
+  --body "Issue content" \
   --label "type:bug,priority:medium"
 ```
 
-## gh CLI 이슈 명령어
+## gh CLI Issue Commands
 
-### 이슈 목록 조회
+### List Issues
 
 ```bash
-# 모든 열린 이슈
+# All open issues
 gh issue list
 
-# 특정 라벨로 필터
+# Filter by specific label
 gh issue list --label "type:bug"
 gh issue list --label "priority:critical"
 
-# 여러 라벨 조합
+# Multiple label combination
 gh issue list --label "type:bug" --label "component:cli"
 
-# 닫힌 이슈 포함
+# Include closed issues
 gh issue list --state all
 
-# JSON 출력
+# JSON output
 gh issue list --json number,title,labels
 ```
 
-### 이슈 상세 조회
+### View Issue Details
 
 ```bash
-# 이슈 내용 보기
-gh issue view <번호>
+# View issue content
+gh issue view <number>
 
-# 웹 브라우저에서 열기
-gh issue view <번호> --web
+# Open in web browser
+gh issue view <number> --web
 
-# 댓글 포함
-gh issue view <번호> --comments
+# Include comments
+gh issue view <number> --comments
 ```
 
-### 이슈 생성
+### Create Issue
 
 ```bash
-# 대화형 생성
+# Interactive creation
 gh issue create
 
-# 템플릿 사용
+# Use template
 gh issue create --template bug_report.yml
 
-# 한 줄로 생성
-gh issue create --title "[Bug]: 제목" --body "내용"
+# One-liner creation
+gh issue create --title "[Bug]: Title" --body "Content"
 
-# 라벨과 함께 생성
+# Create with labels
 gh issue create \
-  --title "[Feature]: Layout Props 기능" \
-  --body "레이아웃 섹션 on/off 가능하도록 props 지원" \
+  --title "[Feature]: Layout Props feature" \
+  --body "Support props for layout section on/off" \
   --label "type:feature,priority:medium,component:sdk"
 ```
 
-### 이슈 수정
+### Edit Issue
 
 ```bash
-# 라벨 추가
-gh issue edit <번호> --add-label "status:in-progress"
+# Add label
+gh issue edit <number> --add-label "status:in-progress"
 
-# 라벨 제거
-gh issue edit <번호> --remove-label "status:triage"
+# Remove label
+gh issue edit <number> --remove-label "status:triage"
 
-# 제목 변경
-gh issue edit <번호> --title "새 제목"
+# Change title
+gh issue edit <number> --title "New title"
 
-# 담당자 지정
-gh issue edit <번호> --add-assignee "@me"
+# Assign assignee
+gh issue edit <number> --add-assignee "@me"
 
-# 마일스톤 설정
-gh issue edit <번호> --milestone "v0.8.0"
+# Set milestone
+gh issue edit <number> --milestone "v0.8.0"
 ```
 
-### 이슈 상태 변경
+### Change Issue Status
 
 ```bash
-# 이슈 닫기
-gh issue close <번호>
+# Close issue
+gh issue close <number>
 
-# 이슈 다시 열기
-gh issue reopen <번호>
+# Reopen issue
+gh issue reopen <number>
 
-# 닫으면서 댓글 추가
-gh issue close <번호> --comment "PR #123에서 해결됨"
+# Close with comment
+gh issue close <number> --comment "Resolved in PR #123"
 ```
 
-### 이슈에 댓글 추가
+### Add Comment to Issue
 
 ```bash
-# 댓글 추가
-gh issue comment <번호> --body "작업 시작합니다"
+# Add comment
+gh issue comment <number> --body "Starting work"
 
-# HEREDOC 사용
-gh issue comment <번호> --body "$(cat <<'EOF'
-## 진행 상황
+# Using HEREDOC
+gh issue comment <number> --body "$(cat <<'EOF'
+## Progress
 
-- [x] 분석 완료
-- [ ] 구현 중
-- [ ] 테스트 예정
+- [x] Analysis complete
+- [ ] Implementation in progress
+- [ ] Testing planned
 EOF
 )"
 ```
 
-## 이슈 상태 관리
+## Issue Status Management
 
-### 상태 라벨 전이
+### Status Label Transitions
 
 ```
-[새 이슈] status:triage
+[New Issue] status:triage
     ↓
-[확인됨] status:confirmed
+[Confirmed] status:confirmed
     ↓
-[작업 시작] status:in-progress
+[Work Started] status:in-progress
     ↓
-[PR 머지] → 이슈 close
+[PR Merged] → Issue closed
 ```
 
-### 상태 업데이트 예시
+### Status Update Examples
 
 ```bash
-# 분류 완료 → 확인
+# Triage complete → Confirmed
 gh issue edit 42 \
   --remove-label "status:triage" \
   --add-label "status:confirmed"
 
-# 작업 시작
+# Start work
 gh issue edit 42 \
   --remove-label "status:confirmed" \
   --add-label "status:in-progress"
 
-# PR 머지 후 종료
-gh issue close 42 --comment "PR #50에서 해결됨"
+# Close after PR merge
+gh issue close 42 --comment "Resolved in PR #50"
 ```
 
-## 에이전트용 이슈 생성 예시
+## Issue Creation Examples for Agents
 
-### 버그 이슈
+### Bug Issue
 
 ```bash
 gh issue create \
-  --title "[Bug]: MCP 응답 파싱 에러" \
+  --title "[Bug]: MCP response parsing error" \
   --body "$(cat <<'EOF'
 ## Bug Description
 
-MCP 서버 응답에서 JSON 파싱 에러가 발생합니다.
+JSON parsing error occurs in MCP server response.
 
 ## Steps to Reproduce
 
-1. `crewx mcp` 실행
-2. 잘못된 형식의 요청 전송
-3. 에러 발생
+1. Run `crewx mcp`
+2. Send malformed request
+3. Error occurs
 
 ## Expected Behavior
 
-에러 메시지와 함께 graceful하게 실패해야 함
+Should fail gracefully with error message
 
 ## Actual Behavior
 
-프로세스가 크래시됨
+Process crashes
 
 ## Environment
 
@@ -403,19 +403,19 @@ EOF
   --label "type:bug,priority:high,component:mcp,status:triage"
 ```
 
-### 기능 요청 이슈
+### Feature Request Issue
 
 ```bash
 gh issue create \
-  --title "[Feature]: Layout Props로 기본 섹션 on/off 기능" \
+  --title "[Feature]: Layout Props for section on/off" \
   --body "$(cat <<'EOF'
 ## Problem Statement
 
-crewx/default 레이아웃 사용 시 특정 섹션만 표시하고 싶음
+Want to show only specific sections when using crewx/default layout
 
 ## Proposed Solution
 
-props를 통해 섹션별 on/off 가능하도록 구현:
+Implement section on/off via props:
 - showManual: bool
 - showAgentProfile: bool
 - showSkills: bool
@@ -423,8 +423,8 @@ props를 통해 섹션별 on/off 가능하도록 구현:
 
 ## Use Cases
 
-1. 간단한 에이전트에서 불필요한 섹션 숨기기
-2. 프롬프트 토큰 절약
+1. Hide unnecessary sections in simple agents
+2. Save prompt tokens
 
 ## Affected Component
 
@@ -434,48 +434,22 @@ EOF
   --label "type:feature,priority:medium,component:sdk,status:triage"
 ```
 
-## git-bug에서 GitHub Issues로 마이그레이션
+## Linking Issues and PRs
 
-### 마이그레이션 절차
+### Auto-close Keywords
 
-1. git-bug 이슈 조회
-2. GitHub Issue 생성
-3. git-bug에 마이그레이션 기록
-4. (선택) git-bug 이슈 종료
-
-```bash
-# 1. git-bug 이슈 조회
-git bug bug show <hash>
-
-# 2. GitHub Issue 생성
-gh issue create \
-  --title "[Feature]: 제목" \
-  --body "내용..." \
-  --label "type:feature,..."
-
-# 3. git-bug에 마이그레이션 기록
-git bug bug comment new <hash> --message "Migrated to GitHub Issue #XX"
-
-# 4. (선택) git-bug 종료
-git bug bug close <hash>
-```
-
-## 이슈와 PR 연결
-
-### 자동 종료 키워드
-
-PR에서 다음 키워드 사용 시 머지되면 이슈 자동 종료:
+When these keywords are used in a PR, the issue is automatically closed on merge:
 
 - `Closes #123`
 - `Fixes #123`
 - `Resolves #123`
 
-### PR 본문 예시
+### PR Body Example
 
 ```markdown
 ## Summary
 
-Layout Props 기능 구현
+Implement Layout Props feature
 
 ## Related Issues
 
@@ -483,21 +457,21 @@ Layout Props 기능 구현
 - Related to #35
 ```
 
-## 이슈 검색 팁
+## Issue Search Tips
 
-### 고급 검색
+### Advanced Search
 
 ```bash
-# 내가 생성한 이슈
+# Issues I created
 gh issue list --author "@me"
 
-# 내게 할당된 이슈
+# Issues assigned to me
 gh issue list --assignee "@me"
 
-# 최근 업데이트된 이슈
+# Recently updated issues
 gh issue list --json number,title,updatedAt | jq 'sort_by(.updatedAt) | reverse'
 
-# 댓글 없는 이슈
+# Issues without comments
 gh issue list --json number,title,comments | jq '[.[] | select(.comments | length == 0)]'
 ```
 
@@ -505,36 +479,36 @@ gh issue list --json number,title,comments | jq '[.[] | select(.comments | lengt
 
 # GitHub Pull Request Guide
 
-GitHub PR 생성 및 리뷰 가이드입니다.
+A guide for creating and reviewing GitHub PRs.
 
-## PR 템플릿
+## PR Template
 
-CrewX는 표준 PR 템플릿을 제공합니다:
-- 위치: `.github/PULL_REQUEST_TEMPLATE.md`
+CrewX provides a standard PR template:
+- Location: `.github/PULL_REQUEST_TEMPLATE.md`
 
-## PR 생성 방법
+## How to Create PRs
 
-### 1. gh CLI 사용 (권장)
+### 1. Using gh CLI (Recommended)
 
 ```bash
-# 대화형 생성
+# Interactive creation
 gh pr create
 
-# 한 줄로 생성
-gh pr create --title "제목" --body "내용"
+# One-liner creation
+gh pr create --title "Title" --body "Content"
 
-# 템플릿 사용
+# Use template
 gh pr create --template PULL_REQUEST_TEMPLATE.md
 ```
 
-### 2. 상세 PR 생성
+### 2. Detailed PR Creation
 
 ```bash
-gh pr create --title "feat(sdk): Layout Props 기능 추가" --body "$(cat <<'EOF'
+gh pr create --title "feat(sdk): Add Layout Props feature" --body "$(cat <<'EOF'
 ## Summary
 
-- Layout 템플릿에서 props를 통해 섹션 on/off 가능하도록 구현
-- propsSchema에 5개 boolean 옵션 추가
+- Implement section on/off via props in Layout template
+- Add 5 boolean options to propsSchema
 
 ## Change Type
 
@@ -591,15 +565,15 @@ EOF
 )"
 ```
 
-## PR 템플릿 섹션 설명
+## PR Template Sections
 
 ### Summary
 
-변경 사항 요약. 패키지 간 영향(CLI ↔ SDK) 명시.
+Summary of changes. Specify cross-package impact (CLI ↔ SDK).
 
 ### Change Type
 
-체크리스트 형식:
+Checklist format:
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
@@ -609,202 +583,207 @@ EOF
 
 ### Related Issues / WBS Items
 
-- `Closes #123` - PR 머지 시 자동으로 이슈 종료
-- `Related to #456` - 관련 이슈 참조
-- WBS 항목이 있으면 명시
+- `Closes #123` - Automatically closes issue when PR is merged
+- `Related to #456` - Reference to related issue
+- Specify WBS items if applicable
 
 ### Testing
 
-빌드 및 테스트 수행 여부:
+Build and test execution status:
 - `npm run build`
 - `npm test --workspace @sowonai/crewx-sdk`
 - `npm test --workspace crewx`
 
 ### Checklist
 
-필수 항목:
-- Code of Conduct 확인
-- CLA 서명
-- Contributing Guide 준수
+Required items:
+- Code of Conduct confirmed
+- CLA signed
+- Contributing Guide followed
 
 ### Breaking Changes
 
-하위 호환성을 깨는 변경이 있으면 마이그레이션 가이드 제공
+If there are breaking changes, provide migration guide
 
-## gh CLI PR 명령어
+## gh CLI PR Commands
 
-### PR 목록 조회
+### List PRs
 
 ```bash
-# 열린 PR 목록
+# Open PR list
 gh pr list
 
-# 내가 만든 PR
+# PRs I created
 gh pr list --author "@me"
 
-# 리뷰 요청받은 PR
+# PRs requesting my review
 gh pr list --reviewer "@me"
 
-# 상태별 필터
+# Filter by status
 gh pr list --state all
 gh pr list --state merged
 gh pr list --state closed
 ```
 
-### PR 상세 조회
+### View PR Details
 
 ```bash
-# PR 내용 보기
-gh pr view <번호>
+# View PR content
+gh pr view <number>
 
-# 웹에서 열기
-gh pr view <번호> --web
+# Open in web
+gh pr view <number> --web
 
-# 변경 파일 목록
-gh pr diff <번호>
+# List changed files
+gh pr diff <number>
 
-# PR 체크 상태
-gh pr checks <번호>
+# PR check status
+gh pr checks <number>
 ```
 
-### PR 생성
+### Create PR
 
 ```bash
-# 기본 생성
+# Basic creation
 gh pr create
 
-# 제목과 본문 지정
-gh pr create --title "feat: 새 기능" --body "설명..."
+# Specify title and body
+gh pr create --title "feat: New feature" --body "Description..."
 
-# Draft PR 생성
+# Create Draft PR
 gh pr create --draft
 
-# Base 브랜치 지정
+# Specify base branch
 gh pr create --base develop
 
-# 라벨 추가
+# Add label
 gh pr create --label "type:feature"
 ```
 
-### PR 수정
+### Edit PR
 
 ```bash
-# 라벨 추가
-gh pr edit <번호> --add-label "needs-review"
+# Add label
+gh pr edit <number> --add-label "needs-review"
 
-# 리뷰어 추가
-gh pr edit <번호> --add-reviewer username
+# Add reviewer
+gh pr edit <number> --add-reviewer username
 
-# 제목 변경
-gh pr edit <번호> --title "새 제목"
+# Change title
+gh pr edit <number> --title "New title"
 
-# Draft → Ready 변경
-gh pr ready <번호>
+# Change Draft → Ready
+gh pr ready <number>
 ```
 
-### PR 리뷰
+### PR Review
 
 ```bash
-# 리뷰 승인
-gh pr review <번호> --approve
+# Approve review
+gh pr review <number> --approve
 
-# 변경 요청
-gh pr review <번호> --request-changes --body "수정이 필요합니다"
+# Request changes
+gh pr review <number> --request-changes --body "Changes needed"
 
-# 코멘트
-gh pr review <번호> --comment --body "LGTM!"
+# Comment
+gh pr review <number> --comment --body "LGTM!"
 ```
 
-### PR 머지
+### Merge PR
 
 ```bash
-# 머지 (기본: merge commit)
-gh pr merge <번호>
+# Merge (default: merge commit)
+gh pr merge <number>
 
-# Squash 머지
-gh pr merge <번호> --squash
+# Squash merge
+gh pr merge <number> --squash
 
-# Rebase 머지
-gh pr merge <번호> --rebase
+# Rebase merge
+gh pr merge <number> --rebase
 
-# 머지 후 브랜치 삭제
-gh pr merge <번호> --delete-branch
+# Delete branch after merge
+gh pr merge <number> --delete-branch
 
-# 자동 머지 설정 (CI 통과 후)
-gh pr merge <번호> --auto --squash
+# Auto merge (after CI passes)
+gh pr merge <number> --auto --squash
 ```
 
-## PR 브랜치 전략
+## PR Branch Strategy
 
-### 브랜치 명명 규칙
+### Branch Naming Convention
 
-| 유형 | 패턴 | 예시 |
-|------|------|------|
-| 기능 | `feature/<이름>` | `feature/layout-props` |
-| 버그 수정 | `bugfix/<hash>` | `bugfix/5f3e6b3` |
-| 핫픽스 | `hotfix/<설명>` | `hotfix/critical-crash` |
-| 릴리즈 | `release/<버전>` | `release/0.8.0-rc.0` |
+| Type | Pattern | Example |
+|------|---------|---------|
+| Feature | `feature/<issue-number>-<short-description>` | `feature/55-add-layout-props` |
+| Bug fix | `bugfix/<issue-number>-<short-description>` | `bugfix/42-fix-mcp-parsing` |
+| Hotfix | `hotfix/<issue-number>-<short-description>` | `hotfix/99-critical-crash` |
+| Release | `release/<version>` | `release/0.8.0` |
+| Chore | `chore/<issue-number>-<short-description>` | `chore/60-cleanup-tests` |
 
-### PR 워크플로우
+**Branch naming rules:**
+- description in kebab-case (lowercase + hyphens)
+- Maximum 3-4 words
+
+### PR Workflow
 
 ```
 feature/xxx → develop → release/x.x.x → main
      ↓            ↓            ↓
-   코드 리뷰    통합 테스트    릴리즈 QA
+   Code Review   Integration Test   Release QA
 ```
 
-## 리뷰 요청 방법
+## How to Request Review
 
-### 1. PR 생성 시
+### 1. When Creating PR
 
 ```bash
 gh pr create --reviewer reviewer1,reviewer2
 ```
 
-### 2. 기존 PR에 추가
+### 2. Add to Existing PR
 
 ```bash
-gh pr edit <번호> --add-reviewer reviewer1
+gh pr edit <number> --add-reviewer reviewer1
 ```
 
-### 3. 팀 리뷰 요청
+### 3. Request Team Review
 
 ```bash
-gh pr edit <번호> --add-reviewer @sowonlabs/core-team
+gh pr edit <number> --add-reviewer @sowonlabs/core-team
 ```
 
-## PR 체크 확인
+## Check PR Status
 
-### CI 상태 확인
+### CI Status Check
 
 ```bash
-# 모든 체크 상태
-gh pr checks <번호>
+# All check status
+gh pr checks <number>
 
-# 체크 통과 대기
-gh pr checks <번호> --watch
+# Wait for checks to pass
+gh pr checks <number> --watch
 ```
 
-### 실패한 체크 디버깅
+### Debug Failed Checks
 
 ```bash
-# 실패한 워크플로우 로그 조회
+# View failed workflow logs
 gh run list --limit 5
 gh run view <run-id> --log-failed
 ```
 
-## 에이전트용 PR 생성 예시
+## PR Creation Examples for Agents
 
-### 기능 PR
+### Feature PR
 
 ```bash
 gh pr create \
-  --title "feat(sdk): Layout Props 기능 추가" \
+  --title "feat(sdk): Add Layout Props feature" \
   --body "$(cat <<'EOF'
 ## Summary
 
-- Layout 템플릿에서 props를 통해 섹션 on/off 가능하도록 구현
-- propsSchema에 5개 boolean 옵션 추가
+- Implement section on/off via props in Layout template
+- Add 5 boolean options to propsSchema
 
 ## Change Type
 
@@ -828,15 +807,15 @@ EOF
   --label "type:feature,component:sdk"
 ```
 
-### 버그 수정 PR
+### Bug Fix PR
 
 ```bash
 gh pr create \
-  --title "fix(cli): MCP 응답 파싱 에러 수정" \
+  --title "fix(cli): Fix MCP response parsing error" \
   --body "$(cat <<'EOF'
 ## Summary
 
-MCP 서버 응답에서 JSON 파싱 시 발생하던 크래시 수정
+Fix crash that occurred when parsing JSON from MCP server response
 
 ## Change Type
 
@@ -860,46 +839,46 @@ EOF
   --label "type:bug,component:cli"
 ```
 
-## Draft PR 활용
+## Using Draft PRs
 
-진행 중인 작업에 대한 피드백을 받고 싶을 때:
+When you want feedback on work in progress:
 
 ```bash
-# Draft PR 생성
-gh pr create --draft --title "WIP: Layout Props 구현 중"
+# Create Draft PR
+gh pr create --draft --title "WIP: Implementing Layout Props"
 
-# 작업 완료 후 Ready로 변경
-gh pr ready <번호>
+# Change to Ready after completion
+gh pr ready <number>
 ```
 
-## Conflict 해결
+## Resolving Conflicts
 
 ```bash
-# 현재 브랜치에 base 브랜치 머지
+# Merge base branch into current branch
 git fetch origin
 git merge origin/develop
 
-# 또는 rebase
+# Or rebase
 git rebase origin/develop
 
-# Conflict 해결 후 push
+# Push after resolving conflicts
 git push --force-with-lease
 ```
 
 ---
 
-## 관련 리소스
+## Related Resources
 
-- 라벨 설정 스크립트: `scripts/setup-github-labels.sh`
-- 이슈 템플릿: `.github/ISSUE_TEMPLATE/`
-- PR 템플릿: `.github/PULL_REQUEST_TEMPLATE.md`
+- Label setup script: `scripts/setup-github-labels.sh`
+- Issue templates: `.github/ISSUE_TEMPLATE/`
+- PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 
-## 라벨 카테고리 요약
+## Label Category Summary
 
-| 카테고리 | 용도 | 예시 |
-|----------|------|------|
-| `type:*` | 이슈/PR 유형 분류 | `type:bug`, `type:feature` |
-| `priority:*` | 우선순위 | `priority:high`, `priority:critical` |
-| `status:*` | 현재 상태 | `status:triage`, `status:in-progress` |
-| `component:*` | 영향받는 컴포넌트 | `component:cli`, `component:sdk` |
-| `release:*` | 릴리즈 타겟 | `release:next-minor` |
+| Category | Purpose | Examples |
+|----------|---------|----------|
+| `type:*` | Issue/PR type classification | `type:bug`, `type:feature` |
+| `priority:*` | Priority level | `priority:high`, `priority:critical` |
+| `status:*` | Current status | `status:triage`, `status:in-progress` |
+| `component:*` | Affected component | `component:cli`, `component:sdk` |
+| `release:*` | Release target | `release:next-minor` |

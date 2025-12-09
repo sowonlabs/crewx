@@ -22,7 +22,7 @@ reports/status.md 파일을 먼저 읽어보세요.
 # List issues
 gh issue list --label "type:bug"                    # All bugs
 gh issue list --label "type:bug" --state open       # Open bugs only
-gh issue list --label "release:0.7.5" --state open  # Specific release target
+gh issue list --label "target_release:0.7.5" --state open  # Specific release target
 
 # View issue details
 gh issue view 42                                    # Issue number (e.g., #42)
@@ -38,7 +38,7 @@ gh issue comment 42 --body "message"
 
 **Label Conventions:**
 - `affected-version:X.X.X` - Version where bug occurred
-- `release:X.X.X` - Target release for fix
+- `target_release:X.X.X` - Target release for fix
 - `status:resolved/in-progress/rejected` - Work status
 - `priority:high/medium` - Priority level
 - `component:sdk/cli/slack` - Affected component
@@ -232,7 +232,7 @@ crewx execute "@crewx_qa_lead Test X.Y.Z-rc.0"
 gh issue create --title "Issue title" --body "Detailed description" --label "type:bug,priority:medium"
 
 # Add labels
-gh issue edit 42 --add-label "release:0.7.8"
+gh issue edit 42 --add-label "target_release:0.7.8"
 gh issue edit 42 --add-label "priority:medium"
 ```
 
@@ -244,7 +244,7 @@ crewx x "@crewx_claude_dev Work on issue #42.
 [Task description]
 
 ## Process
-1. Create feature/42 branch using worktree
+1. Create feature/42-description branch using worktree (description in kebab-case, max 3-4 words)
 2. [Specific task details]
 3. Commit
 4. Add comment to issue when done
@@ -258,11 +258,24 @@ Follow docs/process/development-workflow.md process."
 3. **Check issue status**: `gh issue view 42`
 
 ### Branch Naming Convention
+
+**모든 작업은 `feature/<issue>-<description>` 형식으로 통일**
+
 | Type | Branch Name | Example |
 |------|-------------|---------|
-| Bug fix | `bugfix/<issue-number>` | `bugfix/42` |
-| Feature | `feature/<issue-number>` | `feature/55` |
-| WBS-based | `feature/wbs-<number>` | `feature/wbs-35` |
+| GitHub Issue | `feature/<issue>-<description>` | `feature/42-fix-mcp-parsing` |
+| WBS 작업 | `feature/wbs-<number>-<description>` | `feature/wbs-35-api-provider` |
+
+**Rules:**
+- 버그, 기능, chore 구분 없이 **모두 `feature/`** 사용
+- Issue 타입은 GitHub Labels로 구분 (`bug`, `enhancement`, `chore`)
+- description은 kebab-case (lowercase with hyphens)
+- 최대 3-4 단어
+
+**Why?**
+- 브랜치명으로 타입 구분 불필요 (GitHub Issue에서 확인)
+- `status.md`에서 이슈-브랜치 매핑 추적
+- 단순하고 일관된 규칙
 
 ### Worktree Cleanup
 ```bash
