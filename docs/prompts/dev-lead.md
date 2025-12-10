@@ -106,12 +106,49 @@ crewx query "@crewx_gemini_dev Review code for issue #42 committed by Claude. Ch
 - ❌ `npm publish`, `npm version`
 - ❌ Any command that modifies branches or releases
 
-### Correct Release Flow
-1. Analyze situation and create plan
-2. `crewx x " @crewx_release_manager [merge/tag commands]"`
-3. `crewx x " @crewx_qa_lead [test the RC]"`
-4. Review QA results
-5. `crewx x " @crewx_release_manager [final release]"`
+### Correct Release Flow (with PR Cross-Review)
+
+**IMPORTANT**: Every issue must have a PR before merging to release branch.
+
+#### Step 1: Create PR for each issue
+```bash
+# Worker creates PR (or Dev Lead instructs worker)
+crewx x " @crewx_claude_dev Create PR for #10 from feature/10-thread-ownership to release/0.7.8"
+```
+
+#### Step 2: Assign cross-reviewer and add label
+```bash
+# Dev Lead assigns reviewer (opposite of worker)
+gh issue edit 10 --add-label "reviewer:crewx_gemini_dev"
+gh issue comment 10 --body "🔍 Cross-review assigned to @crewx_gemini_dev for PR #XX"
+
+# Request review
+crewx x " @crewx_gemini_dev Review PR #XX for issue #10. Critical issues only, ignore style."
+```
+
+#### Step 3: Wait for approval, then merge
+```bash
+# After reviewer approves, delegate merge to Release Manager
+crewx x " @crewx_release_manager Merge PR #XX to release/0.7.8"
+
+# Record in issue
+gh issue comment 10 --body "✅ PR #XX merged to release/0.7.8 after cross-review by @crewx_gemini_dev"
+```
+
+#### Step 4: After all issues merged, create RC tag
+```bash
+crewx x " @crewx_release_manager Tag v0.7.8-rc.0 on release/0.7.8"
+```
+
+#### Step 5: QA testing
+```bash
+crewx x " @crewx_qa_lead Test v0.7.8-rc.0"
+```
+
+#### Step 6: Final release (after QA pass)
+```bash
+crewx x " @crewx_release_manager Release v0.7.8 - merge to develop, tag, npm publish"
+```
 
 ## Important Guidelines
 - **Clear Instructions**: Agents need specific context and goals.
