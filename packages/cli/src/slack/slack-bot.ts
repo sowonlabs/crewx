@@ -97,12 +97,18 @@ export class SlackBot {
   /**
    * Check if bot should respond to this message
    * - Must be explicitly mentioned OR
-   * - Must be the last speaker in the thread (prevents multiple bots responding) OR
+   * - Must be the thread owner (first bot to respond in this thread) OR
    * - No mention present and not in a thread (default agent responds)
+   *
+   * Thread Ownership Rules (FIX for Issue #10):
+   * - First bot to respond in a thread becomes the "owner"
+   * - Only the owner responds to follow-up messages without explicit mention
+   * - Other bots skip unless explicitly mentioned
+   * - This prevents multiple bots responding simultaneously
    *
    * When mentionOnly mode is enabled:
    * - ONLY responds to explicit @mentions or DMs
-   * - Does NOT auto-respond in threads (even if bot was last speaker)
+   * - Does NOT auto-respond in threads (even if bot is owner)
    */
   private async shouldRespondToMessage(message: any, client: any): Promise<boolean> {
     const botUserId = await this.getBotUserId(client);
@@ -133,9 +139,9 @@ export class SlackBot {
       return false;
     }
 
-    // 5. Check if this is a threaded message where bot was the last speaker
+    // 5. Check if this is a threaded message - apply Thread Ownership logic
     if (message.thread_ts) {
-      this.logger.log(`🧵 Thread detected, fetching history...`);
+      this.logger.log(`🧵 Thread detected, checking thread ownership...`);
       try {
         const threadHistory = await client.conversations.replies({
           channel: message.channel,
@@ -144,62 +150,63 @@ export class SlackBot {
           include_all_metadata: true, // 🔑 CRITICAL: Required to get event_payload in metadata!
         });
 
-        // Find the LAST MESSAGE in the thread (user or bot)
-        // Exclude the current incoming message by checking timestamp
-        const lastMessage = [...threadHistory.messages]
-          .filter((msg: any) => msg.ts !== message.ts) // Exclude current message
-          .reverse()[0]; // Get the last message (most recent before current)
+        // Get all messages except the current one
+        const previousMessages = [...threadHistory.messages]
+          .filter((msg: any) => msg.ts !== message.ts);
 
-        if (!lastMessage) {
+        if (previousMessages.length === 0) {
           // No previous messages in thread, bot should respond (first message in thread)
           this.logger.log(`✅ DECISION: No previous messages in thread → RESPOND`);
           return true;
         }
 
-        // Check if last message was from a bot
-        const lastMessageIsBot = !!lastMessage.bot_id || lastMessage.metadata?.event_type === 'crewx_response';
+        // ===== THREAD OWNERSHIP CHECK (Issue #10 Fix) =====
+        // Find the FIRST bot response in the thread to determine the thread owner
+        const threadOwner = this.findThreadOwner(previousMessages);
 
-        if (!lastMessageIsBot) {
-          // Last message was from a user → bot should respond
-          this.logger.log(`✅ DECISION: Last message from user → RESPOND`);
-          return true;
-        }
+        if (threadOwner) {
+          this.logger.log(`🔒 Thread owner detected: ${threadOwner}`);
 
-        // Last message was from a bot → check if it was THIS bot's agent
-        let lastAgentId = lastMessage.metadata?.event_payload?.agent_id;
-
-        // FALLBACK 1: Parse agent ID from message text if metadata is missing
-        // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
-        if (!lastAgentId && lastMessage.text) {
-          const agentMatch = lastMessage.text.match(/@([a-zA-Z0-9_]+)\)/);
-          if (agentMatch) {
-            lastAgentId = agentMatch[1];
-            this.logger.log(`🔧 Fallback 1: Extracted agent ID from message text: ${lastAgentId}`);
+          if (threadOwner === this.defaultAgent) {
+            // This bot owns the thread → RESPOND
+            this.logger.log(`✅ DECISION: This bot owns the thread → RESPOND`);
+            return true;
+          } else {
+            // Another bot owns the thread → SKIP
+            this.logger.log(`⏭️  DECISION: Another bot owns this thread (${threadOwner}) → SKIP`);
+            return false;
           }
         }
 
-        // FALLBACK 2: Check bot_id if metadata is still missing
-        // If the last bot message has bot_id === this.botId, it's from this bot
-        if (!lastAgentId && lastMessage.bot_id === this.botId) {
-          lastAgentId = this.defaultAgent;
-          this.logger.log(`🔧 Fallback 2: bot_id matches this bot (${this.botId}) → treating as ${this.defaultAgent}`);
-          this.logger.warn(`⚠️  Metadata missing for bot message! bot_id=${lastMessage.bot_id}, assuming agent=${this.defaultAgent}`);
-        }
+        // ===== NO BOT HAS RESPONDED YET =====
+        // Check if last message was from a user (this bot can become owner)
+        // FIX (Issue #10 additional case): Filter out empty user messages
+        // Valid user messages must have either text content OR file attachments (for Vision)
+        const validMessages = previousMessages.filter((msg: any) => {
+          // Bot messages are always valid conversation turns
+          if (msg.bot_id || msg.metadata?.event_type === 'crewx_response') return true;
+          // User messages must have actual text content OR files to be a valid turn
+          return (msg.text && msg.text.trim()) || (msg.files && msg.files.length > 0);
+        });
+        const lastMessage = validMessages[validMessages.length - 1];
 
-        // If still no agent ID identified, log warning
-        if (!lastAgentId) {
-          this.logger.warn(`⚠️  Could not identify last speaker! No metadata, no text match, bot_id=${lastMessage.bot_id}`);
-        }
-
-        const isLastSpeaker = lastAgentId === this.defaultAgent;
-
-        if (isLastSpeaker) {
-          this.logger.log(`✅ DECISION: This bot was last speaker → RESPOND`);
+        // If no valid messages remain after filtering, this bot can respond
+        if (!lastMessage) {
+          this.logger.log(`✅ DECISION: No valid messages in thread → RESPOND`);
           return true;
-        } else {
-          this.logger.log(`⏭️  DECISION: Another bot was last speaker (${lastAgentId}) → SKIP`);
-          return false;
         }
+
+        const lastMessageIsBot = !!lastMessage.bot_id || lastMessage.metadata?.event_type === 'crewx_response';
+
+        if (!lastMessageIsBot) {
+          // Last message was from a user, no bot has responded yet → this bot can respond
+          this.logger.log(`✅ DECISION: No bot owner yet, last message from user → RESPOND (becoming owner)`);
+          return true;
+        }
+
+        // Edge case: Bot message exists but ownership couldn't be determined
+        this.logger.warn(`⚠️  Could not determine thread owner, skipping to be safe`);
+        return false;
       } catch (error: any) {
         this.logger.warn(`Failed to check thread participation: ${error.message}`);
         return false;
@@ -209,6 +216,50 @@ export class SlackBot {
     // 6. No mention present - skip in channel to avoid unsolicited replies
     this.logger.log(`⏭️  DECISION: No mention, no thread → SKIP (channel requires explicit mention)`);
     return false;
+  }
+
+  /**
+   * Find the thread owner (first bot that responded in the thread)
+   * Returns the agent_id of the first bot response, or null if no bot has responded
+   */
+  private findThreadOwner(messages: any[]): string | null {
+    // Sort messages by timestamp (oldest first)
+    const sortedMessages = [...messages].sort((a, b) =>
+      parseFloat(a.ts) - parseFloat(b.ts)
+    );
+
+    // Find the first bot message (thread owner)
+    for (const msg of sortedMessages) {
+      const isBot = !!msg.bot_id || msg.metadata?.event_type === 'crewx_response';
+
+      if (isBot) {
+        // Try to get agent_id from metadata first
+        let agentId = msg.metadata?.event_payload?.agent_id;
+
+        // FALLBACK 1: Parse agent ID from message text
+        // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
+        if (!agentId && msg.text) {
+          const agentMatch = msg.text.match(/@([a-zA-Z0-9_]+)\)/);
+          if (agentMatch) {
+            agentId = agentMatch[1];
+            this.logger.debug(`🔧 Extracted thread owner from text: ${agentId}`);
+          }
+        }
+
+        // FALLBACK 2: Check bot_id matches this bot
+        if (!agentId && msg.bot_id === this.botId) {
+          agentId = this.defaultAgent;
+          this.logger.debug(`🔧 Thread owner matched by bot_id: ${agentId}`);
+        }
+
+        if (agentId) {
+          this.logger.debug(`🔍 Found thread owner: ${agentId} (first bot response)`);
+          return agentId;
+        }
+      }
+    }
+
+    return null; // No bot has responded in this thread yet
   }
 
   private registerHandlers() {
