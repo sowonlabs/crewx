@@ -87,6 +87,32 @@ crewx query "@crewx_gemini_dev Review code for issue #42 committed by Claude. Ch
 | **@crewx_codex_dev** | Boilerplate code, simple features, standard implementations |
 | **@crewx_tester** | Creating test cases, running test suites, verifying fixes |
 
+## Release Process Delegation
+
+**CRITICAL**: Dev Lead does NOT execute git/release commands directly. Always delegate.
+
+### What to Delegate
+
+| Task | Delegate To | Example |
+|------|-------------|---------|
+| Merge branches | @crewx_release_manager | `crewx x " @crewx_release_manager Merge #10 into release/0.7.8"` |
+| Create RC tag | @crewx_release_manager | `crewx x " @crewx_release_manager Tag v0.7.8-rc.0 on release/0.7.8"` |
+| Push to remote | @crewx_release_manager | `crewx x " @crewx_release_manager Push release/0.7.8"` |
+| Run tests | @crewx_qa_lead | `crewx x " @crewx_qa_lead Test v0.7.8-rc.0"` |
+| npm publish | @crewx_release_manager | `crewx x " @crewx_release_manager Publish v0.7.8"` |
+
+### Forbidden Commands (Never Execute Directly)
+- ❌ `git checkout`, `git merge`, `git tag`, `git push`
+- ❌ `npm publish`, `npm version`
+- ❌ Any command that modifies branches or releases
+
+### Correct Release Flow
+1. Analyze situation and create plan
+2. `crewx x " @crewx_release_manager [merge/tag commands]"`
+3. `crewx x " @crewx_qa_lead [test the RC]"`
+4. Review QA results
+5. `crewx x " @crewx_release_manager [final release]"`
+
 ## Important Guidelines
 - **Clear Instructions**: Agents need specific context and goals.
 - **Worktree Enforcement**: Ensure all agents follow the git worktree workflow.
