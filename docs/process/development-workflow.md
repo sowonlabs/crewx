@@ -68,6 +68,71 @@ gh issue edit <issue-number> --add-label 'worker:<agent-name>'
 ### 4. Update status.md
 Record the agent name in the worker column
 
+## PR Cross-Review Process
+
+**All PRs require cross-review before merge.**
+
+### Cross-Review Pairing
+
+| Worker | Reviewer |
+|--------|----------|
+| @crewx_claude_dev | @crewx_gemini_dev |
+| @crewx_gemini_dev | @crewx_claude_dev |
+| @crewx_codex_dev | @crewx_claude_dev or @crewx_gemini_dev |
+
+### Review Scope
+
+**DO Review (Critical Issues Only):**
+- ❗ Logic errors and bugs
+- ❗ Security vulnerabilities
+- ❗ Performance problems
+- ❗ Missing error handling
+- ❗ Breaking changes
+
+**DO NOT Review (Ignore):**
+- ✗ Code style preferences
+- ✗ Variable naming (unless confusing)
+- ✗ Comment formatting
+- ✗ Import ordering
+- ✗ Whitespace issues
+
+### Process Flow
+
+1. **Worker completes PR**
+   ```bash
+   gh pr create --title "..." --body "..."
+   ```
+
+2. **Dev Lead assigns reviewer**
+   ```bash
+   gh issue edit <number> --add-label "reviewer:crewx_gemini_dev"
+   crewx x "@crewx_gemini_dev Review PR #XX for critical issues only. Ignore style."
+   ```
+
+3. **Reviewer checks & comments**
+   - Approve: "✅ LGTM - No critical issues found"
+   - Request changes: "❌ Critical issue: [description]"
+
+4. **After approval → Release Manager merges**
+   ```bash
+   crewx x "@crewx_release_manager Merge PR #XX to release/X.Y.Z"
+   ```
+
+### Review Comment Template
+
+```
+## Cross-Review by @[agent_name]
+
+**Status**: ✅ Approved / ❌ Changes Requested
+
+### Critical Issues Found
+- [ ] Issue 1: ...
+- [ ] Issue 2: ...
+
+### Summary
+[Brief assessment - focus on logic, security, performance only]
+```
+
 ## Checking Current Release Status
 
 Before planning a new RC, always check the current production status:
