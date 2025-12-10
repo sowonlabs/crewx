@@ -180,13 +180,13 @@ export class SlackBot {
 
         // ===== NO BOT HAS RESPONDED YET =====
         // Check if last message was from a user (this bot can become owner)
-        // FIX (Issue #10 additional case): Filter out text-empty user messages (file-only uploads)
-        // These should not be considered "conversation turns" that reset thread ownership
+        // FIX (Issue #10 additional case): Filter out empty user messages
+        // Valid user messages must have either text content OR file attachments (for Vision)
         const validMessages = previousMessages.filter((msg: any) => {
           // Bot messages are always valid conversation turns
           if (msg.bot_id || msg.metadata?.event_type === 'crewx_response') return true;
-          // User messages must have actual text content to be a valid turn
-          return msg.text && msg.text.trim();
+          // User messages must have actual text content OR files to be a valid turn
+          return (msg.text && msg.text.trim()) || (msg.files && msg.files.length > 0);
         });
         const lastMessage = validMessages[validMessages.length - 1];
 
