@@ -1,0 +1,31 @@
+{
+  "name": "@crewx/skill-tsserver",
+  "version": "0.3.0",
+  "description": "TypeScript/JavaScript 코드 분석 스킬 - tsserver CLI 래퍼",
+  "main": "tsserver.js",
+  "bin": {
+    "crewx-tsserver": "./tsserver.js"
+  },
+  "scripts": {
+    "test": "cd ../.. && node skills/tsserver/tsserver.js find BaseAIProvider"
+  },
+  "keywords": [
+    "crewx",
+    "skill",
+    "tsserver",
+    "typescript",
+    "lsp",
+    "code-analysis"
+  ],
+  "author": "CrewX",
+  "license": "MIT",
+  "peerDependencies": {
+    "typescript": ">=4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
