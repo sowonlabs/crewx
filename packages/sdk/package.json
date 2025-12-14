@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-sdk",
-  "version": "0.7.7",
+  "version": "0.7.8-rc.2",
   "license": "Apache-2.0",
   "description": "SowonAI CrewX SDK",
   "type": "commonjs",
