@@ -106,6 +106,11 @@ export class SlackBot {
    * - Other bots skip unless explicitly mentioned
    * - This prevents multiple bots responding simultaneously
    *
+   * CRITICAL (Issue #10 v0.7.8-rc.3 fix):
+   * - If no bot has responded yet in a thread, do NOT auto-respond without mention
+   * - Bots can only "become owner" by being explicitly mentioned first
+   * - This prevents ALL bots from responding simultaneously to first non-mentioned message
+   *
    * When mentionOnly mode is enabled:
    * - ONLY responds to explicit @mentions or DMs
    * - Does NOT auto-respond in threads (even if bot is owner)
@@ -154,15 +159,27 @@ export class SlackBot {
         const previousMessages = [...threadHistory.messages]
           .filter((msg: any) => msg.ts !== message.ts);
 
-        if (previousMessages.length === 0) {
-          // No previous messages in thread, bot should respond (first message in thread)
-          this.logger.log(`✅ DECISION: No previous messages in thread → RESPOND`);
-          return true;
+        // ===== FIX (Issue #10 v0.7.8-rc.3): Filter out file-only uploads =====
+        // User messages with only files (no text) should not be considered as conversation turns
+        // This prevents: Bot A responds → User uploads file → User sends text → ALL bots respond
+        const validMessages = previousMessages.filter((msg: any) => {
+          // Bot messages are always valid conversation turns
+          if (msg.bot_id || msg.metadata?.event_type === 'crewx_response') return true;
+          // User messages must have actual text content to be a valid turn
+          // (files alone don't count as a "conversation turn" for ownership purposes)
+          return msg.text && msg.text.trim();
+        });
+
+        if (validMessages.length === 0) {
+          // No valid previous messages - this is the first real message in thread
+          // CRITICAL FIX: Do NOT auto-respond here! Require explicit mention to become owner.
+          this.logger.log(`⏭️  DECISION: No valid previous messages, no mention → SKIP (require mention to become owner)`);
+          return false;
         }
 
         // ===== THREAD OWNERSHIP CHECK (Issue #10 Fix) =====
         // Find the FIRST bot response in the thread to determine the thread owner
-        const threadOwner = this.findThreadOwner(previousMessages);
+        const threadOwner = this.findThreadOwner(validMessages);
 
         if (threadOwner) {
           this.logger.log(`🔒 Thread owner detected: ${threadOwner}`);
@@ -179,33 +196,10 @@ export class SlackBot {
         }
 
         // ===== NO BOT HAS RESPONDED YET =====
-        // Check if last message was from a user (this bot can become owner)
-        // FIX (Issue #10 additional case): Filter out empty user messages
-        // Valid user messages must have either text content OR file attachments (for Vision)
-        const validMessages = previousMessages.filter((msg: any) => {
-          // Bot messages are always valid conversation turns
-          if (msg.bot_id || msg.metadata?.event_type === 'crewx_response') return true;
-          // User messages must have actual text content OR files to be a valid turn
-          return (msg.text && msg.text.trim()) || (msg.files && msg.files.length > 0);
-        });
-        const lastMessage = validMessages[validMessages.length - 1];
-
-        // If no valid messages remain after filtering, this bot can respond
-        if (!lastMessage) {
-          this.logger.log(`✅ DECISION: No valid messages in thread → RESPOND`);
-          return true;
-        }
-
-        const lastMessageIsBot = !!lastMessage.bot_id || lastMessage.metadata?.event_type === 'crewx_response';
-
-        if (!lastMessageIsBot) {
-          // Last message was from a user, no bot has responded yet → this bot can respond
-          this.logger.log(`✅ DECISION: No bot owner yet, last message from user → RESPOND (becoming owner)`);
-          return true;
-        }
-
-        // Edge case: Bot message exists but ownership couldn't be determined
-        this.logger.warn(`⚠️  Could not determine thread owner, skipping to be safe`);
+        // CRITICAL FIX (Issue #10): Do NOT auto-respond if no bot has responded yet
+        // Bots can only "become owner" by being explicitly mentioned first
+        // This prevents ALL bots from responding simultaneously
+        this.logger.log(`⏭️  DECISION: No bot owner in thread, no mention → SKIP (require explicit mention)`);
         return false;
       } catch (error: any) {
         this.logger.warn(`Failed to check thread participation: ${error.message}`);

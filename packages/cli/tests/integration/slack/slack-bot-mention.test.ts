@@ -18,13 +18,19 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 /**
  * Helper class to simulate shouldRespondToMessage logic
- * This mirrors the actual implementation in src/slack/slack-bot.ts:91-226
+ * This mirrors the actual implementation in src/slack/slack-bot.ts:118-213
+ *
+ * Issue #10 v0.7.8-rc.3 Fix:
+ * - Filter out file-only uploads (user messages with no text)
+ * - Do NOT auto-respond if no bot has responded yet (require explicit mention)
+ * - Use thread ownership (first bot responder) for subsequent responses
  */
 class MentionLogicSimulator {
   constructor(
     private botUserId: string,
     private defaultAgent: string,
-    private mentionOnly: boolean = false
+    private mentionOnly: boolean = false,
+    private botId: string = 'B_BOT_ID' // For bot_id matching fallback
   ) {}
 
   /**
@@ -54,42 +60,88 @@ class MentionLogicSimulator {
       return false; // ⏭️ Mention-only mode: skip thread messages without mention
     }
 
-    // 5. Check if in thread and bot was last speaker
+    // 5. Check if in thread - apply Thread Ownership logic
     if (message.thread_ts) {
-      // Find last bot message with metadata (support both event types)
-      const lastBotMessage = [...threadHistory]
-        .reverse()
-        .find((msg: any) =>
-          msg.metadata?.event_type === 'crewx_response'
-        );
+      // Get previous messages (exclude current message)
+      const previousMessages = threadHistory.filter(
+        (msg: any) => msg.ts !== message.ts
+      );
 
-      if (lastBotMessage) {
-        const lastAgentId = lastBotMessage.metadata?.event_payload?.agent_id;
-        const isLastSpeaker = lastAgentId === this.defaultAgent;
+      // FIX (Issue #10 v0.7.8-rc.3): Filter out file-only uploads
+      // User messages with only files (no text) should not be considered as conversation turns
+      const validMessages = previousMessages.filter((msg: any) => {
+        // Bot messages are always valid conversation turns
+        if (msg.bot_id || msg.metadata?.event_type === 'crewx_response') return true;
+        // User messages must have actual text content to be a valid turn
+        return msg.text && msg.text.trim();
+      });
 
-        if (isLastSpeaker) {
-          return true; // ✅ Bot is last speaker
+      if (validMessages.length === 0) {
+        // No valid previous messages - this is the first real message in thread
+        // CRITICAL FIX: Do NOT auto-respond here! Require explicit mention to become owner.
+        return false; // ⏭️ Require mention to become owner
+      }
+
+      // Find thread owner (first bot that responded in the thread)
+      const threadOwner = this.findThreadOwner(validMessages);
+
+      if (threadOwner) {
+        const isOwner = threadOwner === this.defaultAgent;
+        if (isOwner) {
+          return true; // ✅ This bot owns the thread
         } else {
-          return false; // ⏭️ Another bot is last speaker
+          return false; // ⏭️ Another bot owns this thread
         }
       }
 
-      // Fallback: check if bot participated (no metadata found)
-      const botParticipated = threadHistory.some(
-        (msg: any) => msg.user === this.botUserId
-      );
-
-      if (botParticipated) {
-        return true; // ✅ Fallback: bot participated
-      }
-
-      // In thread but bot hasn't participated - still respond (default agent behavior)
-      // This allows bots to join threads when no explicit mention exists
-      return true; // ✅ Default agent joins thread
+      // No bot has responded yet - CRITICAL FIX: Do NOT auto-respond
+      // Bots can only "become owner" by being explicitly mentioned first
+      return false; // ⏭️ Require explicit mention
     }
 
     // 6. No mention present - skip in channel (require explicit mention)
     return false; // ⏭️ Channel messages need mention
+  }
+
+  /**
+   * Find the thread owner (first bot that responded in the thread)
+   * Returns the agent_id of the first bot response, or null if no bot has responded
+   */
+  private findThreadOwner(messages: any[]): string | null {
+    // Sort messages by timestamp (oldest first)
+    const sortedMessages = [...messages].sort((a, b) =>
+      parseFloat(a.ts) - parseFloat(b.ts)
+    );
+
+    // Find the first bot message (thread owner)
+    for (const msg of sortedMessages) {
+      const isBot = !!msg.bot_id || msg.metadata?.event_type === 'crewx_response';
+
+      if (isBot) {
+        // Try to get agent_id from metadata first
+        let agentId = msg.metadata?.event_payload?.agent_id;
+
+        // FALLBACK 1: Parse agent ID from message text
+        // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
+        if (!agentId && msg.text) {
+          const agentMatch = msg.text.match(/@([a-zA-Z0-9_]+)\)/);
+          if (agentMatch) {
+            agentId = agentMatch[1];
+          }
+        }
+
+        // FALLBACK 2: Check bot_id matches this bot
+        if (!agentId && msg.bot_id === this.botId) {
+          agentId = this.defaultAgent;
+        }
+
+        if (agentId) {
+          return agentId;
+        }
+      }
+    }
+
+    return null; // No bot has responded in this thread yet
   }
 }
 
@@ -172,20 +224,22 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       expect(shouldRespond).toBe(true); // ✅ Ownership maintained
     });
 
-    it('should NOT respond when another bot was last speaker', () => {
+    it('should respond when this bot is thread owner even if another bot responded later', () => {
       const userMessage = createMessage('continue', 'U_USER_1', '1000.001', '1000.004');
 
-      // Thread history: User → BotA → BotB (last) → User (current)
+      // Thread history: User → BotA (first/owner) → BotB (second) → User (current)
+      // Issue #10 v0.7.8-rc.3: Thread OWNER (first responder) maintains ownership
       const threadHistory = [
         createMessage('hello', 'U_USER_1', undefined, '1000.001'),
-        createBotMessage('From Claude', 'claude', '1000.002'),
-        createBotMessage('From Gemini', 'gemini', '1000.003'), // Gemini is last
+        createBotMessage('From Claude', 'claude', '1000.002'), // Claude is FIRST = owner
+        createBotMessage('From Gemini', 'gemini', '1000.003'), // Gemini responded second
         userMessage,
       ];
 
       const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
 
-      expect(shouldRespond).toBe(false); // ⏭️ Claude should NOT respond
+      // Claude is the thread OWNER (first bot to respond), so it should respond
+      expect(shouldRespond).toBe(true); // ✅ Claude is thread owner
     });
   });
 
@@ -228,25 +282,26 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       expect(geminiShouldRespond).toBe(true); // ✅ Gemini should respond
     });
 
-    it('should maintain ownership for last responder after concurrent response', () => {
+    it('should maintain ownership for FIRST responder after concurrent response', () => {
       const userMessage = createMessage('thanks', 'U_USER_1', '1000.001', '1000.005');
 
-      // Thread: Both bots responded, Gemini was slightly later
+      // Thread: Both bots responded, Claude was FIRST (thread owner)
+      // Issue #10 v0.7.8-rc.3: Uses thread OWNER (first responder), not last speaker
       const threadHistory = [
         createMessage('compare this', 'U_USER_1', undefined, '1000.001'),
-        createBotMessage('Claude says...', 'claude', '1000.002'),
-        createBotMessage('Gemini says...', 'gemini', '1000.003'), // Gemini last (by timestamp)
+        createBotMessage('Claude says...', 'claude', '1000.002'), // Claude FIRST = owner
+        createBotMessage('Gemini says...', 'gemini', '1000.003'), // Gemini second
         userMessage,
       ];
 
-      // From Claude bot perspective
+      // From Claude bot perspective - Claude is the thread owner (first responder)
       const claudeShouldRespond = simulator.shouldRespond(userMessage, threadHistory);
-      expect(claudeShouldRespond).toBe(false); // Gemini has ownership
+      expect(claudeShouldRespond).toBe(true); // ✅ Claude is thread owner
 
-      // From Gemini bot perspective
+      // From Gemini bot perspective - not the owner
       const geminiSimulator = new MentionLogicSimulator(BOT_GEMINI_ID, 'gemini');
       const geminiShouldRespond = geminiSimulator.shouldRespond(userMessage, threadHistory);
-      expect(geminiShouldRespond).toBe(true); // ✅ Gemini maintains ownership
+      expect(geminiShouldRespond).toBe(false); // ⏭️ Not the thread owner
     });
   });
 
@@ -272,7 +327,7 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       expect(shouldRespond).toBe(false); // ⏭️ Requires explicit mention in channel
     });
 
-    it('should handle thread with no bot messages (default agent responds)', () => {
+    it('should NOT respond to thread with no bot messages (Issue #10 fix: require mention)', () => {
       const userMessage = createMessage('hello', 'U_USER_1', '1000.001', '1000.002');
 
       const threadHistory = [
@@ -282,18 +337,22 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
 
       const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
 
-      expect(shouldRespond).toBe(true); // ✅ Default agent responds
+      // Issue #10 v0.7.8-rc.3 FIX: Do NOT auto-respond if no bot has responded yet
+      // Bots can only "become owner" by being explicitly mentioned first
+      // This prevents ALL bots from responding simultaneously to non-mentioned messages
+      expect(shouldRespond).toBe(false); // ⏭️ Require explicit mention to become owner
     });
 
-    it('should handle bot message without metadata (legacy fallback)', () => {
+    it('should handle bot message without metadata but with bot_id (fallback)', () => {
       const userMessage = createMessage('continue', 'U_USER_1', '1000.001', '1000.003');
 
       const threadHistory = [
         createMessage('hello', 'U_USER_1', undefined, '1000.001'),
         {
-          text: 'Old bot message (no metadata)',
+          text: '✅ Completed! (@claude)', // Format matches the fallback regex
           user: BOT_CLAUDE_ID,
           ts: '1000.002',
+          bot_id: 'B_BOT_ID', // Has bot_id but no metadata
           // No metadata (legacy message)
         },
         userMessage,
@@ -301,7 +360,29 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
 
       const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
 
-      expect(shouldRespond).toBe(true); // ✅ Fallback to participation check
+      // Issue #10 v0.7.8-rc.3: Uses text parsing fallback to extract agent ID
+      expect(shouldRespond).toBe(true); // ✅ Extracted owner from message text
+    });
+
+    it('should NOT respond when bot message has no metadata and no matching text pattern', () => {
+      const userMessage = createMessage('continue', 'U_USER_1', '1000.001', '1000.003');
+
+      const threadHistory = [
+        createMessage('hello', 'U_USER_1', undefined, '1000.001'),
+        {
+          text: 'Old bot message (no pattern)', // No @agent_name) pattern
+          user: BOT_CLAUDE_ID,
+          ts: '1000.002',
+          bot_id: 'B_OTHER_BOT', // Different bot_id
+          // No metadata
+        },
+        userMessage,
+      ];
+
+      const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
+
+      // Issue #10 v0.7.8-rc.3: Cannot determine owner, skip to be safe
+      expect(shouldRespond).toBe(false); // ⏭️ Unknown owner, require explicit mention
     });
   });
 
@@ -381,40 +462,45 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       expect(simulator.shouldRespond(msg2, history2)).toBe(true); // ✅ BotA continues (ownership maintained)
     });
 
-    it('Scenario: Bot switching conversation', () => {
+    it('Scenario: Bot switching conversation (thread owner perspective)', () => {
+      // Issue #10 v0.7.8-rc.3: Thread owner (FIRST responder) maintains ownership
+      // Even if another bot responds later via mention, FIRST responder remains owner
       const history = [
         createMessage(`<@${BOT_CLAUDE_ID}> start`, 'U_USER_1', undefined, '1000.001'),
-        createBotMessage('Claude here', 'claude', '1000.002'),
+        createBotMessage('Claude here', 'claude', '1000.002'), // Claude FIRST = owner
         createMessage('continue', 'U_USER_1', '1000.001', '1000.003'),
         createBotMessage('Claude continues', 'claude', '1000.004'),
         createMessage(`<@${BOT_GEMINI_ID}> your turn`, 'U_USER_1', '1000.001', '1000.005'),
         createBotMessage('Gemini here', 'gemini', '1000.006'),
       ];
 
-      // Step 5: User mentions Gemini
+      // Step 5: User mentions Gemini - Claude skips because another bot mentioned
       expect(simulator.shouldRespond(history[4], history.slice(0, 5))).toBe(false); // ⏭️ Claude skips
 
       // Step 7: User says "interesting" (no mention)
+      // Thread owner (Claude - first responder) should respond
       const msg7 = createMessage('interesting', 'U_USER_1', '1000.001', '1000.007');
       const history7 = [...history, msg7];
 
-      expect(simulator.shouldRespond(msg7, history7)).toBe(false); // Claude doesn't respond
+      // Claude is thread OWNER (first bot to respond)
+      expect(simulator.shouldRespond(msg7, history7)).toBe(true); // ✅ Claude is thread owner
 
-      // Gemini bot perspective
+      // Gemini is NOT the owner (responded second)
       const geminiSimulator = new MentionLogicSimulator(BOT_GEMINI_ID, 'gemini');
-      expect(geminiSimulator.shouldRespond(msg7, history7)).toBe(true); // ✅ Gemini has ownership
+      expect(geminiSimulator.shouldRespond(msg7, history7)).toBe(false); // ⏭️ Not thread owner
     });
 
-  it('Scenario: Cross-bot with consistent event types (crewx_response)', () => {
-    // Test scenario: both bots use crewx_response event type
+    it('Scenario: Cross-bot with consistent event types (thread owner)', () => {
+      // Test scenario: both bots use crewx_response event type
+      // Issue #10 v0.7.8-rc.3: Thread owner (FIRST responder) maintains ownership
       const BOT_CSO_ID = 'U_BOT_CSO';
       const history = [
         createMessage(`<@${BOT_CLAUDE_ID}> start`, 'U_USER_1', undefined, '1000.001'),
-        createBotMessage('CrewXDev here', 'claude', '1000.002'),
+        createBotMessage('CrewXDev here', 'claude', '1000.002'), // Claude FIRST = owner
         createMessage('continue', 'U_USER_1', '1000.001', '1000.003'),
         createBotMessage('CrewXDev continues', 'claude', '1000.004'),
         createMessage(`<@${BOT_CSO_ID}> your turn`, 'U_USER_1', '1000.001', '1000.005'),
-      // CSO bot message with crewx_response event type
+        // CSO bot message with crewx_response event type
         {
           text: '✅ Completed! (@cso)',
           user: BOT_CSO_ID,
@@ -427,19 +513,20 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
         },
       ];
 
-      // Step 7: User says "interesting" (no mention) - only CSO should respond
+      // Step 7: User says "interesting" (no mention)
+      // Thread owner (Claude - first responder) should respond
       const msg7 = createMessage('interesting', 'U_USER_1', '1000.001', '1000.007');
       const history7 = [...history, msg7];
 
-      // CrewXDev (claude) should NOT respond - CSO is last speaker
-      expect(simulator.shouldRespond(msg7, history7)).toBe(false);
+      // CrewXDev (claude) is thread OWNER (first responder)
+      expect(simulator.shouldRespond(msg7, history7)).toBe(true); // ✅ Claude is thread owner
 
-      // CSO bot perspective - should respond
+      // CSO is NOT the owner
       const csoSimulator = new MentionLogicSimulator(BOT_CSO_ID, 'cso');
-      expect(csoSimulator.shouldRespond(msg7, history7)).toBe(true); // ✅ CSO has ownership
+      expect(csoSimulator.shouldRespond(msg7, history7)).toBe(false); // ⏭️ Not thread owner
     });
 
-    it('Scenario: Multi-bot collaboration', () => {
+    it('Scenario: Multi-bot collaboration (first responder wins)', () => {
       // Step 1: Both mentioned
       const msg1 = createMessage(`<@${BOT_CLAUDE_ID}> <@${BOT_GEMINI_ID}> compare`, 'U_USER_1', undefined, '1000.001');
       const history1 = [msg1];
@@ -450,16 +537,136 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       expect(geminiSimulator.shouldRespond(msg1, history1)).toBe(true); // ✅ Gemini responds
 
       // Step 4: User says "thanks" (no mention) - who responds?
+      // Issue #10 v0.7.8-rc.3: Thread owner (FIRST responder) maintains ownership
       const msg4 = createMessage('thanks', 'U_USER_1', '1000.001', '1000.004');
       const history4 = [
         msg1,
-        createBotMessage('Claude: ...', 'claude', '1000.002'),
-        createBotMessage('Gemini: ...', 'gemini', '1000.003'), // Gemini last
+        createBotMessage('Claude: ...', 'claude', '1000.002'), // Claude FIRST = owner
+        createBotMessage('Gemini: ...', 'gemini', '1000.003'), // Gemini second
         msg4,
       ];
 
-      expect(simulator.shouldRespond(msg4, history4)).toBe(false); // Claude doesn't respond
-      expect(geminiSimulator.shouldRespond(msg4, history4)).toBe(true); // ✅ Gemini has ownership
+      // Claude is thread OWNER (first responder)
+      expect(simulator.shouldRespond(msg4, history4)).toBe(true); // ✅ Claude is thread owner
+      // Gemini is NOT the owner
+      expect(geminiSimulator.shouldRespond(msg4, history4)).toBe(false); // ⏭️ Not thread owner
+    });
+  });
+
+  describe('Issue #10 v0.7.8-rc.3 Fix: File-only Upload Scenario', () => {
+    /**
+     * This test covers the bug scenario:
+     * 1. Bot A responds in thread
+     * 2. User uploads file only (no text, text: "")
+     * 3. User sends text message
+     * Expected: Only Bot A responds (maintains ownership)
+     * Bug: ALL bots responded because file-only upload was treated as a "conversation turn"
+     */
+    it('should filter out file-only uploads and maintain thread ownership', () => {
+      const userTextMessage = createMessage('what do you think?', 'U_USER_1', '1000.001', '1000.004');
+
+      // Thread history: User mentions Bot → Bot responds → User uploads file (no text) → User sends text
+      const threadHistory = [
+        createMessage(`<@${BOT_CLAUDE_ID}> hello`, 'U_USER_1', undefined, '1000.001'), // User mentions bot
+        createBotMessage('Hi! How can I help?', 'claude', '1000.002'), // Bot responds
+        {
+          // File-only upload (no text)
+          text: '',
+          user: 'U_USER_1',
+          ts: '1000.003',
+          thread_ts: '1000.001',
+          files: [{ id: 'F123', name: 'image.png' }],
+          channel_type: 'channel',
+        },
+        userTextMessage, // User sends text (current message)
+      ];
+
+      // Claude (thread owner) should respond
+      const claudeShouldRespond = simulator.shouldRespond(userTextMessage, threadHistory);
+      expect(claudeShouldRespond).toBe(true); // ✅ Claude maintains ownership
+
+      // Gemini should NOT respond (not the thread owner)
+      const geminiSimulator = new MentionLogicSimulator(BOT_GEMINI_ID, 'gemini');
+      const geminiShouldRespond = geminiSimulator.shouldRespond(userTextMessage, threadHistory);
+      expect(geminiShouldRespond).toBe(false); // ⏭️ Not the owner
+    });
+
+    it('should NOT all bots respond to non-mentioned message in new thread (Bug #1)', () => {
+      // Scenario: User sends "111111" then "22222" without any mentions
+      // Expected: NO bots respond (they require explicit mention)
+      // Bug: ALL bots responded
+
+      const userMessage2 = createMessage('22222', 'U_USER_1', '1000.001', '1000.002');
+
+      const threadHistory = [
+        createMessage('111111', 'U_USER_1', undefined, '1000.001'), // First message (no mention)
+        userMessage2, // Second message (no mention)
+      ];
+
+      // All bots should skip - no one has been mentioned
+      const claudeShouldRespond = simulator.shouldRespond(userMessage2, threadHistory);
+      expect(claudeShouldRespond).toBe(false); // ⏭️ Require explicit mention
+
+      const geminiSimulator = new MentionLogicSimulator(BOT_GEMINI_ID, 'gemini');
+      const geminiShouldRespond = geminiSimulator.shouldRespond(userMessage2, threadHistory);
+      expect(geminiShouldRespond).toBe(false); // ⏭️ Require explicit mention
+    });
+
+    it('should correctly identify thread owner via metadata (Bug #2 - wrong agent selected)', () => {
+      // Scenario: User mentions @crewx_dev_lead but @cso responds instead
+      // This tests that the metadata agent_id is correctly used for ownership
+
+      const BOT_DEV_LEAD_ID = 'U_BOT_DEV_LEAD';
+      const BOT_CSO_ID = 'U_BOT_CSO';
+
+      const userFollowUp = createMessage('what else?', 'U_USER_1', '1000.001', '1000.003');
+
+      const threadHistory = [
+        createMessage(`<@${BOT_DEV_LEAD_ID}> hello`, 'U_USER_1', undefined, '1000.001'),
+        {
+          text: '✅ Completed! (@crewx_dev_lead)',
+          user: BOT_DEV_LEAD_ID,
+          ts: '1000.002',
+          thread_ts: '1000.001',
+          bot_id: 'B_DEV_LEAD',
+          metadata: {
+            event_type: 'crewx_response',
+            event_payload: { agent_id: 'crewx_dev_lead' }, // Correct metadata
+          },
+        },
+        userFollowUp,
+      ];
+
+      // Dev Lead should respond (thread owner)
+      const devLeadSimulator = new MentionLogicSimulator(BOT_DEV_LEAD_ID, 'crewx_dev_lead');
+      expect(devLeadSimulator.shouldRespond(userFollowUp, threadHistory)).toBe(true);
+
+      // CSO should NOT respond
+      const csoSimulator = new MentionLogicSimulator(BOT_CSO_ID, 'cso');
+      expect(csoSimulator.shouldRespond(userFollowUp, threadHistory)).toBe(false);
+    });
+
+    it('should handle empty text messages with files correctly', () => {
+      // File + text upload should count as valid conversation turn
+      const userFollowUp = createMessage('what is this?', 'U_USER_1', '1000.001', '1000.004');
+
+      const threadHistory = [
+        createMessage(`<@${BOT_CLAUDE_ID}> analyze`, 'U_USER_1', undefined, '1000.001'),
+        createBotMessage('Sure, upload a file', 'claude', '1000.002'),
+        {
+          // File WITH text (should be valid)
+          text: 'here is the file',
+          user: 'U_USER_1',
+          ts: '1000.003',
+          thread_ts: '1000.001',
+          files: [{ id: 'F456', name: 'data.csv' }],
+          channel_type: 'channel',
+        },
+        userFollowUp,
+      ];
+
+      // Claude (thread owner) should respond
+      expect(simulator.shouldRespond(userFollowUp, threadHistory)).toBe(true);
     });
   });
 });
