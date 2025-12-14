@@ -97,23 +97,23 @@ export class SlackBot {
   /**
    * Check if bot should respond to this message
    * - Must be explicitly mentioned OR
-   * - Must be the thread owner (first bot to respond in this thread) OR
+   * - Must be the active speaker (last bot to respond in this thread) OR
    * - No mention present and not in a thread (default agent responds)
    *
-   * Thread Ownership Rules (FIX for Issue #10):
-   * - First bot to respond in a thread becomes the "owner"
-   * - Only the owner responds to follow-up messages without explicit mention
-   * - Other bots skip unless explicitly mentioned
-   * - This prevents multiple bots responding simultaneously
+   * Active Speaker Model (MERGED FIX for Issues #10, #14, #15, #16):
+   * - The LAST bot to respond in a thread is the "active speaker"
+   * - Only the active speaker responds to follow-up messages without explicit mention
+   * - This allows ownership transfer when users switch bots via mentions
+   * - File-only uploads (user messages with no text) are filtered out
    *
-   * CRITICAL (Issue #10 v0.7.8-rc.3 fix):
+   * CRITICAL:
    * - If no bot has responded yet in a thread, do NOT auto-respond without mention
-   * - Bots can only "become owner" by being explicitly mentioned first
-   * - This prevents ALL bots from responding simultaneously to first non-mentioned message
+   * - Bots can only "become active speaker" by being explicitly mentioned first
+   * - This prevents ALL bots from responding simultaneously
    *
    * When mentionOnly mode is enabled:
    * - ONLY responds to explicit @mentions or DMs
-   * - Does NOT auto-respond in threads (even if bot is owner)
+   * - Does NOT auto-respond in threads (even if bot is active speaker)
    */
   private async shouldRespondToMessage(message: any, client: any): Promise<boolean> {
     const botUserId = await this.getBotUserId(client);
@@ -144,9 +144,12 @@ export class SlackBot {
       return false;
     }
 
-    // 5. Check if this is a threaded message - apply Thread Ownership logic
+    // 5. Check if this is a threaded message - apply Active Speaker logic
+    // MERGED FIX for Issues #10, #14, #15, #16:
+    // - Uses LAST responding bot as active speaker (fixes #14, #15, #16)
+    // - Filters out file-only uploads (fixes #10 edge case)
     if (message.thread_ts) {
-      this.logger.log(`🧵 Thread detected, checking thread ownership...`);
+      this.logger.log(`🧵 Thread detected, checking active speaker...`);
       try {
         const threadHistory = await client.conversations.replies({
           channel: message.channel,
@@ -155,11 +158,11 @@ export class SlackBot {
           include_all_metadata: true, // 🔑 CRITICAL: Required to get event_payload in metadata!
         });
 
-        // Get all messages except the current one
+        // Get all messages except the current incoming message
         const previousMessages = [...threadHistory.messages]
           .filter((msg: any) => msg.ts !== message.ts);
 
-        // ===== FIX (Issue #10 v0.7.8-rc.3): Filter out file-only uploads =====
+        // ===== FIX (Issue #10): Filter out file-only uploads =====
         // User messages with only files (no text) should not be considered as conversation turns
         // This prevents: Bot A responds → User uploads file → User sends text → ALL bots respond
         const validMessages = previousMessages.filter((msg: any) => {
@@ -172,34 +175,34 @@ export class SlackBot {
 
         if (validMessages.length === 0) {
           // No valid previous messages - this is the first real message in thread
-          // CRITICAL FIX: Do NOT auto-respond here! Require explicit mention to become owner.
-          this.logger.log(`⏭️  DECISION: No valid previous messages, no mention → SKIP (require mention to become owner)`);
+          // CRITICAL FIX: Do NOT auto-respond here! Require explicit mention to become active speaker.
+          this.logger.log(`⏭️  DECISION: No valid previous messages, no mention → SKIP (require mention to become active speaker)`);
           return false;
         }
 
-        // ===== THREAD OWNERSHIP CHECK (Issue #10 Fix) =====
-        // Find the FIRST bot response in the thread to determine the thread owner
-        const threadOwner = this.findThreadOwner(validMessages);
+        // ===== ACTIVE SPEAKER CHECK (Fix for #14, #15, #16) =====
+        // Find the LAST bot response in the thread to determine the active speaker
+        const activeSpeaker = this.findActiveSpeaker(validMessages);
 
-        if (threadOwner) {
-          this.logger.log(`🔒 Thread owner detected: ${threadOwner}`);
+        if (activeSpeaker) {
+          this.logger.log(`🎤 Active speaker detected: ${activeSpeaker}`);
 
-          if (threadOwner === this.defaultAgent) {
-            // This bot owns the thread → RESPOND
-            this.logger.log(`✅ DECISION: This bot owns the thread → RESPOND`);
+          if (activeSpeaker === this.defaultAgent) {
+            // This bot is the active speaker → RESPOND
+            this.logger.log(`✅ DECISION: This bot is the active speaker → RESPOND`);
             return true;
           } else {
-            // Another bot owns the thread → SKIP
-            this.logger.log(`⏭️  DECISION: Another bot owns this thread (${threadOwner}) → SKIP`);
+            // Another bot is the active speaker → SKIP
+            this.logger.log(`⏭️  DECISION: Another bot (${activeSpeaker}) is the active speaker → SKIP`);
             return false;
           }
         }
 
         // ===== NO BOT HAS RESPONDED YET =====
-        // CRITICAL FIX (Issue #10): Do NOT auto-respond if no bot has responded yet
-        // Bots can only "become owner" by being explicitly mentioned first
+        // CRITICAL FIX: Do NOT auto-respond if no bot has responded yet
+        // Bots can only "become active speaker" by being explicitly mentioned first
         // This prevents ALL bots from responding simultaneously
-        this.logger.log(`⏭️  DECISION: No bot owner in thread, no mention → SKIP (require explicit mention)`);
+        this.logger.log(`⏭️  DECISION: No active speaker in thread, no mention → SKIP (require explicit mention)`);
         return false;
       } catch (error: any) {
         this.logger.warn(`Failed to check thread participation: ${error.message}`);
@@ -213,16 +216,20 @@ export class SlackBot {
   }
 
   /**
-   * Find the thread owner (first bot that responded in the thread)
-   * Returns the agent_id of the first bot response, or null if no bot has responded
+   * Find the active speaker (LAST bot that responded in the thread)
+   * Returns the agent_id of the last bot response, or null if no bot has responded
+   *
+   * This implements the "active speaker" model:
+   * - When user switches bots via mention, the new bot becomes active speaker
+   * - Active speaker responds to subsequent unmentioned messages
    */
-  private findThreadOwner(messages: any[]): string | null {
-    // Sort messages by timestamp (oldest first)
+  private findActiveSpeaker(messages: any[]): string | null {
+    // Sort messages by timestamp (newest first) to find the LAST bot response
     const sortedMessages = [...messages].sort((a, b) =>
-      parseFloat(a.ts) - parseFloat(b.ts)
+      parseFloat(b.ts) - parseFloat(a.ts)
     );
 
-    // Find the first bot message (thread owner)
+    // Find the last bot message (active speaker)
     for (const msg of sortedMessages) {
       const isBot = !!msg.bot_id || msg.metadata?.event_type === 'crewx_response';
 
@@ -236,18 +243,18 @@ export class SlackBot {
           const agentMatch = msg.text.match(/@([a-zA-Z0-9_]+)\)/);
           if (agentMatch) {
             agentId = agentMatch[1];
-            this.logger.debug(`🔧 Extracted thread owner from text: ${agentId}`);
+            this.logger.debug(`🔧 Extracted active speaker from text: ${agentId}`);
           }
         }
 
         // FALLBACK 2: Check bot_id matches this bot
         if (!agentId && msg.bot_id === this.botId) {
           agentId = this.defaultAgent;
-          this.logger.debug(`🔧 Thread owner matched by bot_id: ${agentId}`);
+          this.logger.debug(`🔧 Active speaker matched by bot_id: ${agentId}`);
         }
 
         if (agentId) {
-          this.logger.debug(`🔍 Found thread owner: ${agentId} (first bot response)`);
+          this.logger.debug(`🔍 Found active speaker: ${agentId} (last bot response)`);
           return agentId;
         }
       }
