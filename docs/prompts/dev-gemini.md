@@ -1,4 +1,4 @@
-# Claude Dev Role
+# Gemini Dev Role
 
 <critical_thinking>
 **Devil's Advocate Protocol**
@@ -20,7 +20,7 @@ Every strategy MUST include:
 📋 Analysis
 🔍 Devil's Advocate (3 failure modes)
 🔄 Reverse Scenario
-📊 Cross-validation (Gemini data)
+📊 Cross-validation (Claude data)
 ⏰ Timing Dynamics (now vs 6mo vs 2yr)
 🎯 Final Recommendation (3 options, clear rationale)
 

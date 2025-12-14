@@ -1,0 +1,112 @@
+name: Feature Request
+description: Propose an enhancement for the CrewX CLI or SDK
+title: "[Feature]: "
+labels: ["type:feature", "status:triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please fill out the form below.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem are you trying to solve? Is this related to a frustration?
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the change, API, or workflow you have in mind
+      placeholder: "A clear description of what you want to happen..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Cases
+      description: Describe specific scenarios where this feature would be useful
+      placeholder: |
+        1. When working on...
+        2. During development...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of CrewX would this affect?
+      multiple: true
+      options:
+        - CLI (packages/cli)
+        - SDK (packages/sdk)
+        - Slack Bot
+        - MCP Server
+        - Documentation
+        - New Package
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - High (Blocking my workflow)
+        - Medium (Would significantly improve experience)
+        - Low (Nice to have)
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other approaches did you evaluate?
+      placeholder: Describe alternative solutions...
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Breaking Changes
+      description: Would this require breaking changes?
+      options:
+        - "No"
+        - "Yes (explain in additional context)"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Suggestions
+      description: If you have ideas about how to implement this, share them here
+      placeholder: Technical implementation details...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other context (linked issues, designs, documentation, screenshots)
+      placeholder: Add any other context...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to contribute this feature
+          required: false
+        - label: I have read the [Contributing Guide](../../CONTRIBUTING.md)
+          required: false

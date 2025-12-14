@@ -97,12 +97,23 @@ export class SlackBot {
   /**
    * Check if bot should respond to this message
    * - Must be explicitly mentioned OR
-   * - Must be the last speaker in the thread (prevents multiple bots responding) OR
+   * - Must be the active speaker (last bot to respond in this thread) OR
    * - No mention present and not in a thread (default agent responds)
+   *
+   * Active Speaker Model (MERGED FIX for Issues #10, #14, #15, #16):
+   * - The LAST bot to respond in a thread is the "active speaker"
+   * - Only the active speaker responds to follow-up messages without explicit mention
+   * - This allows ownership transfer when users switch bots via mentions
+   * - File-only uploads (user messages with no text) are filtered out
+   *
+   * CRITICAL:
+   * - If no bot has responded yet in a thread, do NOT auto-respond without mention
+   * - Bots can only "become active speaker" by being explicitly mentioned first
+   * - This prevents ALL bots from responding simultaneously
    *
    * When mentionOnly mode is enabled:
    * - ONLY responds to explicit @mentions or DMs
-   * - Does NOT auto-respond in threads (even if bot was last speaker)
+   * - Does NOT auto-respond in threads (even if bot is active speaker)
    */
   private async shouldRespondToMessage(message: any, client: any): Promise<boolean> {
     const botUserId = await this.getBotUserId(client);
@@ -133,13 +144,12 @@ export class SlackBot {
       return false;
     }
 
-    // 5. Check if this is a threaded message where bot was the last speaker
-    // CRITICAL FIX for #14, #15, #16: Use "active speaker" model
-    // - Find the LAST BOT response in the thread (not just last message)
-    // - Only the bot that last responded should reply to unmentioned messages
-    // - This prevents multiple bots from responding simultaneously
+    // 5. Check if this is a threaded message - apply Active Speaker logic
+    // MERGED FIX for Issues #10, #14, #15, #16:
+    // - Uses LAST responding bot as active speaker (fixes #14, #15, #16)
+    // - Filters out file-only uploads (fixes #10 edge case)
     if (message.thread_ts) {
-      this.logger.log(`🧵 Thread detected, fetching history...`);
+      this.logger.log(`🧵 Thread detected, checking active speaker...`);
       try {
         const threadHistory = await client.conversations.replies({
           channel: message.channel,
@@ -152,68 +162,48 @@ export class SlackBot {
         const previousMessages = [...threadHistory.messages]
           .filter((msg: any) => msg.ts !== message.ts);
 
-        if (previousMessages.length === 0) {
-          // No previous messages in thread - this shouldn't happen for thread_ts messages
-          // But if it does, skip responding (requires explicit mention to start)
-          this.logger.log(`⏭️  DECISION: No previous messages in thread → SKIP (requires mention)`);
+        // ===== FIX (Issue #10): Filter out file-only uploads =====
+        // User messages with only files (no text) should not be considered as conversation turns
+        // This prevents: Bot A responds → User uploads file → User sends text → ALL bots respond
+        const validMessages = previousMessages.filter((msg: any) => {
+          // Bot messages are always valid conversation turns
+          if (msg.bot_id || msg.metadata?.event_type === 'crewx_response') return true;
+          // User messages must have actual text content to be a valid turn
+          // (files alone don't count as a "conversation turn" for ownership purposes)
+          return msg.text && msg.text.trim();
+        });
+
+        if (validMessages.length === 0) {
+          // No valid previous messages - this is the first real message in thread
+          // CRITICAL FIX: Do NOT auto-respond here! Require explicit mention to become active speaker.
+          this.logger.log(`⏭️  DECISION: No valid previous messages, no mention → SKIP (require mention to become active speaker)`);
           return false;
         }
 
-        // CRITICAL FIX (#14, #15, #16): Find the LAST BOT message specifically
-        // This implements the "active speaker" concept - only the last responding bot
-        // should continue the conversation for unmentioned messages
-        const lastBotMessage = [...previousMessages]
-          .reverse() // Start from most recent
-          .find((msg: any) =>
-            msg.bot_id || // Has bot_id field
-            msg.metadata?.event_type === 'crewx_response' // Or has crewx_response metadata
-          );
+        // ===== ACTIVE SPEAKER CHECK (Fix for #14, #15, #16) =====
+        // Find the LAST bot response in the thread to determine the active speaker
+        const activeSpeaker = this.findActiveSpeaker(validMessages);
 
-        if (!lastBotMessage) {
-          // No bot has responded yet in this thread
-          // Skip - require explicit mention to join a thread
-          this.logger.log(`⏭️  DECISION: No bot has responded in thread yet → SKIP (requires mention)`);
-          return false;
-        }
+        if (activeSpeaker) {
+          this.logger.log(`🎤 Active speaker detected: ${activeSpeaker}`);
 
-        // Extract the agent ID from the last bot message
-        let lastAgentId = lastBotMessage.metadata?.event_payload?.agent_id;
-
-        // FALLBACK 1: Parse agent ID from message text if metadata is missing
-        // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
-        if (!lastAgentId && lastBotMessage.text) {
-          const agentMatch = lastBotMessage.text.match(/@([a-zA-Z0-9_]+)\)/);
-          if (agentMatch) {
-            lastAgentId = agentMatch[1];
-            this.logger.log(`🔧 Fallback 1: Extracted agent ID from message text: ${lastAgentId}`);
+          if (activeSpeaker === this.defaultAgent) {
+            // This bot is the active speaker → RESPOND
+            this.logger.log(`✅ DECISION: This bot is the active speaker → RESPOND`);
+            return true;
+          } else {
+            // Another bot is the active speaker → SKIP
+            this.logger.log(`⏭️  DECISION: Another bot (${activeSpeaker}) is the active speaker → SKIP`);
+            return false;
           }
         }
 
-        // FALLBACK 2: Check bot_id if metadata is still missing
-        // If the last bot message has bot_id === this.botId, it's from this bot
-        if (!lastAgentId && lastBotMessage.bot_id === this.botId) {
-          lastAgentId = this.defaultAgent;
-          this.logger.log(`🔧 Fallback 2: bot_id matches this bot (${this.botId}) → treating as ${this.defaultAgent}`);
-          this.logger.warn(`⚠️  Metadata missing for bot message! bot_id=${lastBotMessage.bot_id}, assuming agent=${this.defaultAgent}`);
-        }
-
-        // If still no agent ID identified, log warning and skip
-        if (!lastAgentId) {
-          this.logger.warn(`⚠️  Could not identify last speaker! No metadata, no text match, bot_id=${lastBotMessage.bot_id}`);
-          this.logger.log(`⏭️  DECISION: Cannot determine active speaker → SKIP`);
-          return false;
-        }
-
-        // CRITICAL CHECK: Only respond if THIS bot was the last speaker (active speaker)
-        const isLastSpeaker = lastAgentId === this.defaultAgent;
-
-        if (isLastSpeaker) {
-          this.logger.log(`✅ DECISION: This bot (${this.defaultAgent}) is the active speaker → RESPOND`);
-          return true;
-        } else {
-          this.logger.log(`⏭️  DECISION: Another bot (${lastAgentId}) is the active speaker → SKIP`);
-          return false;
-        }
+        // ===== NO BOT HAS RESPONDED YET =====
+        // CRITICAL FIX: Do NOT auto-respond if no bot has responded yet
+        // Bots can only "become active speaker" by being explicitly mentioned first
+        // This prevents ALL bots from responding simultaneously
+        this.logger.log(`⏭️  DECISION: No active speaker in thread, no mention → SKIP (require explicit mention)`);
+        return false;
       } catch (error: any) {
         this.logger.warn(`Failed to check thread participation: ${error.message}`);
         return false;
@@ -223,6 +213,54 @@ export class SlackBot {
     // 6. No mention present - skip in channel to avoid unsolicited replies
     this.logger.log(`⏭️  DECISION: No mention, no thread → SKIP (channel requires explicit mention)`);
     return false;
+  }
+
+  /**
+   * Find the active speaker (LAST bot that responded in the thread)
+   * Returns the agent_id of the last bot response, or null if no bot has responded
+   *
+   * This implements the "active speaker" model:
+   * - When user switches bots via mention, the new bot becomes active speaker
+   * - Active speaker responds to subsequent unmentioned messages
+   */
+  private findActiveSpeaker(messages: any[]): string | null {
+    // Sort messages by timestamp (newest first) to find the LAST bot response
+    const sortedMessages = [...messages].sort((a, b) =>
+      parseFloat(b.ts) - parseFloat(a.ts)
+    );
+
+    // Find the last bot message (active speaker)
+    for (const msg of sortedMessages) {
+      const isBot = !!msg.bot_id || msg.metadata?.event_type === 'crewx_response';
+
+      if (isBot) {
+        // Try to get agent_id from metadata first
+        let agentId = msg.metadata?.event_payload?.agent_id;
+
+        // FALLBACK 1: Parse agent ID from message text
+        // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
+        if (!agentId && msg.text) {
+          const agentMatch = msg.text.match(/@([a-zA-Z0-9_]+)\)/);
+          if (agentMatch) {
+            agentId = agentMatch[1];
+            this.logger.debug(`🔧 Extracted active speaker from text: ${agentId}`);
+          }
+        }
+
+        // FALLBACK 2: Check bot_id matches this bot
+        if (!agentId && msg.bot_id === this.botId) {
+          agentId = this.defaultAgent;
+          this.logger.debug(`🔧 Active speaker matched by bot_id: ${agentId}`);
+        }
+
+        if (agentId) {
+          this.logger.debug(`🔍 Found active speaker: ${agentId} (last bot response)`);
+          return agentId;
+        }
+      }
+    }
+
+    return null; // No bot has responded in this thread yet
   }
 
   private registerHandlers() {
