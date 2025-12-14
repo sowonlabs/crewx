@@ -134,6 +134,10 @@ export class SlackBot {
     }
 
     // 5. Check if this is a threaded message where bot was the last speaker
+    // CRITICAL FIX for #14, #15, #16: Use "active speaker" model
+    // - Find the LAST BOT response in the thread (not just last message)
+    // - Only the bot that last responded should reply to unmentioned messages
+    // - This prevents multiple bots from responding simultaneously
     if (message.thread_ts) {
       this.logger.log(`🧵 Thread detected, fetching history...`);
       try {
@@ -144,34 +148,41 @@ export class SlackBot {
           include_all_metadata: true, // 🔑 CRITICAL: Required to get event_payload in metadata!
         });
 
-        // Find the LAST MESSAGE in the thread (user or bot)
-        // Exclude the current incoming message by checking timestamp
-        const lastMessage = [...threadHistory.messages]
-          .filter((msg: any) => msg.ts !== message.ts) // Exclude current message
-          .reverse()[0]; // Get the last message (most recent before current)
+        // Get all messages except the current incoming message
+        const previousMessages = [...threadHistory.messages]
+          .filter((msg: any) => msg.ts !== message.ts);
 
-        if (!lastMessage) {
-          // No previous messages in thread, bot should respond (first message in thread)
-          this.logger.log(`✅ DECISION: No previous messages in thread → RESPOND`);
-          return true;
+        if (previousMessages.length === 0) {
+          // No previous messages in thread - this shouldn't happen for thread_ts messages
+          // But if it does, skip responding (requires explicit mention to start)
+          this.logger.log(`⏭️  DECISION: No previous messages in thread → SKIP (requires mention)`);
+          return false;
         }
 
-        // Check if last message was from a bot
-        const lastMessageIsBot = !!lastMessage.bot_id || lastMessage.metadata?.event_type === 'crewx_response';
+        // CRITICAL FIX (#14, #15, #16): Find the LAST BOT message specifically
+        // This implements the "active speaker" concept - only the last responding bot
+        // should continue the conversation for unmentioned messages
+        const lastBotMessage = [...previousMessages]
+          .reverse() // Start from most recent
+          .find((msg: any) =>
+            msg.bot_id || // Has bot_id field
+            msg.metadata?.event_type === 'crewx_response' // Or has crewx_response metadata
+          );
 
-        if (!lastMessageIsBot) {
-          // Last message was from a user → bot should respond
-          this.logger.log(`✅ DECISION: Last message from user → RESPOND`);
-          return true;
+        if (!lastBotMessage) {
+          // No bot has responded yet in this thread
+          // Skip - require explicit mention to join a thread
+          this.logger.log(`⏭️  DECISION: No bot has responded in thread yet → SKIP (requires mention)`);
+          return false;
         }
 
-        // Last message was from a bot → check if it was THIS bot's agent
-        let lastAgentId = lastMessage.metadata?.event_payload?.agent_id;
+        // Extract the agent ID from the last bot message
+        let lastAgentId = lastBotMessage.metadata?.event_payload?.agent_id;
 
         // FALLBACK 1: Parse agent ID from message text if metadata is missing
         // Message format: "✅ Completed! (@agent_name)" or "❌ Error (@agent_name)"
-        if (!lastAgentId && lastMessage.text) {
-          const agentMatch = lastMessage.text.match(/@([a-zA-Z0-9_]+)\)/);
+        if (!lastAgentId && lastBotMessage.text) {
+          const agentMatch = lastBotMessage.text.match(/@([a-zA-Z0-9_]+)\)/);
           if (agentMatch) {
             lastAgentId = agentMatch[1];
             this.logger.log(`🔧 Fallback 1: Extracted agent ID from message text: ${lastAgentId}`);
@@ -180,24 +191,27 @@ export class SlackBot {
 
         // FALLBACK 2: Check bot_id if metadata is still missing
         // If the last bot message has bot_id === this.botId, it's from this bot
-        if (!lastAgentId && lastMessage.bot_id === this.botId) {
+        if (!lastAgentId && lastBotMessage.bot_id === this.botId) {
           lastAgentId = this.defaultAgent;
           this.logger.log(`🔧 Fallback 2: bot_id matches this bot (${this.botId}) → treating as ${this.defaultAgent}`);
-          this.logger.warn(`⚠️  Metadata missing for bot message! bot_id=${lastMessage.bot_id}, assuming agent=${this.defaultAgent}`);
+          this.logger.warn(`⚠️  Metadata missing for bot message! bot_id=${lastBotMessage.bot_id}, assuming agent=${this.defaultAgent}`);
         }
 
-        // If still no agent ID identified, log warning
+        // If still no agent ID identified, log warning and skip
         if (!lastAgentId) {
-          this.logger.warn(`⚠️  Could not identify last speaker! No metadata, no text match, bot_id=${lastMessage.bot_id}`);
+          this.logger.warn(`⚠️  Could not identify last speaker! No metadata, no text match, bot_id=${lastBotMessage.bot_id}`);
+          this.logger.log(`⏭️  DECISION: Cannot determine active speaker → SKIP`);
+          return false;
         }
 
+        // CRITICAL CHECK: Only respond if THIS bot was the last speaker (active speaker)
         const isLastSpeaker = lastAgentId === this.defaultAgent;
 
         if (isLastSpeaker) {
-          this.logger.log(`✅ DECISION: This bot was last speaker → RESPOND`);
+          this.logger.log(`✅ DECISION: This bot (${this.defaultAgent}) is the active speaker → RESPOND`);
           return true;
         } else {
-          this.logger.log(`⏭️  DECISION: Another bot was last speaker (${lastAgentId}) → SKIP`);
+          this.logger.log(`⏭️  DECISION: Another bot (${lastAgentId}) is the active speaker → SKIP`);
           return false;
         }
       } catch (error: any) {

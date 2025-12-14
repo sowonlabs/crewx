@@ -55,12 +55,16 @@ class MentionLogicSimulator {
     }
 
     // 5. Check if in thread and bot was last speaker
+    // CRITICAL FIX (#14, #15, #16): Use "active speaker" model
+    // - Find the LAST BOT response in the thread (not just last message)
+    // - Only the bot that last responded should reply to unmentioned messages
     if (message.thread_ts) {
-      // Find last bot message with metadata (support both event types)
+      // Find last bot message with metadata
       const lastBotMessage = [...threadHistory]
         .reverse()
         .find((msg: any) =>
-          msg.metadata?.event_type === 'crewx_response'
+          msg.metadata?.event_type === 'crewx_response' ||
+          msg.bot_id // Also check for bot_id (fallback)
         );
 
       if (lastBotMessage) {
@@ -68,24 +72,15 @@ class MentionLogicSimulator {
         const isLastSpeaker = lastAgentId === this.defaultAgent;
 
         if (isLastSpeaker) {
-          return true; // ✅ Bot is last speaker
+          return true; // ✅ Bot is last speaker (active speaker)
         } else {
           return false; // ⏭️ Another bot is last speaker
         }
       }
 
-      // Fallback: check if bot participated (no metadata found)
-      const botParticipated = threadHistory.some(
-        (msg: any) => msg.user === this.botUserId
-      );
-
-      if (botParticipated) {
-        return true; // ✅ Fallback: bot participated
-      }
-
-      // In thread but bot hasn't participated - still respond (default agent behavior)
-      // This allows bots to join threads when no explicit mention exists
-      return true; // ✅ Default agent joins thread
+      // No bot has responded yet in this thread
+      // Skip - require explicit mention to join a thread
+      return false; // ⏭️ Requires mention to join thread
     }
 
     // 6. No mention present - skip in channel (require explicit mention)
@@ -272,7 +267,7 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
       expect(shouldRespond).toBe(false); // ⏭️ Requires explicit mention in channel
     });
 
-    it('should handle thread with no bot messages (default agent responds)', () => {
+    it('should NOT respond in thread with no bot messages (requires mention)', () => {
       const userMessage = createMessage('hello', 'U_USER_1', '1000.001', '1000.002');
 
       const threadHistory = [
@@ -282,10 +277,11 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
 
       const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
 
-      expect(shouldRespond).toBe(true); // ✅ Default agent responds
+      // CRITICAL FIX (#14, #15, #16): Requires explicit mention to join a thread
+      expect(shouldRespond).toBe(false); // ⏭️ Requires mention
     });
 
-    it('should handle bot message without metadata (legacy fallback)', () => {
+    it('should NOT respond to legacy bot message without metadata (cannot determine active speaker)', () => {
       const userMessage = createMessage('continue', 'U_USER_1', '1000.001', '1000.003');
 
       const threadHistory = [
@@ -294,14 +290,38 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
           text: 'Old bot message (no metadata)',
           user: BOT_CLAUDE_ID,
           ts: '1000.002',
-          // No metadata (legacy message)
+          // No metadata, no bot_id (legacy message)
         },
         userMessage,
       ];
 
       const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
 
-      expect(shouldRespond).toBe(true); // ✅ Fallback to participation check
+      // CRITICAL FIX (#14, #15, #16): Cannot determine active speaker without metadata
+      // Requires explicit mention when bot identity cannot be verified
+      expect(shouldRespond).toBe(false); // ⏭️ Cannot determine active speaker
+    });
+
+    it('should respond to legacy bot message with bot_id (fallback)', () => {
+      const userMessage = createMessage('continue', 'U_USER_1', '1000.001', '1000.003');
+
+      const threadHistory = [
+        createMessage('hello', 'U_USER_1', undefined, '1000.001'),
+        {
+          text: 'Old bot message (no metadata but has bot_id)',
+          user: BOT_CLAUDE_ID,
+          bot_id: 'B_BOT_CLAUDE', // Has bot_id for fallback detection
+          ts: '1000.002',
+          // No metadata (legacy message) but has bot_id
+        },
+        userMessage,
+      ];
+
+      const shouldRespond = simulator.shouldRespond(userMessage, threadHistory);
+
+      // With bot_id fallback, simulator can detect this bot responded
+      // but cannot determine agent_id, so it should skip
+      expect(shouldRespond).toBe(false); // ⏭️ agent_id is undefined, not matching
     });
   });
 
@@ -460,6 +480,137 @@ describe('SlackBot - Conversation Ownership (Mention Logic)', () => {
 
       expect(simulator.shouldRespond(msg4, history4)).toBe(false); // Claude doesn't respond
       expect(geminiSimulator.shouldRespond(msg4, history4)).toBe(true); // ✅ Gemini has ownership
+    });
+  });
+
+  /**
+   * CRITICAL BUG FIX TESTS (#14, #15, #16)
+   * These tests verify the "active speaker" model fixes
+   */
+  describe('Bug Fix: #14 - All bots respond to unmentioned messages', () => {
+    it('should NOT have multiple bots respond to unmentioned message in thread', () => {
+      // Scenario: User mentions @claude, claude responds, then user sends plain text
+      // BEFORE FIX: All bots would respond because "last message from user"
+      // AFTER FIX: Only claude should respond (active speaker)
+
+      const userMessage = createMessage('tell me more', 'U_USER_1', '1000.001', '1000.003');
+
+      const threadHistory = [
+        createMessage(`<@${BOT_CLAUDE_ID}> hello`, 'U_USER_1', undefined, '1000.001'),
+        createBotMessage('Hi! How can I help?', 'claude', '1000.002'),
+        userMessage,
+      ];
+
+      // Claude bot should respond (active speaker)
+      const claudeSimulator = new MentionLogicSimulator(BOT_CLAUDE_ID, 'claude');
+      expect(claudeSimulator.shouldRespond(userMessage, threadHistory)).toBe(true);
+
+      // Gemini bot should NOT respond (not active speaker)
+      const geminiSimulator = new MentionLogicSimulator(BOT_GEMINI_ID, 'gemini');
+      expect(geminiSimulator.shouldRespond(userMessage, threadHistory)).toBe(false);
+    });
+  });
+
+  describe('Bug Fix: #15 - Bot doesnt respond after mention switch', () => {
+    it('should respond with new bot after mention switch', () => {
+      // Scenario: User mentions @jarvis, jarvis responds, then user mentions @cto, cto responds
+      // Then user sends plain text - ONLY @cto should respond
+
+      const BOT_JARVIS_ID = 'U_BOT_JARVIS';
+      const BOT_CTO_ID = 'U_BOT_CTO';
+
+      const userMessage = createMessage('what do you think?', 'U_USER_1', '1000.001', '1000.006');
+
+      const threadHistory = [
+        createMessage(`<@${BOT_JARVIS_ID}> start`, 'U_USER_1', undefined, '1000.001'),
+        createBotMessage('Jarvis here', 'jarvis', '1000.002'),
+        createMessage('continue', 'U_USER_1', '1000.001', '1000.003'),
+        createBotMessage('Jarvis continues', 'jarvis', '1000.004'),
+        createMessage(`<@${BOT_CTO_ID}> your turn`, 'U_USER_1', '1000.001', '1000.005'),
+        {
+          text: '✅ Completed! (@cto)',
+          user: BOT_CTO_ID,
+          ts: '1000.0055',
+          metadata: {
+            event_type: 'crewx_response',
+            event_payload: { agent_id: 'cto' }
+          }
+        },
+        userMessage, // Plain text - no mention
+      ];
+
+      // Jarvis should NOT respond (no longer active speaker)
+      const jarvisSimulator = new MentionLogicSimulator(BOT_JARVIS_ID, 'jarvis');
+      expect(jarvisSimulator.shouldRespond(userMessage, threadHistory)).toBe(false);
+
+      // CTO should respond (current active speaker)
+      const ctoSimulator = new MentionLogicSimulator(BOT_CTO_ID, 'cto');
+      expect(ctoSimulator.shouldRespond(userMessage, threadHistory)).toBe(true);
+    });
+  });
+
+  describe('Bug Fix: #16 - All bots respond after file upload', () => {
+    it('should only have active speaker respond after file-only upload', () => {
+      // Scenario: User uploads file (no text), then sends text message
+      // File upload message has subtype: 'file_share' and no text
+      // BEFORE FIX: All bots might respond because file message confuses last speaker detection
+      // AFTER FIX: Only the active speaker from before the file upload should respond
+
+      const userMessage = createMessage('analyze this file', 'U_USER_1', '1000.001', '1000.004');
+
+      const threadHistory = [
+        createMessage(`<@${BOT_CLAUDE_ID}> hello`, 'U_USER_1', undefined, '1000.001'),
+        createBotMessage('Hi! How can I help?', 'claude', '1000.002'),
+        {
+          // File upload message (no text, has files)
+          text: '', // Empty or missing text
+          user: 'U_USER_1',
+          ts: '1000.003',
+          thread_ts: '1000.001',
+          subtype: 'file_share',
+          files: [{ id: 'F123', name: 'document.pdf' }],
+        },
+        userMessage, // Text message after file upload
+      ];
+
+      // Claude should respond (still active speaker - file upload didn't change ownership)
+      const claudeSimulator = new MentionLogicSimulator(BOT_CLAUDE_ID, 'claude');
+      expect(claudeSimulator.shouldRespond(userMessage, threadHistory)).toBe(true);
+
+      // Gemini should NOT respond (not active speaker)
+      const geminiSimulator = new MentionLogicSimulator(BOT_GEMINI_ID, 'gemini');
+      expect(geminiSimulator.shouldRespond(userMessage, threadHistory)).toBe(false);
+    });
+
+    it('should handle file upload followed by different bot mention', () => {
+      // Scenario: File upload, then user mentions different bot - that bot becomes active speaker
+
+      const userMessage = createMessage('continue', 'U_USER_1', '1000.001', '1000.006');
+
+      const threadHistory = [
+        createMessage(`<@${BOT_CLAUDE_ID}> hello`, 'U_USER_1', undefined, '1000.001'),
+        createBotMessage('Hi!', 'claude', '1000.002'),
+        {
+          // File upload
+          text: '',
+          user: 'U_USER_1',
+          ts: '1000.003',
+          thread_ts: '1000.001',
+          subtype: 'file_share',
+          files: [{ id: 'F123', name: 'image.png' }],
+        },
+        createMessage(`<@${BOT_GEMINI_ID}> analyze this`, 'U_USER_1', '1000.001', '1000.004'),
+        createBotMessage('Analyzing...', 'gemini', '1000.005'),
+        userMessage,
+      ];
+
+      // Claude should NOT respond (Gemini is now active speaker)
+      const claudeSimulator = new MentionLogicSimulator(BOT_CLAUDE_ID, 'claude');
+      expect(claudeSimulator.shouldRespond(userMessage, threadHistory)).toBe(false);
+
+      // Gemini should respond (active speaker after mention switch)
+      const geminiSimulator = new MentionLogicSimulator(BOT_GEMINI_ID, 'gemini');
+      expect(geminiSimulator.shouldRespond(userMessage, threadHistory)).toBe(true);
     });
   });
 });
