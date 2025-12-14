@@ -64,7 +64,7 @@ BUGS=(
 1. **Stage 1**: 개별 버그 테스트
    - 각 버그마다 `@crewx_tester`에게 개별 테스트 요청
    - Haiku로 테스트 결과(PASS/FAIL) 검증
-   - git-bug 상태 확인
+   - GitHub Issues 상태 확인 (`gh issue view`)
    - 성공/실패 카운트
 
 2. **Stage 2**: 최종 보고서
@@ -96,7 +96,7 @@ BUGS=(
 🤖 Verifying test results with AI (using Haiku for efficiency)...
 📊 Test Result: PASS
 
-🔍 Checking git-bug status...
+🔍 Checking GitHub Issues status with gh issue...
 ✅ bug-00000027: PASSED
 
 ...
@@ -110,6 +110,76 @@ BUGS=(
    ❌ Failed: 1
    📝 Total:  3
 ```
+
+## create-pr.sh
+
+자동 PR 생성 및 리뷰어 할당 스크립트입니다.
+
+### 특징
+
+- **자동 PR 생성**: Feature 브랜치에서 타겟 브랜치로 PR 생성
+- **리뷰어 자동 할당**: Worker 에이전트에 따라 크로스 리뷰어 자동 선택
+- **GitHub 연동**: Issue 레이블 및 코멘트 자동 추가
+- **검증**: 브랜치 이름 규칙 및 이슈 번호 확인
+
+### 사용법
+
+```bash
+# 기본 사용법 (develop 브랜치로 PR)
+./scripts/create-pr.sh <issue-number>
+
+# 특정 브랜치로 PR (예: release 브랜치)
+./scripts/create-pr.sh <issue-number> <target-branch>
+
+# 예시
+./scripts/create-pr.sh 12 release/0.7.8
+```
+
+### 자동 리뷰어 할당 규칙
+
+| Worker Agent | Reviewer Agent |
+|--------------|----------------|
+| @crewx_claude_dev | @crewx_gemini_dev |
+| @crewx_gemini_dev | @crewx_claude_dev |
+| @crewx_codex_dev | @crewx_claude_dev |
+
+### 전제 조건
+
+1. Feature 브랜치에서 실행 (`feature/<number>-<description>`)
+2. 변경사항이 커밋되어 있어야 함
+3. GitHub CLI (`gh`) 설치 및 인증 완료
+4. Issue에 `worker:<agent-name>` 레이블 설정
+
+### 프로세스
+
+1. 현재 브랜치 검증 (feature/ 접두사 확인)
+2. Issue 정보 조회 (제목, 레이블)
+3. Worker 레이블 기반 리뷰어 결정
+4. 브랜치를 origin에 푸시
+5. PR 생성 (자동 생성된 본문 포함)
+6. Issue에 `reviewer:<agent-name>` 레이블 추가
+7. Issue에 PR 링크 코멘트 추가
+
+### 출력 예시
+
+```
+📋 Fetching issue #12 details...
+🚀 Pushing feature/12-fix-auth-bug to origin...
+📝 Creating PR to release/0.7.8...
+✅ PR created: https://github.com/sowonlabs/crewx/pull/13
+🏷️  Adding reviewer label to issue...
+💬 Adding PR link to issue...
+
+🎉 Done! PR workflow initiated for issue #12
+PR: https://github.com/sowonlabs/crewx/pull/13
+Reviewer: @crewx_gemini_dev
+```
+
+### 에러 처리
+
+- ❌ Issue 번호 누락: 사용법 출력
+- ❌ Feature 브랜치가 아님: 에러 메시지 및 종료
+- ⚠️ 브랜치 이슈 번호 불일치: 확인 후 진행
 
 ## 관련 문서
 

@@ -10,6 +10,16 @@ body:
       value: |
         Thanks for suggesting a new feature! Please fill out the form below.
 
+        ## 🔄 Important: PR Process
+
+        **All code changes MUST go through Pull Request process:**
+        1. Work in a feature branch (`feature/<issue-number>-<description>`)
+        2. Create a PR to the target release branch (e.g., `release/0.7.8`)
+        3. Get cross-review approval from another agent/developer
+        4. Merge only after approval
+
+        **Without PR = No merge to release branch**
+
   - type: textarea
     id: problem
     attributes:

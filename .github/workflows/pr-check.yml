@@ -1,0 +1,163 @@
+name: PR Requirement Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issues:
+    types: [closed]
+
+jobs:
+  check-pr-requirement:
+    name: Check Issue Has PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.issue.state == 'closed'
+
+    steps:
+      - name: Check for linked PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const issueNumber = issue.number;
+
+            // Skip if issue is not a bug/feature
+            const labels = issue.labels.map(l => l.name);
+            const isBugOrFeature = labels.some(l =>
+              l.includes('type:bug') ||
+              l.includes('type:feature') ||
+              l.includes('enhancement')
+            );
+
+            if (!isBugOrFeature) {
+              console.log('Not a bug/feature issue, skipping PR check');
+              return;
+            }
+
+            // Search for PRs that mention this issue
+            const { data: prs } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:pr ${issueNumber} in:body`,
+            });
+
+            // Also check for PRs with "Fixes #<number>" or "Closes #<number>"
+            const { data: linkedPrs } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:pr "fixes #${issueNumber}" OR "closes #${issueNumber}" OR "resolves #${issueNumber}"`,
+            });
+
+            const allPrs = [...prs.items, ...linkedPrs.items];
+            const uniquePrs = [...new Map(allPrs.map(pr => [pr.number, pr])).values()];
+
+            if (uniquePrs.length === 0) {
+              // No PR found - add warning comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `⚠️ **PR Process Warning**
+
+This issue was closed without a linked Pull Request.
+
+**Required Process:**
+1. All code changes must go through PR review
+2. Work in feature branch: \`feature/${issueNumber}-<description>\`
+3. Create PR to target release branch
+4. Get cross-review approval
+5. Merge after approval
+
+**Why this matters:**
+- Ensures code quality through peer review
+- Maintains audit trail of changes
+- Prevents direct merges that bypass review
+
+Please follow the PR process for future issues.`
+              });
+
+              // Add label
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: ['missing-pr']
+              });
+
+              core.setFailed('Issue closed without PR - process violation detected');
+            } else {
+              console.log(`✅ Found ${uniquePrs.length} linked PR(s)`);
+              uniquePrs.forEach(pr => {
+                console.log(`  - PR #${pr.number}: ${pr.title}`);
+              });
+            }
+
+  pr-validation:
+    name: Validate PR Setup
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check PR has issue reference
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            const title = pr.title || '';
+
+            // Check for issue references: #123, Fixes #123, Closes #123, etc.
+            const issueRefPattern = /#\d+|fixes\s+#\d+|closes\s+#\d+|resolves\s+#\d+/i;
+
+            if (!issueRefPattern.test(body) && !issueRefPattern.test(title)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `⚠️ **Missing Issue Reference**
+
+This PR does not reference any issue.
+
+**Required:**
+- Add \`Fixes #<issue-number>\` or \`Closes #<issue-number>\` in PR body
+- Or reference issue in PR title
+
+**Why:**
+- Links PR to issue for tracking
+- Auto-closes issue when PR merges
+- Maintains traceability`
+              });
+
+              core.warning('PR missing issue reference');
+            } else {
+              console.log('✅ PR has issue reference');
+            }
+
+      - name: Check branch naming
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const branch = pr.head.ref;
+
+            // Expected: feature/<number>-<description>
+            const branchPattern = /^feature\/\d+-[\w-]+$/;
+
+            if (!branchPattern.test(branch)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `⚠️ **Branch Naming Convention Violation**
+
+Current branch: \`${branch}\`
+Expected format: \`feature/<issue-number>-<description>\`
+
+**Examples:**
+- ✅ \`feature/42-fix-auth-bug\`
+- ✅ \`feature/55-add-layout-props\`
+- ❌ \`bugfix/auth-issue\`
+- ❌ \`fix-something\`
+
+Please follow the naming convention for future PRs.`
+              });
+
+              core.warning(`Branch name does not follow convention: ${branch}`);
+            } else {
+              console.log(`✅ Branch naming follows convention: ${branch}`);
+            }
