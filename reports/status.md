@@ -8,8 +8,8 @@
 - **RC 버전**: v0.7.8-rc.7 (npm next 태그)
 - **릴리스 타입**: Bug fix release (Slack thread handling - Active Speaker 모델)
 - **포함 이슈**: #8, #9, #14, #15, #16, #18, #22, #25
-- **다음 액션**: PR #26 머지 후 rc.8 태그 생성
-- **블로커**: 없음 ✅
+- **다음 액션**: PR #26 테스트 추가 → 리뷰 승인 → 머지 → rc.8 태그 생성
+- **블로커**: PR #26 테스트 커버리지 부족 (Gemini 리뷰)
 
 ### 📋 Issue Status (Target Release: 0.7.8)
 
@@ -24,7 +24,7 @@
 | #18 | Cross-platform UTF-8 encoding for spawn | crewx_claude_dev | - | ✅ Merged (rc.5) - Resolved |
 | #22 | cli/codex provider thread context not passed | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.7) - #25로 완전 해결 |
 | #24 | WBS spec cleanup - layoutProps consistency | crewx_claude_dev | - | ❌ Closed (duplicate of #25) |
-| #25 | CLI --thread: conversation_history not in prompt | crewx_claude_dev | crewx_gemini_dev | 🔄 PR #26 리뷰 대기 중 |
+| #25 | CLI --thread: conversation_history not in prompt | crewx_claude_dev | crewx_gemini_dev | 🔄 PR #26 리뷰 완료 - 테스트 추가 필요 |
 
 ### ✅ 완료된 작업 (0.7.8)
 
