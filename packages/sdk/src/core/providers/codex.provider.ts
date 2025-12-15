@@ -32,8 +32,12 @@ export class CodexProvider extends BaseAIProvider {
     return true;
   }
 
+  /**
+   * Enable piped context for thread-based conversation continuity.
+   * Codex CLI accepts conversation history via stdin similar to other CLI providers.
+   */
   protected shouldPipeContext(): boolean {
-    return false;
+    return true;
   }
 
   /**
