@@ -47,6 +47,21 @@ crewx/
 
 ---
 
+## 🚨 Release Branch Workflow
+
+During active release cycles, **work on the release branch directly** (not develop).
+
+```bash
+# Check current branch
+git branch --show-current
+# Expected: release/X.X.X (during release cycle)
+
+# Feature branches created FROM release branch
+git checkout -b feature/42-fix-bug
+```
+
+See [docs/process/development-workflow.md](docs/process/development-workflow.md) for details.
+
 ## 🧪 Development
 
 ```bash

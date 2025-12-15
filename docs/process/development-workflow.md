@@ -44,6 +44,56 @@ Production:          main
 feature/<issue>-<desc> → release/X.X.X-rc.N → develop → main
 ```
 
+## 🚨 Release Branch Workflow (Important!)
+
+During active release cycles, **work directly on the release branch** instead of develop.
+
+### Why?
+
+Previously, agents worked on develop branch by default. This caused issues:
+- ❌ Agents analyzed develop branch code, not release branch changes
+- ❌ Bug fixes in release branch weren't visible to agents
+- ❌ Cross-review missed release-specific changes
+- ❌ Conversation history and context were based on wrong branch state
+
+### Current Workflow
+
+**During Release Cycle (e.g., 0.7.8):**
+```
+Working directory: release/0.7.8 branch (NOT develop)
+
+1. Clone/checkout release branch directly
+2. Create feature branches FROM release branch
+3. PRs target release branch
+4. Agents analyze release branch state
+```
+
+**After Release Complete:**
+```
+1. Merge release/X.X.X → main (production)
+2. Merge release/X.X.X → develop (sync)
+3. Switch working directory to develop for next cycle
+```
+
+### Agent Configuration
+
+All dev agent prompts include release branch awareness:
+- [docs/prompts/dev-claude.md](docs/prompts/dev-claude.md)
+- [docs/prompts/dev-gemini.md](docs/prompts/dev-gemini.md)
+- [docs/prompts/dev-codex.md](docs/prompts/dev-codex.md)
+
+These prompts contain "Current Release Branch" section that reminds agents to:
+- Analyze current branch, not develop
+- Target PRs to current release branch
+- NOT use git worktree for release branch (already on it)
+
+### Benefits
+
+- ✅ Accurate code analysis based on actual release state
+- ✅ Cross-review sees real changes in release context
+- ✅ No confusion between develop and release differences
+- ✅ Conversation history reflects release branch work
+
 ## Agent Work Tracking
 
 Track which agent worked on an issue via GitHub Issue comments.
