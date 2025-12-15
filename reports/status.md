@@ -24,7 +24,7 @@
 | #18 | Cross-platform UTF-8 encoding for spawn | crewx_claude_dev | - | ✅ Merged (rc.5) - Resolved |
 | #22 | cli/codex provider thread context not passed | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.7) - #25로 완전 해결 |
 | #24 | WBS spec cleanup - layoutProps consistency | crewx_claude_dev | - | ❌ Closed (duplicate of #25) |
-| #25 | CLI --thread: conversation_history not in prompt | 팀장 직접 | - | 🔄 PR #26 대기 중 |
+| #25 | CLI --thread: conversation_history not in prompt | crewx_claude_dev | crewx_gemini_dev | 🔄 PR #26 리뷰 대기 중 |
 
 ### ✅ 완료된 작업 (0.7.8)
 
