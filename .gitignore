@@ -33,3 +33,6 @@ worktree/
 .obsidian/
 **/node_modules
 /.env.local
+
+.npmrc
+start-slack.sh

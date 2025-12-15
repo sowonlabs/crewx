@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-sdk",
-  "version": "0.7.8-rc.9",
+  "version": "0.7.8-rc.10",
   "license": "Apache-2.0",
   "description": "SowonAI CrewX SDK",
   "type": "commonjs",
@@ -44,9 +44,15 @@
   },
   "typesVersions": {
     "*": {
-      "tools": ["./dist/tools/index.d.ts"],
-      "internal": ["./dist/internal/index.d.ts"],
-      "*": ["./dist/*"]
+      "tools": [
+        "./dist/tools/index.d.ts"
+      ],
+      "internal": [
+        "./dist/internal/index.d.ts"
+      ],
+      "*": [
+        "./dist/*"
+      ]
     }
   },
   "dependencies": {
