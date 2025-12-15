@@ -97,8 +97,8 @@ node dist/main.js query "@claude:haiku @claude:haiku 1+1?"
 **Parallel Execute Test:**
 ```bash
 node dist/main.js execute \
-    "@claude:haiku gugudan1.js 파일에 javascript 구구단 프로그램을 만들어 주세요." \
-    "@claude:haiku gugudan2.js 파일에 javascript 구구단 프로그램을 만들어 주세요."
+    "@claude:haiku Create a JavaScript multiplication table program in gugudan1.js." \
+    "@claude:haiku Create a JavaScript multiplication table program in gugudan2.js."
 ```
 
 **Thread Option Test:**

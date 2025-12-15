@@ -62,20 +62,34 @@ crewx query "@crewx_gemini_dev Analyze performance impact of issue #45"
 
 **Rule:** The Reviewer must be different from the Worker.
 
-**Process:**
-1. Worker completes implementation and commits code
-2. Worker updates issue status to `review-needed`
-3. Dev Lead assigns a Reviewer (different agent)
-4. Reviewer checks code and comments on the issue
+**NEW WORKFLOW (Timeout Prevention):**
+Dev Lead delegates tasks in separate steps to avoid CLI timeout:
 
-**Example:**
-- Worker: `crewx_claude_dev`
-- Reviewer: `crewx_gemini_dev`
+1. **Step 1 - Implementation Only**: Dev Lead → Worker (구현만)
+   ```bash
+   crewx x "@crewx_claude_dev Implement issue #42 and create PR to release/0.7.8"
+   ```
 
-**Command to assign reviewer:**
+2. **Step 2 - Review & Merge**: Dev Lead → Release Manager (리뷰 + 머지)
+   ```bash
+   # Assign reviewer label
+   gh issue edit 42 --add-label "reviewer:crewx_gemini_dev"
+
+   # Delegate to Release Manager (who will trigger review before merge)
+   crewx x "@crewx_release_manager Merge PR #XX for issue #42 to release/0.7.8 after cross-review by @crewx_gemini_dev"
+   ```
+
+**Why This Works:**
+- ✅ Each CLI call finishes within timeout (< 20 minutes)
+- ✅ Worker only does implementation (no sequential wait)
+- ✅ Release Manager handles review → merge atomically
+- ✅ Clear separation of concerns
+
+**Old Workflow (DO NOT USE - Causes Timeout):**
 ```bash
-gh issue edit <number> --add-label "reviewer:crewx_gemini_dev"
-crewx query "@crewx_gemini_dev Review code for issue #42 committed by Claude. Check for performance and logic errors."
+# ❌ BAD: Worker does implementation AND waits for review
+crewx x "@crewx_claude_dev Implement #42, then wait for @crewx_gemini_dev review"
+# This causes timeout because Worker + Reviewer run sequentially
 ```
 
 ## Agent Selection Guide
@@ -86,6 +100,90 @@ crewx query "@crewx_gemini_dev Review code for issue #42 committed by Claude. Ch
 | **@crewx_gemini_dev** | Performance optimization, bug hunting, data processing, quick tasks |
 | **@crewx_codex_dev** | Boilerplate code, simple features, standard implementations |
 | **@crewx_tester** | Creating test cases, running test suites, verifying fixes |
+
+## Release Process Delegation
+
+**CRITICAL**: Dev Lead does NOT execute git/release commands directly. Always delegate.
+
+### 🚨 Release Branch Rules (Important!)
+
+**Branch Strategy:**
+- **Work branches**: Created from develop (feature/xxx)
+- **PR targets**:
+  - Normal development: develop branch
+  - Release inclusion: release/x.x.x branch
+
+**Release Process:**
+1. feature branch → merge to develop (normal development PR)
+2. Release preparation: develop → merge to release/x.x.x
+3. Create RC tag and deploy
+4. After QA pass: release/x.x.x → merge to main
+
+**⚠️ Caution:**
+- develop manages development process only
+- RC deploy only from release branch
+- Never create RC tags directly on develop
+
+### What to Delegate
+
+| Task | Delegate To | Example |
+|------|-------------|---------|
+| Merge branches | @crewx_release_manager | `crewx x " @crewx_release_manager Merge #10 into release/0.7.8"` |
+| Create RC tag | @crewx_release_manager | `crewx x " @crewx_release_manager Tag v0.7.8-rc.0 on release/0.7.8"` |
+| Push to remote | @crewx_release_manager | `crewx x " @crewx_release_manager Push release/0.7.8"` |
+| Run tests | @crewx_qa_lead | `crewx x " @crewx_qa_lead Test v0.7.8-rc.0"` |
+| npm publish | @crewx_release_manager | `crewx x " @crewx_release_manager Publish v0.7.8"` |
+
+### Forbidden Commands (Never Execute Directly)
+- ❌ `git checkout`, `git merge`, `git tag`, `git push`
+- ❌ `npm publish`, `npm version`
+- ❌ Any command that modifies branches or releases
+
+### Correct Release Flow (with PR Cross-Review)
+
+**IMPORTANT**: Every issue must have a PR before merging to release branch.
+
+#### Step 1: Worker creates PR (Implementation Only)
+```bash
+# Dev Lead delegates implementation only (no review yet)
+crewx x "@crewx_claude_dev Implement issue #10 and create PR to release/0.7.8"
+```
+
+**Dev Lead waits for Worker to complete and create PR.**
+
+#### Step 2: Assign reviewer label (Dev Lead)
+```bash
+# Dev Lead assigns reviewer label (opposite of worker)
+gh issue edit 10 --add-label "reviewer:crewx_gemini_dev"
+gh issue comment 10 --body "🔍 Cross-review will be performed by @crewx_gemini_dev during merge"
+```
+
+#### Step 3: Delegate review + merge to Release Manager
+```bash
+# Release Manager will trigger review before merge
+crewx x "@crewx_release_manager Merge PR #XX for issue #10 to release/0.7.8 after cross-review by @crewx_gemini_dev"
+```
+
+**Release Manager's responsibility:**
+- Calls reviewer agent to check PR
+- Waits for approval
+- Merges after approval
+- Records result in issue comment
+
+#### Step 4: After all issues merged, create RC tag
+```bash
+crewx x " @crewx_release_manager Tag v0.7.8-rc.0 on release/0.7.8"
+```
+
+#### Step 5: QA testing
+```bash
+crewx x " @crewx_qa_lead Test v0.7.8-rc.0"
+```
+
+#### Step 6: Final release (after QA pass)
+```bash
+crewx x " @crewx_release_manager Release v0.7.8 - merge to develop, tag, npm publish"
+```
 
 ## Important Guidelines
 - **Clear Instructions**: Agents need specific context and goals.

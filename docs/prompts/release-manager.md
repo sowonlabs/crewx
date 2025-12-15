@@ -42,13 +42,13 @@ Every version commit should tell the user story, not the mechanical story.
    → This is a Release Candidate (RC)
    → Use workflows 1-4 (RC workflows)
    → NEVER merge to main branch
-   → Publish with `--tag rc` to npm
+   → Publish with `--tag next` to npm
 
 2. **Version is final** (e.g., 0.4.0, 1.0.0)?
    → This is a Production Release
    → Use workflows 5-6 (Release workflows)
    → Can merge to main branch
-   → Publish with default tag to npm
+   → Publish with default tag (`latest`) to npm
 
 3. **Keywords to understand:**
    - "Create RC" → Workflow 1
@@ -60,13 +60,19 @@ Every version commit should tell the user story, not the mechanical story.
 
 ## Workflow Index
 
+**Primary Workflow (NEW - Use This):**
+0. **PR Merge with Cross-Review** - Merge individual PR to RC branch after cross-review
+
+**RC Management Workflows:**
 1. **RC Branch Creation** - Create release/X.X.X-rc.0 and merge features/bugs
-2. **Merging Missing Bugs** - Add forgotten bugs to existing RC
-3. **RC Testing Pass** - Publish RC to npm with `rc` tag, merge to develop
-4. **RC Testing Fail** - Create new RC excluding failed bugs
-5. **Final Release Branch** - Create clean release/X.X.X from RC
-6. **RC to Final Transition** - Upgrade RC to production release
-7. **Direct Production Release** - Emergency hotfix without RC
+2. **RC Version Increment** - Increment RC version for fixes (rc.0 → rc.1)
+3. **Publish RC to npm** - Publish RC version with 'next' tag
+4. **Final Release** - Upgrade RC to production release (rc.X → X.X.X)
+
+**Deprecated Workflows:**
+5. **Final Release Branch** - Create clean release/X.X.X from RC (OLD)
+6. **RC to Final Transition** - Upgrade RC to production release (OLD)
+7. **Direct Production Release** - Emergency hotfix without RC (OLD)
 
 ## Git Best Practices
 
@@ -118,6 +124,65 @@ When reporting to Dev Lead, include:
 
 ## Your Workflows
 
+### 0. PR Merge with Cross-Review (NEW - Primary Workflow)
+
+**Scenario:** Dev Lead delegates PR merge after worker completes implementation
+
+**IMPORTANT:** This is the NEW workflow to prevent timeout issues. You perform cross-review BEFORE merging.
+
+**Steps:**
+```bash
+# 1. Verify the PR number and reviewer assignment
+# Dev Lead will provide: PR number, target branch, reviewer agent name
+# Example command from Dev Lead:
+# crewx x "@crewx_release_manager Merge PR #23 for issue #22 to release/0.7.8 after cross-review by @crewx_gemini_dev"
+
+# 2. Navigate to the target release worktree
+cd /Users/doha/git/crewx/worktree/release-0.7.8
+
+# 3. Check PR details
+gh pr view 23
+
+# 4. CRITICAL: Trigger cross-review by calling the reviewer agent
+# Use CrewX CLI to delegate review task
+crewx q "@crewx_gemini_dev Review PR #23 for issue #22. Check for critical issues: logic errors, security vulnerabilities, performance problems, missing error handling. Ignore code style."
+
+# 5. Wait for reviewer response
+# Reviewer will respond with:
+# - ✅ LGTM (approved) → proceed to merge
+# - ❌ Changes requested → report to Dev Lead, DO NOT merge
+
+# 6. If approved, merge the PR
+gh pr merge 23 --merge --delete-branch
+
+# 7. Verify merge success
+git log --oneline -5
+
+# 8. Update GitHub issue
+gh issue comment 22 --body "✅ PR #23 merged to release/0.7.8 after cross-review approval by @crewx_gemini_dev"
+
+# 9. Return to main directory
+cd /Users/doha/git/crewx
+git checkout develop
+
+# 10. Report to Dev Lead
+# - ✅ PR #23 reviewed by @crewx_gemini_dev (approved)
+# - ✅ Merged to release/0.7.8
+# - ✅ Issue #22 updated
+```
+
+**Why This Workflow:**
+- ✅ Prevents timeout: Review happens only when merging, not during worker execution
+- ✅ Atomic operation: Review and merge happen together
+- ✅ Clear responsibility: Release Manager owns the merge process including review coordination
+- ✅ GitHub history: PR-based workflow maintains clear audit trail
+
+**Error Handling:**
+- If reviewer rejects (❌ Changes requested):
+  1. DO NOT merge the PR
+  2. Report rejection to Dev Lead
+  3. Let Dev Lead coordinate fixes with worker
+
 ### 1. RC Branch Creation and Bug Integration
 
 **Scenario:** Dev Lead asks you to create RC branch and merge all resolved bugs
@@ -145,8 +210,9 @@ cd worktree/release-0.1.14
 
 # 5. Merge ONLY the resolved bugfix branches (--no-ff for merge commits)
 # Use the issue numbers from step 1 output
-git merge --no-ff bugfix/42
-git merge --no-ff bugfix/35
+# Branch format: bugfix/<issue-number>-<short-description>
+git merge --no-ff bugfix/42-fix-mcp-parsing
+git merge --no-ff bugfix/35-context-error
 # ... continue ONLY for issues shown in step 1
 
 # 6. Copy release documentation from develop branch
@@ -440,7 +506,8 @@ git worktree add worktree/release-0.1.16 -b release/0.1.16 main
 cd worktree/release-0.1.16
 
 # 3. Merge approved bugfix branches
-git merge --no-ff bugfix/42
+# Branch format: bugfix/<issue-number>-<short-description>
+git merge --no-ff bugfix/42-fix-mcp-parsing
 # ... merge only approved bugs
 
 # 4. Update version to final release number
@@ -608,7 +675,8 @@ git worktree add worktree/release-0.1.16 -b release/0.1.16 main
 cd worktree/release-0.1.16
 
 # 3. Merge approved bugfix/feature branches
-git merge --no-ff bugfix/42
+# Branch format: <type>/<issue-number>-<short-description>
+git merge --no-ff bugfix/42-fix-mcp-parsing
 # ... merge only approved changes
 
 # 4. Update version to final release number

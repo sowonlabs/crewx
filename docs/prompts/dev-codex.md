@@ -70,7 +70,7 @@ Every strategy MUST include:
 
 **✅ REQUIRED PROCESS:**
 - ✅ ALWAYS create worktree FIRST, even for 1-line changes
-- ✅ ALWAYS work in `/Users/doha/git/crewx/worktree/bugfix-XXX/`
+- ✅ ALWAYS work in `/Users/doha/git/crewx/worktree/feature-XXX/`
 - ✅ ALWAYS use absolute paths starting with worktree directory
 
 ### When to Use Worktree (MANDATORY - ALL Bug Work)
@@ -85,14 +85,20 @@ Every strategy MUST include:
 - Parallel work: Multiple bugs can be fixed simultaneously
 - Isolation: Each bug fix is completely independent
 - Safety: Main directory stays clean on develop branch
-- Process: Release manager needs clear bugfix branches to merge
+- Process: Release manager needs clear feature-prefixed branches per issue
 
 ### Issue ID Format (IMPORTANT)
-**Use GitHub issue number:**
+**Use GitHub issue number with description:**
 - ✅ Issue: `#42` (GitHub issue number)
-- ✅ Branch: `bugfix/42`
-- ✅ Worktree: `worktree/bugfix-42`
+- ✅ Branch: `feature/42-fix-mcp-parsing` (all issues use `feature/<issue-number>-<short-description>`)
+- ✅ Worktree: `worktree/feature-42-fix-mcp-parsing`
 - ✅ Commit: `fix(#42): resolve - description`
+
+**Branch naming rules:**
+- All work uses the `feature/<issue>-<description>` prefix; use GitHub labels (e.g., `type:bug`, `type:chore`) to distinguish issue types instead of branch names
+- Description should be kebab-case (lowercase with hyphens)
+- Max 3-4 words in description
+- Examples: `feature/42-fix-mcp-parsing`, `feature/55-add-layout-props`, `feature/60-cleanup-tests`
 
 ### Worktree Creation Steps (MUST DO FIRST)
 ```bash
@@ -106,16 +112,16 @@ gh issue view 42
 git branch --show-current
 
 # 4. Create worktree from main branch (stable production version)
-# Format: worktree/bugfix-<issue-number>
-git worktree add worktree/bugfix-42 main
+# Format: worktree/feature-<issue-number>-<short-description>
+git worktree add worktree/feature-42-fix-mcp-parsing main
 
-# Example output: Preparing worktree (new branch 'bugfix-42')
+# Example output: Preparing worktree (new branch 'feature-42-fix-mcp-parsing')
 
 # 5. Navigate to worktree directory
-cd worktree/bugfix-42
+cd worktree/feature-42-fix-mcp-parsing
 
 # 6. Create feature branch
-git checkout -b bugfix/42
+git checkout -b feature/42-fix-mcp-parsing
 
 # 7. Verify you're in the correct directory and branch
 pwd
@@ -125,11 +131,11 @@ git branch --show-current
 ### Working in Worktree (ABSOLUTE REQUIREMENT)
 
 **🚨 FILE PATH VERIFICATION (MANDATORY):**
-Before editing ANY file, verify it contains `/worktree/bugfix-`:
+Before editing ANY file, verify it contains `/worktree/feature-`:
 
 **✅ CORRECT PATH:**
 ```
-/Users/doha/git/crewx/worktree/bugfix-42/packages/cli/src/ai-provider.service.ts
+/Users/doha/git/crewx/worktree/feature-42-fix-mcp-parsing/packages/cli/src/ai-provider.service.ts
 ```
 
 **❌ WRONG PATH (NEVER USE):**
@@ -138,14 +144,14 @@ Before editing ANY file, verify it contains `/worktree/bugfix-`:
 ```
 
 **VERIFICATION CHECKLIST:**
-1. Before EVERY file edit: Check path contains `/worktree/bugfix-`
+1. Before EVERY file edit: Check path contains `/worktree/feature-`
 2. Before EVERY commit: Run `pwd` to verify location
 3. Before ANY build: Ensure you're in worktree directory
 
 **Examples of Absolute Paths (ALWAYS USE THESE):**
-- `/Users/doha/git/crewx/worktree/bugfix-42/packages/cli/src/conversation/slack-conversation-history.provider.ts`
-- `/Users/doha/git/crewx/worktree/bugfix-35/packages/cli/src/ai-provider.service.ts`
-- `/Users/doha/git/crewx/worktree/bugfix-50/agents.yaml`
+- `/Users/doha/git/crewx/worktree/feature-42-fix-mcp-parsing/packages/cli/src/conversation/slack-conversation-history.provider.ts`
+- `/Users/doha/git/crewx/worktree/feature-35-context-error/packages/cli/src/ai-provider.service.ts`
+- `/Users/doha/git/crewx/worktree/feature-50-layout-props/agents.yaml`
 
 ### After Fixing
 ```bash
@@ -229,12 +235,12 @@ If you discover a bug during your work:
 2. ❌ Modify files in `/Users/doha/git/crewx/packages/cli/src/` for bugs
 3. ❌ Skip worktree creation because "it's a small change"
 4. ❌ Make commits in main directory for bug work
-5. ❌ Use relative paths that don't include `/worktree/bugfix-`
+5. ❌ Use relative paths that don't include `/worktree/feature-`
 
 **ALWAYS DO:**
 1. ✅ Use Bash tool to execute git and gh commands
 2. ✅ Verify working directory with `pwd` before file operations
-3. ✅ Check file paths contain `/worktree/bugfix-` before editing
+3. ✅ Check file paths contain `/worktree/feature-` before editing
 4. ✅ Use `gh issue view <number>` to get issue details before starting
 5. ✅ Create worktree FIRST, then work (no shortcuts)
 
@@ -244,28 +250,28 @@ If you discover a bug during your work:
 Bash: gh issue view 42
 
 # 2. Create worktree from main
-Bash: cd /Users/doha/git/crewx && git worktree add worktree/bugfix-42 main
+Bash: cd /Users/doha/git/crewx && git worktree add worktree/feature-42-remove-debug-logs main
 
 # 3. Navigate and create branch
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-42 && git checkout -b bugfix/42
+Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && git checkout -b feature/42-remove-debug-logs
 
 # 4. Record worktree location in GitHub Issue
-Bash: gh issue comment 42 --body "Working on bugfix/42 at worktree/bugfix-42"
+Bash: gh issue comment 42 --body "Working on feature/42-remove-debug-logs at worktree/feature-42-remove-debug-logs"
 
 # 5. Verify location
-Bash: pwd  # Should output: /Users/doha/git/crewx/worktree/bugfix-42
+Bash: pwd  # Should output: /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs
 
 # 6. Fix the bug (using absolute paths)
-Edit: /Users/doha/git/crewx/worktree/bugfix-42/packages/cli/src/ai-provider.service.ts
+Edit: /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs/packages/cli/src/ai-provider.service.ts
 
 # 7. Test
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-42 && npm run build
+Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && npm run build
 
 # 8. Commit
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-42 && git add . && git commit -m "fix(#42): remove debug logs"
+Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && git add . && git commit -m "fix(#42): remove debug logs"
 
 # 9. Update GitHub Issue status and return to develop
-Bash: cd /Users/doha/git/crewx && gh issue edit 42 --add-label "status:resolved" && gh issue comment 42 --body "Fixed: removed debug logs in commit $(cd worktree/bugfix-42 && git rev-parse --short HEAD)" && git checkout develop
+Bash: cd /Users/doha/git/crewx && gh issue edit 42 --add-label "status:resolved" && gh issue comment 42 --body "Fixed: removed debug logs in commit $(cd worktree/feature-42-remove-debug-logs && git rev-parse --short HEAD)" && git checkout develop
 ```
 
 ## Collaboration with Tester
@@ -284,12 +290,12 @@ crewx query "@crewx_tester analyze issue #42 fix and suggest test scenarios"
 ### Complete Workflow with Tester
 ```bash
 # 1. Fix the bug in worktree (example for issue #42)
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-42
-Edit: /Users/doha/git/crewx/worktree/bugfix-42/packages/cli/src/ai-provider.service.ts
+Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs
+Edit: /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs/packages/cli/src/ai-provider.service.ts
 # (remove debug console.log statements)
 
 # 2. Build and verify compilation in worktree
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-42 && npm run build
+Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && npm run build
 
 # 3. Return to main directory and request testing
 Bash: cd /Users/doha/git/crewx && crewx execute "@crewx_tester Test issue #42 fix: Verify that debug console.log statements are removed from ai-provider.service.ts and all provider files (claude.provider.ts, gemini.provider.ts, copilot.provider.ts). Test MCP responses to confirm they are clean without DEBUG prefixes. Build the project and check for compilation errors."
@@ -300,7 +306,7 @@ Bash: cd /Users/doha/git/crewx && crewx execute "@crewx_tester Test issue #42 fi
 Read: /Users/doha/git/crewx/reports/bugs/issue-42-test-[latest_timestamp].md
 
 # 5. If tests PASS: Commit in worktree and update GitHub Issue
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-42 && git add . && git commit -m "fix(#42): remove debug console.log statements"
+Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && git add . && git commit -m "fix(#42): remove debug console.log statements"
 
 # 6. Update GitHub Issue status to resolved
 Bash: gh issue edit 42 --add-label "status:resolved"
