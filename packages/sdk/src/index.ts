@@ -94,6 +94,7 @@ export type {
 export type {
   PluginProviderConfig,
   RemoteProviderConfig,
+  APIProviderFactoryConfig,
   DynamicProviderConfig,
   DynamicProviderFactoryOptions,
 } from './core/providers/dynamic-provider.factory';
@@ -115,6 +116,7 @@ export type {
   ToolExecutionContext as APIToolExecutionContext,
 } from './types/api-provider.types';
 export {
+  API_PROVIDER_TYPES,
   isLegacyProviderPermissionConfig,
   isProviderModeOptions,
   isProviderOptions,
