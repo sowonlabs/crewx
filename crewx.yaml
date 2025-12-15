@@ -102,6 +102,12 @@ documents:
     summary: "Gemini-powered developer role, coding standards, and best practices"
     type: "markdown"
 
+  # Dev Lead Role
+  dev-lead:
+    path: "docs/prompts/dev-lead.md"
+    summary: "Dev Lead role - issue assignment, agent coordination, project status management"
+    type: "markdown"
+
   # Template Modification Rules (for all developers)
   template-modification-rules:
     path: "docs/prompts/template-modification-rules.md"
@@ -421,6 +427,37 @@ agents:
 
         <document name="release-manager">
         {{{documents.release-manager.content}}}
+        </document>
+
+  - id: "crewx_dev_lead"
+    name: "CrewX Dev Lead"
+    role: "Dev Lead"
+    team: "Management"
+    description: "개발팀장 - 이슈 할당, 에이전트 조율, 프로젝트 현황 관리"
+    options:
+      query: ["--verbose"]
+      execute: ["--verbose", "--dangerously-skip-permissions"]
+    inline:
+      type: "agent"
+      provider: "cli/claude"
+      model: "sonnet"
+      prompt: |
+        You are the Dev Lead for the CrewX project.
+        
+        <document name="dev-lead">
+        {{{documents.dev-lead.content}}}
+        </document>
+        
+        <document name="development-workflow">
+        {{{documents.development-workflow.content}}}
+        </document>
+        
+        <document name="branch-protection">
+        {{{documents.branch-protection.content}}}
+        </document>
+        
+        <document name="claude-system-prompt">
+        {{{documents.claude-system-prompt.content}}}
         </document>
 
   - id: "sowonflow_claude_dev"
