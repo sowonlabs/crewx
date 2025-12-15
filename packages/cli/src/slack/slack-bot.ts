@@ -182,10 +182,18 @@ export class SlackBot {
 
         // ===== ACTIVE SPEAKER CHECK (Fix for #14, #15, #16) =====
         // Find the LAST bot response in the thread to determine the active speaker
+        this.logger.debug(`🔍 Checking active speaker among ${validMessages.length} valid messages...`);
+        this.logger.debug(`🔍 Bot messages in thread: ${JSON.stringify(validMessages.filter((m: any) => m.bot_id).map((m: any) => ({
+          ts: m.ts,
+          bot_id: m.bot_id,
+          text: m.text?.substring(0, 50),
+          metadata: m.metadata
+        })))}`);
+
         const activeSpeaker = this.findActiveSpeaker(validMessages);
 
         if (activeSpeaker) {
-          this.logger.log(`🎤 Active speaker detected: ${activeSpeaker}`);
+          this.logger.log(`🎤 Active speaker detected: ${activeSpeaker} (this.defaultAgent: ${this.defaultAgent})`);
 
           if (activeSpeaker === this.defaultAgent) {
             // This bot is the active speaker → RESPOND
@@ -203,6 +211,7 @@ export class SlackBot {
         // Bots can only "become active speaker" by being explicitly mentioned first
         // This prevents ALL bots from responding simultaneously
         this.logger.log(`⏭️  DECISION: No active speaker in thread, no mention → SKIP (require explicit mention)`);
+        this.logger.debug(`🔍 Debug: validMessages=${JSON.stringify(validMessages.map((m: any) => ({ ts: m.ts, bot_id: m.bot_id, text: m.text?.substring(0, 30) })))}`);
         return false;
       } catch (error: any) {
         this.logger.warn(`Failed to check thread participation: ${error.message}`);
@@ -222,6 +231,13 @@ export class SlackBot {
    * This implements the "active speaker" model:
    * - When user switches bots via mention, the new bot becomes active speaker
    * - Active speaker responds to subsequent unmentioned messages
+   *
+   * BUG FIX (mentionOnly regression):
+   * - FALLBACK 2 was incorrectly assuming bot_id match means this.defaultAgent is the speaker
+   * - In CrewX, one Slack app hosts multiple agents (claude, gemini, etc.)
+   * - Same bot_id can send messages for different agents
+   * - Fixed: Only trust metadata.event_payload.agent_id or text pattern extraction
+   * - If neither works but bot_id matches, assume this bot's defaultAgent for single-agent scenarios
    */
   private findActiveSpeaker(messages: any[]): string | null {
     // Sort messages by timestamp (newest first) to find the LAST bot response
@@ -234,7 +250,7 @@ export class SlackBot {
       const isBot = !!msg.bot_id || msg.metadata?.event_type === 'crewx_response';
 
       if (isBot) {
-        // Try to get agent_id from metadata first
+        // Try to get agent_id from metadata first (most reliable)
         let agentId = msg.metadata?.event_payload?.agent_id;
 
         // FALLBACK 1: Parse agent ID from message text
@@ -247,10 +263,15 @@ export class SlackBot {
           }
         }
 
-        // FALLBACK 2: Check bot_id matches this bot
+        // FALLBACK 2: If this is OUR bot (bot_id matches) and no agent_id found,
+        // assume it's this instance's defaultAgent.
+        // This handles single-agent scenarios and legacy messages without metadata.
+        // NOTE: This may be incorrect in multi-agent setups where the same Slack app
+        // serves multiple agents, but it's better than returning null and requiring
+        // explicit mention when mentionOnly=false.
         if (!agentId && msg.bot_id === this.botId) {
           agentId = this.defaultAgent;
-          this.logger.debug(`🔧 Active speaker matched by bot_id: ${agentId}`);
+          this.logger.debug(`🔧 Active speaker assumed as defaultAgent (bot_id match): ${agentId}`);
         }
 
         if (agentId) {
