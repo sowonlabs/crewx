@@ -5,11 +5,12 @@
 
 ### 🚀 릴리스: 0.7.8 (RC 테스트 중)
 - **현재 배포**: v0.7.7 (npm latest 태그)
-- **RC 버전**: v0.7.8-rc.7 (npm next 태그) → rc.8 준비 중
+- **RC 버전**: v0.7.8-rc.9 (로컬 준비됨, npm 배포 대기)
 - **릴리스 타입**: Bug fix release (Slack thread handling - Active Speaker 모델)
-- **포함 이슈**: #8, #9, #14, #15, #16, #18, #22, #25
-- **다음 액션**: v0.7.8-rc.8 태그 생성 → QA 테스트 → 정식 릴리스 결정
-- **블로커**: 없음 (PR #26 머지 완료)
+- **포함 이슈**: #8, #9, #14, #15, #16, #18, #25 (partial: #22)
+- **추가 개선**: 스모크 테스트 가이드, Tester 모델 업그레이드 (sonnet)
+- **다음 액션**: PR #27 머지 → rc.9 npm 배포 → 스모크 테스트 → 정식 릴리스
+- **블로커**: 없음
 
 ### 📋 Issue Status (Target Release: 0.7.8)
 
@@ -22,9 +23,9 @@
 | #15 | Bot doesn't respond after mention switch | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.4) - Resolved |
 | #16 | All bots respond after file-only upload | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.4) - Resolved |
 | #18 | Cross-platform UTF-8 encoding for spawn | crewx_claude_dev | - | ✅ Merged (rc.5) - Resolved |
-| #22 | cli/codex provider thread context not passed | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.7) - #25로 완전 해결 |
+| #22 | cli/codex provider thread context not passed | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.9 - PR #27) - Resolved |
 | #24 | WBS spec cleanup - layoutProps consistency | crewx_claude_dev | - | ❌ Closed (duplicate of #25) |
-| #25 | CLI --thread: conversation_history not in prompt | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.8 예정) - PR #26 |
+| #25 | CLI --thread: conversation_history not in prompt | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.8) - PR #26 |
 
 ### ✅ 완료된 작업 (0.7.8)
 
