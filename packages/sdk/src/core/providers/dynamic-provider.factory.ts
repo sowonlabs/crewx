@@ -6,6 +6,7 @@ import {
 } from './ai-provider.interface';
 import { getTimeoutConfig } from '../../config/timeout.config';
 import type { LoggerLike } from './base-ai.types';
+import { APIProviderConfig, API_PROVIDER_TYPES, APIProviderType } from '../../types/api-provider.types';
 
 class ConsoleLogger implements LoggerLike {
   constructor(private readonly context: string) {}
@@ -66,7 +67,15 @@ export interface RemoteProviderConfig {
   headers?: Record<string, string>;
 }
 
-export type DynamicProviderConfig = PluginProviderConfig | RemoteProviderConfig;
+/**
+ * API provider configuration for dynamic provider factory.
+ * Maps to api/* providers (e.g., api/openai, api/anthropic).
+ */
+export interface APIProviderFactoryConfig extends APIProviderConfig {
+  type: 'api';
+}
+
+export type DynamicProviderConfig = PluginProviderConfig | RemoteProviderConfig | APIProviderFactoryConfig;
 
 export interface DynamicProviderFactoryOptions {
   logger?: LoggerLike;
@@ -89,7 +98,8 @@ export class BaseDynamicProviderFactory {
    * Create a dynamic provider instance from configuration
    */
   createProvider(config: DynamicProviderConfig): BaseAIProvider {
-    this.logger.log(`Creating dynamic provider: ${config.id}`);
+    const providerId = config.type === 'api' ? config.provider : config.id;
+    this.logger.log(`Creating dynamic provider: ${providerId}`);
 
     if (config.type === 'plugin') {
       return this.createPluginProvider(config);
@@ -97,6 +107,10 @@ export class BaseDynamicProviderFactory {
 
     if (config.type === 'remote') {
       return this.createRemoteProvider(config);
+    }
+
+    if (config.type === 'api') {
+      return this.createAPIProvider(config);
     }
 
     throw new Error(`Unknown provider type: ${(config as any).type}`);
@@ -111,11 +125,11 @@ export class BaseDynamicProviderFactory {
     }
 
     const base = config as any;
-    if (!base.id || typeof base.id !== 'string') {
-      return false;
-    }
 
     if (base.type === 'plugin') {
+      if (!base.id || typeof base.id !== 'string') {
+        return false;
+      }
       return (
         typeof base.cli_command === 'string' &&
         Array.isArray(base.query_args) &&
@@ -125,9 +139,21 @@ export class BaseDynamicProviderFactory {
     }
 
     if (base.type === 'remote') {
+      if (!base.id || typeof base.id !== 'string') {
+        return false;
+      }
       return (
         typeof base.location === 'string' &&
         typeof base.external_agent_id === 'string'
+      );
+    }
+
+    if (base.type === 'api') {
+      // API providers use 'provider' field as identifier (e.g., 'api/openai')
+      return (
+        typeof base.provider === 'string' &&
+        (API_PROVIDER_TYPES as readonly string[]).includes(base.provider) &&
+        typeof base.model === 'string'
       );
     }
 
@@ -608,6 +634,157 @@ export class BaseDynamicProviderFactory {
     }
 
     return new RemoteAIProvider();
+  }
+
+  /**
+   * Create an API provider instance (api/openai, api/anthropic, etc.)
+   *
+   * Note: This is a placeholder implementation that creates a BaseAIProvider wrapper.
+   * The actual LLM API calls should be implemented by a runtime-specific provider
+   * that uses libraries like Vercel AI SDK, LangChain, or direct HTTP calls.
+   *
+   * This factory method provides the structure for:
+   * - Provider validation
+   * - Configuration parsing
+   * - BaseAIProvider-compatible interface
+   *
+   * The actual implementation should be extended in subclasses or through
+   * dependency injection with a proper API provider implementation.
+   */
+  protected createAPIProvider(config: APIProviderFactoryConfig): BaseAIProvider {
+    this.logger.log(`Creating API provider: ${config.provider}`);
+    this.validateAPIProviderConfig(config);
+
+    const factory = this;
+
+    class DynamicAPIProvider extends BaseAIProvider {
+      readonly name = config.provider;
+
+      constructor() {
+        super(`APIProvider:${config.provider}`);
+      }
+
+      protected getCliCommand(): string {
+        // API providers don't use CLI commands - they make HTTP API calls
+        // This is a placeholder; actual implementation should override query/execute
+        return 'echo';
+      }
+
+      protected getDefaultArgs(): string[] {
+        return [];
+      }
+
+      protected getExecuteArgs(): string[] {
+        return [];
+      }
+
+      protected getDefaultModel(): string {
+        return config.model;
+      }
+
+      protected getPromptInArgs(): boolean {
+        return false;
+      }
+
+      protected getNotInstalledMessage(): string {
+        return `API provider ${config.provider} requires API key configuration`;
+      }
+
+      protected getDefaultQueryTimeout(): number {
+        return 60000; // 60 seconds default for API calls
+      }
+
+      protected getDefaultExecuteTimeout(): number {
+        return factory.timeoutConfig.parallel;
+      }
+
+      async isAvailable(): Promise<boolean> {
+        // API providers are available if we have the required configuration
+        return !!config.model;
+      }
+
+      /**
+       * Placeholder query implementation.
+       * Override this in a subclass to implement actual API calls.
+       */
+      async query(prompt: string, options?: AIQueryOptions): Promise<AIResponse> {
+        factory.logger.warn(
+          `API provider ${config.provider} query() called but not implemented. ` +
+          'Extend this factory to provide actual API implementation.',
+        );
+
+        return {
+          content: `[API Provider ${config.provider}] Implementation required. Model: ${config.model}`,
+          provider: this.name,
+          command: `API call to ${config.provider}`,
+          success: false,
+          error: 'API provider not implemented - extend BaseDynamicProviderFactory',
+          taskId: options?.taskId,
+        };
+      }
+
+      /**
+       * Placeholder execute implementation.
+       * Override this in a subclass to implement actual API calls.
+       */
+      async execute(prompt: string, options?: AIQueryOptions): Promise<AIResponse> {
+        factory.logger.warn(
+          `API provider ${config.provider} execute() called but not implemented. ` +
+          'Extend this factory to provide actual API implementation.',
+        );
+
+        return {
+          content: `[API Provider ${config.provider}] Implementation required. Model: ${config.model}`,
+          provider: this.name,
+          command: `API call to ${config.provider}`,
+          success: false,
+          error: 'API provider not implemented - extend BaseDynamicProviderFactory',
+          taskId: options?.taskId,
+        };
+      }
+
+      /**
+       * Get the API provider configuration for use in subclass implementations
+       */
+      getAPIConfig(): APIProviderFactoryConfig {
+        return config;
+      }
+    }
+
+    return new DynamicAPIProvider();
+  }
+
+  /**
+   * Validate API provider configuration
+   */
+  protected validateAPIProviderConfig(config: APIProviderFactoryConfig): void {
+    if (!config.provider || typeof config.provider !== 'string') {
+      throw new Error('API provider requires a provider field (e.g., api/openai)');
+    }
+
+    if (!(API_PROVIDER_TYPES as readonly string[]).includes(config.provider)) {
+      throw new Error(
+        `Invalid API provider '${config.provider}'. Valid providers: ${API_PROVIDER_TYPES.join(', ')}`,
+      );
+    }
+
+    if (!config.model || typeof config.model !== 'string') {
+      throw new Error('API provider requires a model field');
+    }
+
+    // Validate temperature if provided
+    if (config.temperature !== undefined) {
+      if (typeof config.temperature !== 'number' || config.temperature < 0 || config.temperature > 2) {
+        throw new Error(`Temperature must be a number between 0 and 2, got: ${config.temperature}`);
+      }
+    }
+
+    // Validate maxTokens if provided
+    if (config.maxTokens !== undefined) {
+      if (typeof config.maxTokens !== 'number' || config.maxTokens < 1 || !Number.isInteger(config.maxTokens)) {
+        throw new Error(`maxTokens must be a positive integer, got: ${config.maxTokens}`);
+      }
+    }
   }
 
   /**

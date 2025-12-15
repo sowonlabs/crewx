@@ -4,16 +4,20 @@ import {
 } from '../schemas/api-provider.schema';
 
 /**
- * Configuration accepted by API-based providers (LiteLLM/OpenAI-compatible gateways).
+ * Valid API provider type values.
+ * Single source of truth for API provider validation.
  */
-export type APIProviderType =
-  | 'api/openai'
-  | 'api/anthropic'
-  | 'api/google'
-  | 'api/bedrock'
-  | 'api/litellm'
-  | 'api/ollama'
-  | 'api/sowonai';
+export const API_PROVIDER_TYPES = [
+  'api/openai',
+  'api/anthropic',
+  'api/google',
+  'api/bedrock',
+  'api/litellm',
+  'api/ollama',
+  'api/sowonai',
+] as const;
+
+export type APIProviderType = (typeof API_PROVIDER_TYPES)[number];
 
 /**
  * Execution modes supported by CrewX providers.
