@@ -9,9 +9,9 @@ export interface LogConfig {
 }
 
 const DEFAULT_LOG_CONFIG: LogConfig = {
-  promptMaxLength: 10000,
-  toolResultMaxLength: 2000,
-  conversationMaxLength: 4000,
+  promptMaxLength: 100000,
+  toolResultMaxLength: 20000,
+  conversationMaxLength: 40000,
 };
 
 export function getLogConfig(env: NodeJS.ProcessEnv = process.env): LogConfig {
