@@ -91,6 +91,25 @@ crewx query "@crewx_gemini_dev Review code for issue #42 committed by Claude. Ch
 
 **CRITICAL**: Dev Lead does NOT execute git/release commands directly. Always delegate.
 
+### 🚨 Release Branch Rules (Important!)
+
+**Branch Strategy:**
+- **Work branches**: Created from develop (feature/xxx)
+- **PR targets**:
+  - Normal development: develop branch
+  - Release inclusion: release/x.x.x branch
+
+**Release Process:**
+1. feature branch → merge to develop (normal development PR)
+2. Release preparation: develop → merge to release/x.x.x
+3. Create RC tag and deploy
+4. After QA pass: release/x.x.x → merge to main
+
+**⚠️ Caution:**
+- develop manages development process only
+- RC deploy only from release branch
+- Never create RC tags directly on develop
+
 ### What to Delegate
 
 | Task | Delegate To | Example |

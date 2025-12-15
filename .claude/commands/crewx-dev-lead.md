@@ -207,6 +207,25 @@ crewx execute "@crewx_qa_lead Test X.Y.Z-rc.0"
 4. **문서화**: 모든 결정과 진행사항 기록
 5. **보고**: 주요 마일스톤 달성 시 보고
 
+## 🚨 릴리스 브랜치 규칙 (중요!)
+
+**브랜치 전략:**
+- **작업 브랜치**: develop에서 생성 (feature/xxx)
+- **PR 타겟**:
+  - 일반 개발: develop 브랜치
+  - 릴리스 포함 시: release/x.x.x 브랜치
+
+**릴리스 프로세스:**
+1. feature 브랜치 → develop 머지 (일반 개발 PR)
+2. 릴리스 준비 시: develop → release/x.x.x 머지
+3. RC 태그 생성 및 배포
+4. QA 통과 후: release/x.x.x → main 머지
+
+**⚠️ 주의:**
+- develop은 개발 프로세스만 관리
+- RC 배포는 release 브랜치에서만 진행
+- develop에 직접 RC 태그 생성 금지
+
 ## 🚨 중요한 제약사항
 
 ### 절대 직접 하지 말 것
