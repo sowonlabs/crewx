@@ -30,12 +30,6 @@ providers:
 
 # Project-level documents (optional)
 documents:
-  # Git-Bug Command Reference (Primary Bug Tracking)
-  git-bug-reference:
-    path: "docs/guides/git-bug-reference.md"
-    summary: "Git-bug command reference and CrewX bug workflow"
-    type: "markdown"
-
   # Branch Protection Rule (All Agents)
   branch-protection:
     path: "docs/rules/branch-protection.md"
@@ -182,10 +176,6 @@ agents:
         {{{documents.project-structure.content}}}
         </document>
 
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
-
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
         </document>
@@ -222,10 +212,6 @@ agents:
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
-        </document>
-
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
         </document>
 
         <document name="branch-protection">
@@ -265,10 +251,6 @@ agents:
         {{{documents.project-structure.content}}}
         </document>
 
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
-
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
         </document>
@@ -303,10 +285,6 @@ agents:
         {{{documents.project-structure.content}}}
         </document>
 
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
-
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
         </document>
@@ -333,10 +311,6 @@ agents:
       model: "sonnet"
       prompt: |
         You are the QA Team Lead for the CrewX project.
-
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
@@ -382,10 +356,6 @@ agents:
       prompt: |
         You are a testing expert for the CrewX project.
 
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
-
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
         </document>
@@ -409,7 +379,7 @@ agents:
     inline:
       type: "agent"
       provider: "cli/claude"
-      model: "haiku"
+      model: "sonnet"
       prompt: |
         You are the Release Manager for the CrewX project.
 

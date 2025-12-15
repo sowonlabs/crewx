@@ -27,15 +27,110 @@ created → analyzed → in-progress → resolved → closed
 ## Branch Strategy
 
 ```
-Individual bugs:     bugfix/bug-XXXXX
+All issues:          feature/<issue-number>-<short-description>
 Integration testing: release/X.X.X-rc.N
 Stable development:  develop
 Production:          main
 ```
 
+**Branch naming rules:**
+- ALL branches use `feature/` prefix (bug/feature/chore distinction via GitHub Labels)
+- Description should be kebab-case (lowercase with hyphens)
+- Max 3-4 words in description
+- Examples: `feature/42-fix-mcp-parsing`, `feature/55-add-layout-props`, `feature/60-cleanup-tests`
+
 **Workflow:**
 ```
-bugfix/bug-XXXXX → release/X.X.X-rc.N → develop → main
+feature/<issue>-<desc> → release/X.X.X-rc.N → develop → main
+```
+
+## Agent Work Tracking
+
+Track which agent worked on an issue via GitHub Issue comments.
+
+### 1. When Starting Work
+```bash
+gh issue comment <issue-number> --body '🤖 **@<agent-name>** started working'
+```
+
+### 2. When Work is Completed
+```bash
+gh issue comment <issue-number> --body '✅ **@<agent-name>** implementation completed
+- Branch: <branch-name>
+- Commit: <commit-hash>'
+```
+
+### 3. Add Label (Optional)
+```bash
+gh issue edit <issue-number> --add-label 'worker:<agent-name>'
+```
+
+### 4. Update status.md
+Record the agent name in the worker column
+
+## PR Cross-Review Process
+
+**All PRs require cross-review before merge.**
+
+### Cross-Review Pairing
+
+| Worker | Reviewer |
+|--------|----------|
+| @crewx_claude_dev | @crewx_gemini_dev |
+| @crewx_gemini_dev | @crewx_claude_dev |
+| @crewx_codex_dev | @crewx_claude_dev or @crewx_gemini_dev |
+
+### Review Scope
+
+**DO Review (Critical Issues Only):**
+- ❗ Logic errors and bugs
+- ❗ Security vulnerabilities
+- ❗ Performance problems
+- ❗ Missing error handling
+- ❗ Breaking changes
+
+**DO NOT Review (Ignore):**
+- ✗ Code style preferences
+- ✗ Variable naming (unless confusing)
+- ✗ Comment formatting
+- ✗ Import ordering
+- ✗ Whitespace issues
+
+### Process Flow
+
+1. **Worker completes PR**
+   ```bash
+   gh pr create --title "..." --body "..."
+   ```
+
+2. **Dev Lead assigns reviewer**
+   ```bash
+   gh issue edit <number> --add-label "reviewer:crewx_gemini_dev"
+   crewx x "@crewx_gemini_dev Review PR #XX for critical issues only. Ignore style."
+   ```
+
+3. **Reviewer checks & comments**
+   - Approve: "✅ LGTM - No critical issues found"
+   - Request changes: "❌ Critical issue: [description]"
+
+4. **After approval → Release Manager merges**
+   ```bash
+   crewx x "@crewx_release_manager Merge PR #XX to release/X.Y.Z"
+   ```
+
+### Review Comment Template
+
+```
+## Cross-Review by @[agent_name]
+
+**Status**: ✅ Approved / ❌ Changes Requested
+
+### Critical Issues Found
+- [ ] Issue 1: ...
+- [ ] Issue 2: ...
+
+### Summary
+[Brief assessment - focus on logic, security, performance only]
 ```
 
 ## Checking Current Release Status
@@ -65,7 +160,7 @@ git branch -r | grep "release/"
 NPM version: 0.3.16
 Latest tag: v0.3.16
 Latest RC reports: 0.3.16-rc.2 (PASS)
-Resolved bugs: 3개
+Resolved bugs: 3
 
 → Conclusion: 0.3.16 already released
 → Next RC: 0.3.17-rc.0 (with 3 resolved bugs)
