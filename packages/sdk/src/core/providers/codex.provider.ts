@@ -33,11 +33,12 @@ export class CodexProvider extends BaseAIProvider {
   }
 
   /**
-   * Enable piped context for thread-based conversation continuity.
-   * Codex CLI accepts conversation history via stdin similar to other CLI providers.
+   * Codex CLI does not read from stdin, so piped context causes EPIPE error.
+   * Instead, conversation_history is already included in the rendered prompt
+   * and passed via args (since getPromptInArgs() returns true).
    */
   protected shouldPipeContext(): boolean {
-    return true;
+    return false;
   }
 
   /**
