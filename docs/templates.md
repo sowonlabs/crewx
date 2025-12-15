@@ -224,8 +224,8 @@ Use the built-in template with one line:
 Previous conversation (22 messages):
 (Slack thread)
 
-**Doha (<@U08LSF2KNVD>)**: 안녕하세요
-**crewxdev (<@U09J206RP8V>) (@CrewX)**: 안녕하세요! 무엇을 도와드릴까요?
+**Doha (<@U08LSF2KNVD>)**: Hello
+**crewxdev (<@U09J206RP8V>) (@CrewX)**: Hello! How can I help you?
 ...
 </messages>
 ```
@@ -259,8 +259,8 @@ For special formatting needs, use as a block helper:
 ```xml
 <messages>
 <conversation-history platform="slack" count="22">
-[USER] 안녕하세요
-[AI] 안녕하세요! 무엇을 도와드릴까요?
+[USER] Hello
+[AI] Hello! How can I help you?
 ...
 </conversation-history>
 </messages>
