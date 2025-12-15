@@ -108,6 +108,12 @@ documents:
     summary: "Critical rules and checklist for modifying template-related code"
     type: "markdown"
 
+  # tsserver Skill Guide (for all developers)
+  tsserver-skill:
+    path: "docs/guides/tsserver-skill.md"
+    summary: "TypeScript code intelligence using tsserver"
+    type: "markdown"
+
   # Project Structure (for all developers)
   project-structure: |
     Read `./CREWX.md` for project overview,
@@ -156,6 +162,9 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -183,6 +192,10 @@ agents:
         {{{documents.template-modification-rules.content}}}
         </document>
 
+        <document name="tsserver-skill">
+        {{{documents.tsserver-skill.content}}}
+        </document>
+
   - id: "crewx_gemini_dev"
     name: "CrewX Gemini Developer"
     role: "Lead Developer"
@@ -191,6 +204,9 @@ agents:
     options:
       query: ["--debug"]
       execute: ["--debug", "--yolo"]
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "cli/gemini"
@@ -218,6 +234,10 @@ agents:
         {{{documents.template-modification-rules.content}}}
         </document>
 
+        <document name="tsserver-skill">
+        {{{documents.tsserver-skill.content}}}
+        </document>
+
   - id: "crewx_codex_dev"
     name: "CrewX Codex Developer"
     role: "Senior Developer"
@@ -226,6 +246,9 @@ agents:
     options:
       query: ["exec", "--experimental-json"]
       execute: ["exec", "-s", "workspace-write",  "--experimental-json"]
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "cli/codex"
@@ -252,11 +275,18 @@ agents:
         {{{documents.template-modification-rules.content}}}
         </document>
 
+        <document name="tsserver-skill">
+        {{{documents.tsserver-skill.content}}}
+        </document>
+
   - id: "crewx_crush_dev"
     name: "CrewX Crush Developer"
     role: "Developer"
     team: "Development Team"
     description: "CrewX Developer (Crush-powered)"
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "plugin/crush"

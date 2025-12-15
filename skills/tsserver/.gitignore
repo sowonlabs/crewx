@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+
+# Lock files (optional - 프로젝트 정책에 따라 제거 가능)
+# package-lock.json
