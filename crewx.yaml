@@ -352,7 +352,7 @@ agents:
     inline:
       type: "agent"
       provider: "cli/claude"
-      model: "haiku"
+      model: "sonnet"
       prompt: |
         You are a testing expert for the CrewX project.
 

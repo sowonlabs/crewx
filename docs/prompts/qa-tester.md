@@ -106,7 +106,39 @@ node dist/main.js execute \
 node dist/main.js query "@claude:haiku test" --thread "test-thread"
 ```
 
-## Smoke Test Checklist (RC Testing)
+## RC 배포 전 필수 스모크 테스트 (MANDATORY)
+
+**🚨 CRITICAL: RC 배포 전 반드시 수행해야 하는 테스트입니다**
+
+### 스모크 테스트 가이드 참조
+
+**필수 참조:** [`docs/qa/smoke-test.md`](../qa/smoke-test.md)
+
+RC 배포 전 다음 테스트를 반드시 수행하세요:
+
+1. **Provider별 --thread 옵션 테스트**
+   - cli/claude, cli/codex에서 --thread 옵션 동작 확인
+   - 두 번째 메시지에서 이전 대화 기억 여부 확인
+
+2. **Conversation History 로그 검증**
+   - `.crewx/logs/` 로그 파일에서 `<conversation_history>` 섹션 확인
+   - 실제 LLM이 이전 대화를 기억하는지 확인
+
+3. **각 Provider 기본 동작 테스트**
+   - cli/claude, cli/codex, cli/gemini 각각 query 테스트
+   - 에러 없이 응답 받는지 확인
+
+### RC 배포 전 체크리스트
+
+```markdown
+- [ ] 스모크 테스트 전체 통과
+- [ ] 로그 파일 확인 (.crewx/logs/)
+- [ ] 실제 사용 시나리오 테스트
+```
+
+---
+
+## Smoke Test Checklist (RC Testing - Legacy)
 
 **🚨 CRITICAL: Always include these smoke tests in RC integration testing**
 
