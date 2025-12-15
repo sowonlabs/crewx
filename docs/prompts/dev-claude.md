@@ -164,17 +164,39 @@ npm test
 git add .
 git commit -m "fix(#42): resolve - <description>"
 
-# 3. Update GitHub Issue status to 'resolved'
+# 3. Push branch and create PR
+git push -u origin feature/42-fix-description
+gh pr create --base release/X.Y.Z --title "fix(#42): description" --body "Fixes #42"
+
+# 4. Notify Dev Lead (IMPORTANT!)
+gh issue comment 42 --body "PR #XX created, ready for Dev Lead review"
+
+# 5. Update GitHub Issue status to 'resolved'
 # Add status:resolved label
 gh issue edit 42 --add-label "status:resolved"
 
-# Add resolution comment
-gh issue comment 42 --body "Fixed in commit $(git rev-parse --short HEAD)"
-
-# 4. CRITICAL: Return to main directory AND restore develop branch
+# 6. CRITICAL: Return to main directory AND restore develop branch
 cd /Users/doha/git/crewx
 git checkout develop
 ```
+
+### PR Creation and Dev Lead Notification
+
+**IMPORTANT**: After creating a PR, always notify Dev Lead:
+
+```bash
+# 1. Create PR targeting the release branch
+gh pr create --base release/0.7.8 --title "feat(#28): increase log limits" --body "..."
+
+# 2. Notify Dev Lead via issue comment
+gh issue comment 28 --body "PR #29 created, ready for Dev Lead review"
+```
+
+**Why notify Dev Lead?**
+- Dev Lead will verify PR changes match requirements (`gh pr diff`)
+- Dev Lead assigns appropriate reviewer
+- Prevents delays in review process
+- Real example: Issue #28 → PR #29 → Dev Lead verified → Cross-review → Merge
 
 **⚠️ CRITICAL RULE: Always restore develop branch after worktree work**
 - After ANY worktree operation, MUST run: `cd /Users/doha/git/crewx && git checkout develop`
@@ -268,12 +290,53 @@ Edit: /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs/packages/cli/s
 # 7. Test
 Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && npm run build
 
-# 8. Commit
-Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && git add . && git commit -m "fix(#42): remove debug logs"
+# 8. Commit and Push
+Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && git add . && git commit -m "fix(#42): remove debug logs" && git push -u origin feature/42-remove-debug-logs
 
-# 9. Update GitHub Issue status and return to develop
-Bash: cd /Users/doha/git/crewx && gh issue edit 42 --add-label "status:resolved" && gh issue comment 42 --body "Fixed: removed debug logs in commit $(cd worktree/feature-42-remove-debug-logs && git rev-parse --short HEAD)" && git checkout develop
+# 9. Create PR and notify Dev Lead
+Bash: cd /Users/doha/git/crewx/worktree/feature-42-remove-debug-logs && gh pr create --base release/0.7.8 --title "fix(#42): remove debug logs" --body "Fixes #42"
+Bash: gh issue comment 42 --body "PR created, ready for Dev Lead review"
+
+# 10. Update GitHub Issue status and return to develop
+Bash: cd /Users/doha/git/crewx && gh issue edit 42 --add-label "status:resolved" && git checkout develop
 ```
+
+## Complete Issue-PR-RC Flow Example (Issue #28)
+
+**Real-world example from Issue #28 (log limits feature):**
+
+```
+Issue #28 created
+    ↓
+Worker creates worktree/feature-28-log-limits
+    ↓
+Implementation in worktree
+    ↓
+PR #29 created → targets release/0.7.8
+    ↓
+Worker notifies: "PR #29 ready for Dev Lead review"
+    ↓
+Dev Lead verifies: gh pr diff 29
+    ↓
+Dev Lead assigns reviewer
+    ↓
+Cross-review by different agent
+    ↓
+Release Manager merges to release/0.7.8
+    ↓
+RC version bump: 0.7.8-rc.11
+    ↓
+QA testing
+    ↓
+PASS → Release v0.7.8
+```
+
+**Key learnings from Issue #28:**
+1. Always create PR before marking issue resolved
+2. Notify Dev Lead immediately after PR creation
+3. Dev Lead verifies PR diff matches requirements
+4. RC versions can increment many times (rc.10, rc.11, etc.) - this is normal
+5. Quality over speed - no rush to release
 
 ## Collaboration with Tester
 

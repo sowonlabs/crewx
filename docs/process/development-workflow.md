@@ -21,8 +21,25 @@ created → analyzed → in-progress → resolved → closed
 1. **Merge**: All `resolved` bugs → `release/X.X.X-rc.0` branch
 2. **Test**: QA team runs integration tests
 3. **Decision**:
-   - ✅ **PASS**: Merge to `develop` → npm publish
-   - ❌ **FAIL**: Exclude failed bugs → `rc.1`, `rc.2`, ... (retry)
+   - **PASS**: Merge to `develop` → npm publish
+   - **FAIL**: Exclude failed bugs → `rc.1`, `rc.2`, ... (retry)
+
+### RC Version Policy
+
+**RC period can run 1-2 weeks for thorough verification:**
+- RC numbers can increment as needed: `rc.0`, `rc.1`, ... `rc.10`, `rc.11`, etc.
+- Each RC should be tested thoroughly before final release
+- No rush to release - quality over speed
+- RC version increments are normal and expected during active development
+
+**Example Timeline:**
+```
+Day 1:  rc.0 - Initial RC with 5 bug fixes
+Day 3:  rc.1 - Found issue in rc.0, fixed + 2 new features
+Day 5:  rc.2 - Minor fixes from QA feedback
+Day 7:  rc.3 - Final tweaks
+Day 10: QA PASS → Release v0.7.8
+```
 
 ## Branch Strategy
 
@@ -100,12 +117,12 @@ Track which agent worked on an issue via GitHub Issue comments.
 
 ### 1. When Starting Work
 ```bash
-gh issue comment <issue-number> --body '🤖 **@<agent-name>** started working'
+gh issue comment <issue-number> --body '**@<agent-name>** started working'
 ```
 
 ### 2. When Work is Completed
 ```bash
-gh issue comment <issue-number> --body '✅ **@<agent-name>** implementation completed
+gh issue comment <issue-number> --body '**@<agent-name>** implementation completed
 - Branch: <branch-name>
 - Commit: <commit-hash>'
 ```
@@ -117,6 +134,98 @@ gh issue edit <issue-number> --add-label 'worker:<agent-name>'
 
 ### 4. Update status.md
 Record the agent name in the worker column
+
+## Issue-Branch-PR-RC Connection Flow
+
+Understanding the complete flow from Issue to Release:
+
+```
+┌──────────────┐     ┌─────────────────────────────┐     ┌──────────────┐
+│   Issue #28  │ ──→ │ feature/28-log-limits       │ ──→ │    PR #29    │
+│  (GitHub)    │     │ (worktree/feature-28-...)   │     │  (GitHub)    │
+└──────────────┘     └─────────────────────────────┘     └──────────────┘
+       │                                                        │
+       │                                                        ▼
+       │                                              ┌──────────────────┐
+       │                                              │ Dev Lead verifies│
+       │                                              │ (gh pr diff)     │
+       │                                              └──────────────────┘
+       │                                                        │
+       │                                                        ▼
+       │                                              ┌──────────────────┐
+       │                                              │ Cross-review by  │
+       │                                              │ different agent  │
+       │                                              └──────────────────┘
+       │                                                        │
+       │                                                        ▼
+       ▼                                              ┌──────────────────┐
+┌──────────────┐                                      │ Merge to release │
+│ status.md    │ ◄───────────────────────────────────│ branch           │
+│ updated      │                                      └──────────────────┘
+└──────────────┘                                               │
+                                                               ▼
+                                                    ┌──────────────────┐
+                                                    │ RC version bump  │
+                                                    │ (0.7.8-rc.11)    │
+                                                    └──────────────────┘
+                                                               │
+                                                               ▼
+                                                    ┌──────────────────┐
+                                                    │ QA Testing       │
+                                                    │                  │
+                                                    └──────────────────┘
+                                                               │
+                                                    ┌──────────┴──────────┐
+                                                    ▼                     ▼
+                                          ┌─────────────┐       ┌─────────────┐
+                                          │ PASS → main │       │ FAIL → fix  │
+                                          │ release     │       │ → new RC    │
+                                          └─────────────┘       └─────────────┘
+```
+
+### Key Checkpoints
+
+| Step | Action | Responsible |
+|------|--------|-------------|
+| 1. Issue created | Add labels, assign worker | Dev Lead |
+| 2. Branch created | `feature/<issue>-<desc>` from develop | Worker |
+| 3. Implementation | Code changes in worktree | Worker |
+| 4. PR created | Target: release branch | Worker |
+| 5. PR verification | `gh pr diff`, check requirements | Dev Lead |
+| 6. Cross-review | Critical issues only | Assigned reviewer |
+| 7. Merge to release | After approval | Release Manager |
+| 8. RC version | Bump and deploy | Release Manager |
+| 9. QA test | Integration testing | QA Lead |
+| 10. Final release | Merge to main, npm publish | Release Manager |
+
+### Real Example: Issue #28
+
+```bash
+# Step 1: Issue #28 created (log limits feature request)
+
+# Step 2: Worker creates branch
+git worktree add worktree/feature-28-log-limits develop
+cd worktree/feature-28-log-limits
+git checkout -b feature/28-log-limits
+
+# Step 3: Implementation (code changes)
+# ... edit files ...
+
+# Step 4: Worker creates PR #29
+gh pr create --base release/0.7.8 --title "feat(#28): increase log limits"
+
+# Step 5: Dev Lead verifies
+gh pr diff 29  # Check changes match requirements
+gh issue view 28  # Verify all requirements covered
+
+# Step 6-7: Cross-review and merge
+# Dev Lead assigns reviewer, Release Manager merges after approval
+
+# Step 8: RC version bump
+npm version 0.7.8-rc.11
+
+# Step 9-10: QA and release
+```
 
 ## PR Cross-Review Process
 
@@ -146,34 +255,58 @@ Record the agent name in the worker column
 - ✗ Import ordering
 - ✗ Whitespace issues
 
-### Process Flow
+### Process Flow (Dev Lead PR Cross-Check)
 
-1. **Worker completes PR**
+**IMPORTANT**: Dev Lead performs PR verification before assigning to Release Manager.
+
+1. **Worker completes PR and notifies Dev Lead**
    ```bash
-   gh pr create --title "..." --body "..."
+   # Worker creates PR
+   gh pr create --title "feat(#28): add feature" --body "..."
+
+   # Worker notifies Dev Lead (via issue comment)
+   gh issue comment 28 --body "PR #XX created, ready for Dev Lead review"
    ```
 
-2. **Dev Lead assigns reviewer**
+2. **Dev Lead verifies PR changes**
+   ```bash
+   # Check PR diff matches requirements
+   gh pr diff <PR-number>
+
+   # Verify implementation covers all requirements from issue
+   gh issue view 28
+   ```
+
+3. **Dev Lead assigns reviewer (after verification)**
    ```bash
    gh issue edit <number> --add-label "reviewer:crewx_gemini_dev"
    crewx x "@crewx_gemini_dev Review PR #XX for critical issues only. Ignore style."
    ```
 
-3. **Reviewer checks & comments**
-   - Approve: "✅ LGTM - No critical issues found"
-   - Request changes: "❌ Critical issue: [description]"
+4. **Reviewer checks & comments**
+   - Approve: "LGTM - No critical issues found"
+   - Request changes: "Critical issue: [description]"
 
-4. **After approval → Release Manager merges**
+5. **After approval → Release Manager merges**
    ```bash
    crewx x "@crewx_release_manager Merge PR #XX to release/X.Y.Z"
    ```
+
+### Dev Lead PR Verification Checklist
+
+Before assigning a reviewer, Dev Lead must verify:
+- [ ] PR diff shows expected changes (`gh pr diff <number>`)
+- [ ] All issue requirements are addressed
+- [ ] No unrelated changes included
+- [ ] Commit messages follow convention
+- [ ] Target branch is correct (release/X.Y.Z or develop)
 
 ### Review Comment Template
 
 ```
 ## Cross-Review by @[agent_name]
 
-**Status**: ✅ Approved / ❌ Changes Requested
+**Status**: Approved / Changes Requested
 
 ### Critical Issues Found
 - [ ] Issue 1: ...
