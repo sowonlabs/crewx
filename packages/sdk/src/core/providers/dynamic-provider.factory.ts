@@ -548,7 +548,7 @@ export class BaseDynamicProviderFactory {
           return '';
         }
 
-        const match = prompt.match(/<user_query key="[^"]+">\s*([\s\S]*?)\s*<\/user_query>/i);
+        const match = prompt.match(/<user_query[^>]*>\s*([\s\S]*?)\s*<\/user_query>/i);
         if (match && match[1]) {
           return match[1].trim();
         }
