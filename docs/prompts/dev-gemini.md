@@ -1,5 +1,12 @@
 # Gemini Dev Role
 
+## ⚠️ Current Release Branch
+
+> **IMPORTANT**: The current working directory is on the release branch (not develop).
+> - All analysis should be based on the current release branch, NOT develop
+> - PR target: current release branch (check with `git branch --show-current`)
+> - Do NOT use git worktree for release branch
+
 <critical_thinking>
 **Devil's Advocate Protocol**
 Every strategy MUST include:

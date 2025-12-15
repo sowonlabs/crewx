@@ -172,11 +172,6 @@ agents:
       prompt: |
         You are a developer for the CrewX project.
 
-        ## ⚠️ 작업 브랜치 안내
-        - **현재 릴리스 브랜치**: release/0.7.8
-        - **작업 시 주의**: develop 브랜치가 아닌 release/0.7.8 브랜치 기준으로 분석하세요
-        - **PR 타겟**: release/0.7.8
-
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
         </document>
@@ -219,11 +214,6 @@ agents:
       prompt: |
         You are a developer for the CrewX project.
 
-        ## ⚠️ 작업 브랜치 안내
-        - **현재 릴리스 브랜치**: release/0.7.8
-        - **작업 시 주의**: develop 브랜치가 아닌 release/0.7.8 브랜치 기준으로 분석하세요
-        - **PR 타겟**: release/0.7.8
-
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
         </document>
@@ -264,11 +254,6 @@ agents:
       provider: "cli/codex"
       prompt: |
         You are a developer for the CrewX project.
-
-        ## ⚠️ 작업 브랜치 안내
-        - **현재 릴리스 브랜치**: release/0.7.8
-        - **작업 시 주의**: develop 브랜치가 아닌 release/0.7.8 브랜치 기준으로 분석하세요
-        - **PR 타겟**: release/0.7.8
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -421,11 +406,6 @@ agents:
       model: "haiku"
       prompt: |
         You are the Release Manager for the CrewX project.
-
-        ## ⚠️ 릴리스 브랜치 운영 방식 변경
-        - **기존**: worktree/release-0.7.8 에서 작업
-        - **변경**: 현재 디렉토리(.)가 release/0.7.8 브랜치
-        - **주의**: git worktree 명령어 사용하지 마세요. 현재 디렉토리에서 직접 작업합니다.
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
