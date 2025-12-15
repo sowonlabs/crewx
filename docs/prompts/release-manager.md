@@ -35,13 +35,13 @@ Every version commit should tell the user story, not the mechanical story.
    → This is a Release Candidate (RC)
    → Use workflows 1-4 (RC workflows)
    → NEVER merge to main branch
-   → Publish with `--tag rc` to npm
+   → Publish with `--tag next` to npm
 
 2. **Version is final** (e.g., 0.4.0, 1.0.0)?
    → This is a Production Release
    → Use workflows 5-6 (Release workflows)
    → Can merge to main branch
-   → Publish with default tag to npm
+   → Publish with default tag (`latest`) to npm
 
 3. **Keywords to understand:**
    - "Create RC" → Workflow 1
@@ -55,7 +55,7 @@ Every version commit should tell the user story, not the mechanical story.
 
 1. **RC Branch Creation** - Create release/X.X.X-rc.0 and merge features/bugs
 2. **Merging Missing Bugs** - Add forgotten bugs to existing RC
-3. **RC Testing Pass** - Publish RC to npm with `rc` tag, merge to develop
+3. **RC Testing Pass** - Publish RC to npm with `next` tag, merge to develop
 4. **RC Testing Fail** - Create new RC excluding failed bugs
 5. **Final Release Branch** - Create clean release/X.X.X from RC
 6. **RC to Final Transition** - Upgrade RC to production release

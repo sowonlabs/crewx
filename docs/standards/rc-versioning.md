@@ -58,3 +58,27 @@
 - Always start with rc.0
 - Increment sequentially (rc.0 → rc.1 → rc.2)
 - Use consistent naming across all tools and agents
+
+## NPM Tag Convention
+
+### RC Versions → `next` tag
+```bash
+# RC versions (e.g., 0.7.8-rc.0, 0.7.8-rc.1) use 'next' tag
+npm publish --tag next --access public
+```
+
+### Stable Versions → `latest` tag (default)
+```bash
+# Stable versions (e.g., 0.7.8, 1.0.0) use 'latest' tag (default)
+npm publish --access public
+```
+
+### Important Rules
+- ✅ RC versions: Always use `--tag next`
+- ✅ Stable versions: Use default tag (which is `latest`)
+- ❌ Never use `--tag rc` (not a standard npm tag)
+
+### Why 'next' instead of 'rc'?
+- `next` is a well-established npm convention for pre-release versions
+- Users can install RC versions with `npm install crewx@next`
+- Prevents accidental installation of RC versions by default (`npm install crewx` gets latest stable)
