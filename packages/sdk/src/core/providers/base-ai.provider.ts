@@ -484,18 +484,22 @@ Started: ${timestamp}
       this.logger.log(`Executing ${this.name} with prompt (length: ${prompt.length})`);
 
       return new Promise((resolve) => {
-        // Set UTF-8 encoding for Windows PowerShell to handle Korean/Unicode correctly
-        const env = { ...process.env, ...this.getEnv() };
+        // Set UTF-8 encoding to handle Korean/Unicode correctly across all platforms
+        const env: Record<string, string | undefined> = {
+          ...process.env,
+          LANG: 'en_US.UTF-8',
+          LC_ALL: 'en_US.UTF-8',
+          ...this.getEnv(),
+        };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
-          env.LANG = 'en_US.UTF-8';
         }
-        
+
         // For Windows, use the full path to .cmd file if needed
         let executable = executablePath;
         let spawnArgs = args;
         let useShell = false;
-        
+
         if (process.platform === 'win32' && !executablePath.match(/\.(cmd|bat|ps1)$/i)) {
           // On Windows, if executable doesn't have extension, spawn needs shell
           useShell = true;
@@ -699,11 +703,15 @@ Started: ${timestamp}
       this.logger.log(`Executing ${this.name} in execute mode (length: ${prompt.length})`);
 
       return new Promise((resolve) => {
-        // Set UTF-8 encoding for Windows PowerShell to handle Korean/Unicode correctly
-        const env = { ...process.env, ...this.getEnv() };
+        // Set UTF-8 encoding to handle Korean/Unicode correctly across all platforms
+        const env: Record<string, string | undefined> = {
+          ...process.env,
+          LANG: 'en_US.UTF-8',
+          LC_ALL: 'en_US.UTF-8',
+          ...this.getEnv(),
+        };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
-          env.LANG = 'en_US.UTF-8';
         }
 
         // For Windows, use the full path to .cmd file if needed
