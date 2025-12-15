@@ -156,6 +156,9 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -187,6 +190,9 @@ agents:
     options:
       query: ["--debug"]
       execute: ["--debug", "--yolo"]
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "cli/gemini"
@@ -218,6 +224,9 @@ agents:
     options:
       query: ["exec", "--experimental-json"]
       execute: ["exec", "-s", "workspace-write",  "--experimental-json"]
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "cli/codex"
