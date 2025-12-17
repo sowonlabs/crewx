@@ -1,64 +1,57 @@
 # 📊 CrewX 프로젝트 현황판
-> 마지막 업데이트: 2025-12-18 (v0.7.8-rc.15 배포 완료)
+> 마지막 업데이트: 2025-12-18 (v0.7.8 정식 릴리스 완료)
+
+## 🎉 v0.7.8 정식 릴리스 완료
+
+- **릴리스 일자**: 2025-12-18
+- **현재 배포**: v0.7.8 (npm latest 태그)
+- **릴리스 타입**: Bug fix release (Slack thread handling - Active Speaker 모델)
+- **GitHub Release**: [v0.7.8](https://github.com/sowonlabs/crewx/releases/tag/v0.7.8)
 
 ## 🎯 현재 진행 중인 작업
 
-### 🚀 릴리스: 0.7.8 (RC 배포 완료)
-- **현재 배포**: v0.7.7 (npm latest 태그)
-- **RC 버전**: v0.7.8-rc.15 (✅ 배포 완료 - npm next 태그)
-- **릴리스 타입**: Bug fix release (Slack thread handling - Active Speaker 모델)
-- **포함 이슈**: #8, #9, #14, #15, #16, #18, #22, #25, #28
-- **추가 개선**:
-  - 스모크 테스트 가이드, Tester 모델 업그레이드 (sonnet), 로그 한계값 10배 증가
-  - UTF-8 크로스 플랫폼 인코딩 (#18)
-  - Node 버전 요구사항 추가 (>=20.19.0) - 모든 패키지에 engines 필드 추가
-  - Help 버전 표시 버그 수정 (cwd 대신 package 경로 사용)
-  - Branch naming convention 변경 (feature/issue-<number>)
-- **다음 액션**: 스모크 테스트 → 정식 릴리스
-- **블로커**: 없음
+없음 (다음 릴리스 준비 중)
 
-### 📋 Issue Status (Target Release: 0.7.8)
+## ✅ 완료된 작업 (v0.7.8)
 
-| ID | Description | Worker | Reviewer | Status |
-|----|-------------|--------|----------|--------|
-| #8 | Layout Props for toggling default sections | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.6) - Resolved |
-| #9 | Clean up test and debug files | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.6) - Resolved |
-| #10 | Slack: Multiple unmentioned agents respond | crewx_claude_dev | crewx_gemini_dev | ✅ Active Speaker로 대체 (#14-16) |
-| #14 | All bots respond simultaneously in threads | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.4) - Resolved |
-| #15 | Bot doesn't respond after mention switch | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.4) - Resolved |
-| #16 | All bots respond after file-only upload | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.4) - Resolved |
-| #18 | Cross-platform UTF-8 encoding for spawn | crewx_claude_dev | - | ✅ Merged (rc.5) - Resolved |
-| #22 | cli/codex provider thread context not passed | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.9 - PR #27) - Resolved |
-| #24 | WBS spec cleanup - layoutProps consistency | crewx_claude_dev | - | ❌ Closed (duplicate of #25) |
-| #25 | CLI --thread: conversation_history not in prompt | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.8) - PR #26 |
-
-### ✅ 완료된 작업 (0.7.8)
+### 포함된 이슈 및 개선사항
 
 | ID | Description | Status |
 |----|-------------|--------|
-| #12 | TypeScript tsserver skill 추가 | ✅ Merged to develop (feature/tsserver-skill) |
+| #8 | Layout Props for toggling default sections | ✅ Merged - Resolved |
+| #9 | Clean up test and debug files | ✅ Merged - Resolved |
+| #14 | All bots respond simultaneously in threads | ✅ Merged - Resolved |
+| #15 | Bot doesn't respond after mention switch | ✅ Merged - Resolved |
+| #16 | All bots respond after file-only upload | ✅ Merged - Resolved |
+| #18 | Cross-platform UTF-8 encoding for spawn | ✅ Merged - Resolved |
+| #22 | cli/codex provider thread context not passed | ✅ Merged - Resolved |
+| #25 | CLI --thread: conversation_history not in prompt | ✅ Merged - Resolved |
+| #28 | Increase log truncation limits (10x) | ✅ Merged - Resolved |
+| #12 | TypeScript tsserver skill 추가 | ✅ Merged - Resolved |
 
-### 🔧 진행 중인 작업 (0.7.8)
+### 추가 개선사항
 
-| ID | Description | Worker | Reviewer | Status |
-|----|-------------|--------|----------|--------|
-| #28 | Increase log truncation limits (10x) | crewx_claude_dev | crewx_gemini_dev | ✅ Merged (rc.11 - PR #29) - Deployed |
-| #31 | ERR_REQUIRE_ESM Windows issue | crewx_claude_dev | - | ❌ Closed (Root cause: Node <20.19.0) |
+- 스모크 테스트 가이드, Tester 모델 업그레이드 (sonnet)
+- 로그 한계값 10배 증가
+- UTF-8 크로스 플랫폼 인코딩
+- Node 버전 요구사항 추가 (>=20.19.0) - 모든 패키지에 engines 필드 추가
+- Help 버전 표시 버그 수정 (cwd 대신 package 경로 사용)
+- Branch naming convention 변경 (feature/issue-<number>)
+
+### 종료된 이슈
+
+| ID | Description | Status |
+|----|-------------|--------|
+| #10 | Slack: Multiple unmentioned agents respond | ❌ Active Speaker로 대체 (#14-16) |
+| #24 | WBS spec cleanup - layoutProps consistency | ❌ Closed (duplicate of #25) |
+| #31 | ERR_REQUIRE_ESM Windows issue | ❌ Closed (Root cause: Node <20.19.0) |
 
 ## 📌 다음 할 일
 
-### 🔴 우선순위 1 (긴급)
-- [x] **이슈 #14, #15, #16**: 0.7.8 타겟 설정 및 개발 진행 ✅
-- [x] **PR #17 병합**: release/0.7.8-rc.4 병합 완료 ✅
-- [x] **v0.7.8-rc.4 태그 생성**: 태그 생성 및 npm 배포 완료 ✅
-- [ ] **QA 테스트**: v0.7.8-rc.5 버전 테스트 실행
-
-### 🟡 우선순위 2 (중요)
-- [x] **기존 PR 리뷰 완료**: #8, #9 리뷰 및 병합 ✅
-- [ ] **0.7.8 정식 릴리스**: QA 통과 후 main 병합 및 npm publish
-
-### 🟢 우선순위 3 (일반)
+### 🟢 다음 릴리스 준비 (0.7.9 또는 0.8.0)
 - [ ] **백로그 이슈 처리**: #6, #7 (Remote Provider 버그 수정)
+- [ ] **새로운 피처 이슈 정리**: 필요 시 이슈 생성
+- [ ] **기술 부채 정리**: 코드 리팩토링 검토
 
 ## 🔗 Quick Links
 - [GitHub Issues](https://github.com/sowonlabs/crewx/issues) - 이슈 목록
