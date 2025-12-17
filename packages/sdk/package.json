@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-sdk",
-  "version": "0.7.8-rc.11",
+  "version": "0.7.8-rc.13",
   "license": "Apache-2.0",
   "description": "SowonAI CrewX SDK",
   "type": "commonjs",
@@ -9,11 +9,13 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
+    "scripts",
     "schema",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
+    "postinstall": "node ./scripts/postinstall-sdk.mjs",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run --config ./vitest.config.ts",
     "test:watch": "vitest --config ./vitest.config.ts",
@@ -56,6 +58,7 @@
     }
   },
   "dependencies": {
+    "@sindresorhus/slugify": "1.1.2",
     "@ai-sdk/anthropic": "^1.0.8",
     "@ai-sdk/google": "^1.0.10",
     "@ai-sdk/openai": "^1.0.11",
@@ -83,7 +86,12 @@
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
+    "@types/mdast": "^4.0.4",
+    "@types/unist": "^3.0.3",
     "dotenv": "^17.2.3",
     "typescript": "^5.0.0"
+  },
+  "overrides": {
+    "@sindresorhus/slugify": "1.1.2"
   }
 }

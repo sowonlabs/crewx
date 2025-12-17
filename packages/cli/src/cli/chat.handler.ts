@@ -1,5 +1,4 @@
 import { Logger } from '@nestjs/common';
-import { Command } from 'commander';
 import { CrewXTool } from '../crewx.tool';
 import {
   CliConversationHistoryProvider,
