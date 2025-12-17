@@ -8,6 +8,8 @@
 import { load as loadYaml } from 'js-yaml';
 import { readFileSync } from 'fs';
 import { CrewxAgentConfig, ProviderConfig, KnowledgeBaseConfig } from '../core/agent/agent-factory';
+import { parseAPIProviderConfig, RawAgentConfig as RawAPIAgentConfig } from './api-provider-parser';
+import { APIProviderConfig } from '../types/api-provider.types';
 
 /**
  * Error thrown when YAML parsing or validation fails
@@ -149,7 +151,7 @@ function parseYamlConfig(raw: RawYamlConfig): CrewxAgentConfig {
 
         // Parse provider
         if (agentConfig.provider) {
-          config.provider = parseProvider(agentConfig.provider, agentConfig.inline);
+          config.provider = parseProvider(agentConfig.provider, agentConfig.inline, agentConfig);
         }
 
         // Parse knowledge base
@@ -176,9 +178,15 @@ function parseYamlConfig(raw: RawYamlConfig): CrewxAgentConfig {
 
 /**
  * Parse provider configuration from YAML
- * Format: "namespace/id" (e.g., "cli/claude", "mcp/custom-agent")
+ * Format: "namespace/id" (e.g., "cli/claude", "mcp/custom-agent", "api/openai")
+ *
+ * For API providers (api/*), delegates to parseAPIProviderConfig for full validation.
  */
-function parseProvider(providerString: string, inline?: Record<string, any>): ProviderConfig {
+function parseProvider(
+  providerString: string,
+  inline?: Record<string, any>,
+  rawAgentConfig?: RawAgentConfig,
+): ProviderConfig | APIProviderConfig {
   if (!providerString || typeof providerString !== 'string') {
     throw new YamlConfigError('Provider must be a non-empty string');
   }
@@ -200,6 +208,25 @@ function parseProvider(providerString: string, inline?: Record<string, any>): Pr
     );
   }
 
+  // For API providers, delegate to parseAPIProviderConfig for full validation
+  if (namespace === 'api') {
+    try {
+      // Build raw config for API provider parser
+      const apiRawConfig: RawAPIAgentConfig = {
+        provider: providerString,
+        ...rawAgentConfig,
+        inline: inline ? { ...inline, provider: providerString } : { provider: providerString },
+      };
+      return parseAPIProviderConfig(apiRawConfig);
+    } catch (error) {
+      throw new YamlConfigError(
+        `Failed to parse API provider '${providerString}': ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  // For CLI/MCP/plugin/remote providers, return standard ProviderConfig
   const config: ProviderConfig = {
     namespace,
     id,

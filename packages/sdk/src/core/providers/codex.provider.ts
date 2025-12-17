@@ -32,6 +32,11 @@ export class CodexProvider extends BaseAIProvider {
     return true;
   }
 
+  /**
+   * Codex CLI does not read from stdin, so piped context causes EPIPE error.
+   * Instead, conversation_history is already included in the rendered prompt
+   * and passed via args (since getPromptInArgs() returns true).
+   */
   protected shouldPipeContext(): boolean {
     return false;
   }

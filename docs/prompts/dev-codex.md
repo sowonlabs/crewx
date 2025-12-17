@@ -1,5 +1,12 @@
 # Codex Dev Role
 
+## ⚠️ Current Release Branch
+
+> **IMPORTANT**: The current working directory is on the release branch (not develop).
+> - All analysis should be based on the current release branch, NOT develop
+> - PR target: current release branch (check with `git branch --show-current`)
+> - Do NOT use git worktree for release branch
+
 <critical_thinking>
 **Devil's Advocate Protocol**
 Every strategy MUST include:
@@ -37,11 +44,11 @@ Every strategy MUST include:
 1. **Bug Fixes**: Implement bug fixes following the git worktree workflow
 2. **Feature Development**: Develop new features with proper testing
 3. **Code Quality**: Maintain code quality and follow project conventions
-4. **Documentation**: Update git-bug system and related documentation
+4. **Documentation**: Update GitHub Issues and related documentation
 
-## 🚨 Git Worktree Workflow (ABSOLUTE MANDATORY - NO EXCEPTIONS) 🚨
+## Git Worktree Workflow (ABSOLUTE MANDATORY - NO EXCEPTIONS)
 
-### ⚠️ STOP! READ THIS FIRST BEFORE ANY BUG FIX ⚠️
+### STOP! READ THIS FIRST BEFORE ANY BUG FIX
 
 **IF YOU RECEIVE A BUG FIX REQUEST:**
 1. ✅ FIRST: Create worktree (ALWAYS, NO EXCEPTIONS)
@@ -63,12 +70,12 @@ Every strategy MUST include:
 
 **✅ REQUIRED PROCESS:**
 - ✅ ALWAYS create worktree FIRST, even for 1-line changes
-- ✅ ALWAYS work in `/Users/doha/git/crewx/worktree/bugfix-XXX/`
+- ✅ ALWAYS work in `/Users/doha/git/crewx/worktree/feature-XXX/`
 - ✅ ALWAYS use absolute paths starting with worktree directory
 
 ### When to Use Worktree (MANDATORY - ALL Bug Work)
 **100% MANDATORY for ALL bug-related work**, including:
-- Fixing bugs tracked in git-bug (any size, even 1 line)
+- Fixing bugs tracked in GitHub Issues (any size, even 1 line)
 - Addressing issues found during testing
 - Any code changes that fix incorrect behavior
 - Configuration changes for bugs (e.g., TTL settings)
@@ -78,40 +85,45 @@ Every strategy MUST include:
 - Parallel work: Multiple bugs can be fixed simultaneously
 - Isolation: Each bug fix is completely independent
 - Safety: Main directory stays clean on develop branch
-- Process: Release manager needs clear bugfix branches to merge
+- Process: Release manager needs clear feature-prefixed branches per issue
 
-### Bug ID Format (IMPORTANT)
-**Use git-bug hash directly (7-character):**
-- ✅ Bug ID: `c8b3f1d` (git-bug hash)
-- ✅ Branch: `bugfix/c8b3f1d`
-- ✅ Worktree: `worktree/bugfix-c8b3f1d`
-- ✅ Commit: `fix(bug): resolve c8b3f1d - description`
-- ❌ Don't use: `bug-00000027` (old format, no longer used)
+### Issue ID Format (IMPORTANT)
+**Use GitHub issue number only:**
+- ✅ Issue: `#42` (GitHub issue number)
+- ✅ Branch: `feature/issue-42` (format: `feature/issue-<number>`)
+- ✅ Worktree: `worktree/feature-issue-42`
+- ✅ Commit: `fix(#42): resolve - description`
+
+**Branch naming rules:**
+- ALL branches use `feature/issue-<number>` format (issue number only, no description)
+- Bug/feature/chore distinction via GitHub Labels
+- Examples: `feature/issue-42`, `feature/issue-55`, `feature/issue-60`
+- Reason: Prevents duplicate branches (description variations caused multiple branches for same issue)
 
 ### Worktree Creation Steps (MUST DO FIRST)
 ```bash
-# 1. Find bugs to fix from git-bug
-git bug bug --status open
+# 1. Find bugs to fix from GitHub Issues
+gh issue list --label "type:bug" --state open
 
-# 2. Get bug details (use 7-character hash)
-git bug bug show c8b3f1d
+# 2. Get issue details
+gh issue view 42
 
 # 3. Check current branch
 git branch --show-current
 
 # 4. Create worktree from main branch (stable production version)
-# Format: worktree/bugfix-<hash>
-git worktree add worktree/bugfix-c8b3f1d main
+# Format: worktree/feature-issue-<number>
+git worktree add worktree/feature-issue-42 main
 
-# Example output: Preparing worktree (new branch 'bugfix-c8b3f1d')
+# Example output: Preparing worktree (new branch 'feature-issue-42')
 
-# 4. Navigate to worktree directory
-cd worktree/bugfix-<bug-id>
+# 5. Navigate to worktree directory
+cd worktree/feature-issue-42
 
-# 5. Create feature branch
-git checkout -b bugfix/bug-<bug-id>
+# 6. Create feature branch
+git checkout -b feature/issue-42
 
-# 6. Verify you're in the correct directory and branch
+# 7. Verify you're in the correct directory and branch
 pwd
 git branch --show-current
 ```
@@ -119,11 +131,11 @@ git branch --show-current
 ### Working in Worktree (ABSOLUTE REQUIREMENT)
 
 **🚨 FILE PATH VERIFICATION (MANDATORY):**
-Before editing ANY file, verify it contains `/worktree/bugfix-`:
+Before editing ANY file, verify it contains `/worktree/feature-issue-`:
 
 **✅ CORRECT PATH:**
 ```
-/Users/doha/git/crewx/worktree/bugfix-bug-00000001/packages/cli/src/ai-provider.service.ts
+/Users/doha/git/crewx/worktree/feature-issue-42/packages/cli/src/ai-provider.service.ts
 ```
 
 **❌ WRONG PATH (NEVER USE):**
@@ -132,14 +144,14 @@ Before editing ANY file, verify it contains `/worktree/bugfix-`:
 ```
 
 **VERIFICATION CHECKLIST:**
-1. Before EVERY file edit: Check path contains `/worktree/bugfix-`
+1. Before EVERY file edit: Check path contains `/worktree/feature-issue-`
 2. Before EVERY commit: Run `pwd` to verify location
 3. Before ANY build: Ensure you're in worktree directory
 
 **Examples of Absolute Paths (ALWAYS USE THESE):**
-- `/Users/doha/git/crewx/worktree/bugfix-bug-00000016/packages/cli/src/conversation/slack-conversation-history.provider.ts`
-- `/Users/doha/git/crewx/worktree/bugfix-bug-00000001/packages/cli/src/ai-provider.service.ts`
-- `/Users/doha/git/crewx/worktree/bugfix-bug-00000021/agents.yaml`
+- `/Users/doha/git/crewx/worktree/feature-issue-42/packages/cli/src/conversation/slack-conversation-history.provider.ts`
+- `/Users/doha/git/crewx/worktree/feature-issue-35/packages/cli/src/ai-provider.service.ts`
+- `/Users/doha/git/crewx/worktree/feature-issue-50/agents.yaml`
 
 ### After Fixing
 ```bash
@@ -149,25 +161,18 @@ npm test
 
 # 2. Commit changes
 git add .
-git commit -m "fix(bug): resolve bug-<bug-id> - <description>"
+git commit -m "fix(#42): resolve - <description>"
 
-# 3. Update git-bug status to 'resolved'
-# Get hash from bug-ID mapping
-HASH=$(grep "^bug-<bug-id>:" /Users/doha/git/crewx/.crewx/bug-hash-map.txt | cut -d: -f2)
-
-# Update labels: remove old status, add resolved
-git bug bug label rm $HASH status:in-progress
-git bug bug label new $HASH status:resolved
+# 3. Update GitHub Issue status to 'resolved'
+# Add status:resolved label
+gh issue edit 42 --add-label "status:resolved"
 
 # Add resolution comment
-git bug bug comment new $HASH --message "Fixed in commit $(git rev-parse --short HEAD)"
+gh issue comment 42 --body "Fixed in commit $(git rev-parse --short HEAD)"
 
 # 4. CRITICAL: Return to main directory AND restore develop branch
 cd /Users/doha/git/crewx
 git checkout develop
-
-# 5. Sync git-bug changes to bug.md (optional)
-./scripts/sync-bugs.sh import
 ```
 
 **⚠️ CRITICAL RULE: Always restore develop branch after worktree work**
@@ -175,57 +180,53 @@ git checkout develop
 - This prevents branch confusion for other agents (release manager, QA)
 - Main directory should ALWAYS be on `develop` branch when you finish
 
-### Git-Bug Status Updates
+### GitHub Issue Status Updates
 When you resolve a bug:
-1. Get bug hash from `.crewx/bug-hash-map.txt` using bug-ID
-2. Update labels: `status:created` → `status:in-progress` → `status:resolved`
-3. Add comment with fix details and commit hash
-4. Optionally sync to bug.md: `./scripts/sync-bugs.sh import`
+1. Add `status:resolved` label: `gh issue edit <number> --add-label "status:resolved"`
+2. Add comment with fix details and commit hash
+3. Keep issue open (Release Manager will close after merging to develop)
 
 ### 🚨 CRITICAL BUG STATUS RULES 🚨
 
-**Bug State vs Issue Status:**
-- Bug **state**: `open` or `closed` (git bug bug status command)
-- Bug **label**: `status:created`, `status:resolved`, etc. (git bug bug label command)
+**Issue State vs Status Label:**
+- Issue **state**: `open` or `closed` (gh issue close command)
+- Issue **label**: `status:resolved`, `status:in-progress`, etc. (gh issue edit --add-label)
 
 **WHAT YOU MUST DO:**
 - ✅ Add `status:resolved` label after fixing
-- ✅ Keep bug state as `open` (do NOT close)
+- ✅ Keep issue state as `open` (do NOT close)
 - ✅ Add comment with commit hash
 
 **WHAT YOU MUST NEVER DO:**
-- ❌ NEVER run `git bug bug close <hash>`
-- ❌ NEVER change bug state to `closed`
-- ❌ NEVER use `git bug bug status <hash> closed`
+- ❌ NEVER run `gh issue close <number>`
+- ❌ NEVER close the issue
 
 **WHY:**
 - `status:resolved` = "Fix is ready, waiting for RC integration"
 - `open` state = "Not yet merged to develop"
-- Only Release Manager closes bugs after merging to develop
+- Only Release Manager closes issues after merging to develop
 - Your job ends at `status:resolved` label + `open` state
 
 **Example (CORRECT):**
 ```bash
 # ✅ Add resolved label (CORRECT)
-git bug bug label new c8b3f1d status:resolved
+gh issue edit 42 --add-label "status:resolved"
 
-# ❌ NEVER close the bug (WRONG)
-# git bug bug close c8b3f1d  ← FORBIDDEN
+# ❌ NEVER close the issue (WRONG)
+# gh issue close 42  ← FORBIDDEN
 ```
 
 ## Bug Discovery
 If you discover a bug during your work:
-1. Create bug in git-bug with proper labels:
+1. Create issue in GitHub with proper labels:
     ```bash
-    git bug bug new --title "[bug-XXXXX] Brief description" \
-        --message "Detailed bug description"
-
-    # Add labels
-    BUG_HASH=$(git bug bug | head -1 | awk '{print $1}')
-    git bug bug label new $BUG_HASH status:created priority:중간 version:0.1.x
+    gh issue create \
+        --title "[Bug]: Brief description" \
+        --body "Detailed bug description" \
+        --label "type:bug,priority:medium,status:triage"
     ```
 2. Continue with your current task
-3. Report bug ID to team lead
+3. Report issue number to team lead
 
 ## 🚨 ABSOLUTE PROHIBITIONS (NEVER DO THESE)
 
@@ -234,47 +235,43 @@ If you discover a bug during your work:
 2. ❌ Modify files in `/Users/doha/git/crewx/packages/cli/src/` for bugs
 3. ❌ Skip worktree creation because "it's a small change"
 4. ❌ Make commits in main directory for bug work
-5. ❌ Use relative paths that don't include `/worktree/bugfix-`
+5. ❌ Use relative paths that don't include `/worktree/feature-`
 
 **ALWAYS DO:**
-1. ✅ Use Bash tool to execute git and git-bug commands
+1. ✅ Use Bash tool to execute git and gh commands
 2. ✅ Verify working directory with `pwd` before file operations
-3. ✅ Check file paths contain `/worktree/bugfix-` before editing
-4. ✅ Use `git bug bug show HASH` to get bug details before starting
+3. ✅ Check file paths contain `/worktree/feature-` before editing
+4. ✅ Use `gh issue view <number>` to get issue details before starting
 5. ✅ Create worktree FIRST, then work (no shortcuts)
 
-**Critical Files:**
-- Git-bug database: `.git/git-bug/`
-- Use git-bug commands directly with 7-character hash (e.g., c8b3f1d)
-
-## Example Workflow for bug c8b3f1d
+## Example Workflow for issue #42
 ```bash
-# 1. Get bug details
-Bash: git bug bug show c8b3f1d
+# 1. Get issue details
+Bash: gh issue view 42
 
 # 2. Create worktree from main
-Bash: cd /Users/doha/git/crewx && git worktree add worktree/bugfix-c8b3f1d main
+Bash: cd /Users/doha/git/crewx && git worktree add worktree/feature-issue-42 main
 
 # 3. Navigate and create branch
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-c8b3f1d && git checkout -b bugfix/c8b3f1d
+Bash: cd /Users/doha/git/crewx/worktree/feature-issue-42 && git checkout -b feature/issue-42
 
-# 4. Record worktree location in git-bug
-Bash: git bug bug comment new c8b3f1d --message "Working on bugfix/c8b3f1d at worktree/bugfix-c8b3f1d"
+# 4. Record worktree location in GitHub Issue
+Bash: gh issue comment 42 --body "Working on feature/issue-42 at worktree/feature-issue-42"
 
 # 5. Verify location
-Bash: pwd  # Should output: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d
+Bash: pwd  # Should output: /Users/doha/git/crewx/worktree/feature-issue-42
 
 # 6. Fix the bug (using absolute paths)
-Edit: /Users/doha/git/crewx/worktree/bugfix-c8b3f1d/packages/cli/src/ai-provider.service.ts
+Edit: /Users/doha/git/crewx/worktree/feature-issue-42/packages/cli/src/ai-provider.service.ts
 
 # 7. Test
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-c8b3f1d && npm run build
+Bash: cd /Users/doha/git/crewx/worktree/feature-issue-42 && npm run build
 
 # 8. Commit
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-c8b3f1d && git add . && git commit -m "fix(bug): resolve c8b3f1d - remove debug logs"
+Bash: cd /Users/doha/git/crewx/worktree/feature-issue-42 && git add . && git commit -m "fix(#42): remove debug logs"
 
-# 9. Update git-bug status and return to develop
-Bash: cd /Users/doha/git/crewx && git bug bug label rm c8b3f1d status:created && git bug bug label new c8b3f1d status:resolved && git bug bug comment new c8b3f1d --message "Fixed: removed debug logs" && git checkout develop
+# 9. Update GitHub Issue status and return to develop
+Bash: cd /Users/doha/git/crewx && gh issue edit 42 --add-label "status:resolved" && gh issue comment 42 --body "Fixed: removed debug logs in commit $(cd worktree/feature-issue-42 && git rev-parse --short HEAD)" && git checkout develop
 ```
 
 ## Collaboration with Tester
@@ -284,40 +281,38 @@ After fixing a bug, request testing via CLI using Bash tool:
 
 ```bash
 # Execute mode: Tester performs actual tests and creates reports
-crewx execute "@crewx_tester Test bug aae5d66 fix: verify debug logs are removed and MCP parsing works correctly. Check these files: packages/cli/src/ai-provider.service.ts, packages/cli/src/providers/claude.provider.ts, packages/cli/src/providers/gemini.provider.ts, packages/cli/src/providers/copilot.provider.ts"
+crewx execute "@crewx_tester Test issue #42 fix: verify debug logs are removed and MCP parsing works correctly. Check these files: packages/cli/src/ai-provider.service.ts, packages/cli/src/providers/claude.provider.ts, packages/cli/src/providers/gemini.provider.ts, packages/cli/src/providers/copilot.provider.ts"
 
 # Query mode: Get test plan or analysis (read-only, no file changes)
-crewx query "@crewx_tester analyze bug aae5d66 fix and suggest test scenarios"
+crewx query "@crewx_tester analyze issue #42 fix and suggest test scenarios"
 ```
 
 ### Complete Workflow with Tester
 ```bash
-# 1. Fix the bug in worktree (example for bug aae5d66)
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-aae5d66
-Edit: /Users/doha/git/crewx/worktree/bugfix-aae5d66/packages/cli/src/ai-provider.service.ts
+# 1. Fix the bug in worktree (example for issue #42)
+Bash: cd /Users/doha/git/crewx/worktree/feature-issue-42
+Edit: /Users/doha/git/crewx/worktree/feature-issue-42/packages/cli/src/ai-provider.service.ts
 # (remove debug console.log statements)
 
 # 2. Build and verify compilation in worktree
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-aae5d66 && npm run build
+Bash: cd /Users/doha/git/crewx/worktree/feature-issue-42 && npm run build
 
 # 3. Return to main directory and request testing
-Bash: cd /Users/doha/git/crewx && crewx execute "@crewx_tester Test bug aae5d66 fix: Verify that debug console.log statements are removed from ai-provider.service.ts and all provider files (claude.provider.ts, gemini.provider.ts, copilot.provider.ts). Test MCP responses to confirm they are clean without DEBUG prefixes. Build the project and check for compilation errors."
+Bash: cd /Users/doha/git/crewx && crewx execute "@crewx_tester Test issue #42 fix: Verify that debug console.log statements are removed from ai-provider.service.ts and all provider files (claude.provider.ts, gemini.provider.ts, copilot.provider.ts). Test MCP responses to confirm they are clean without DEBUG prefixes. Build the project and check for compilation errors."
 
 # 4. Wait for tester's report
-# Tester will create: /Users/doha/git/crewx/reports/bugs/bug-aae5d66-test-[timestamp].md
+# Tester will create: /Users/doha/git/crewx/reports/bugs/issue-42-test-[timestamp].md
 # Review the report using Read tool with absolute path
-Read: /Users/doha/git/crewx/reports/bugs/bug-aae5d66-test-[latest_timestamp].md
+Read: /Users/doha/git/crewx/reports/bugs/issue-42-test-[latest_timestamp].md
 
-# 5. If tests PASS: Commit in worktree and update git-bug
-Bash: cd /Users/doha/git/crewx/worktree/bugfix-aae5d66 && git add . && git commit -m "fix(bug): resolve aae5d66 - remove debug console.log statements"
+# 5. If tests PASS: Commit in worktree and update GitHub Issue
+Bash: cd /Users/doha/git/crewx/worktree/feature-issue-42 && git add . && git commit -m "fix(#42): remove debug console.log statements"
 
-# 6. Update git-bug status to resolved
-Bash: git bug bug label rm aae5d66 status:created
-Bash: git bug bug label new aae5d66 status:resolved
-Bash: git bug bug comment new aae5d66 --message "Fixed in commit [hash]. All tests passed."
-# Add modification date
+# 6. Update GitHub Issue status to resolved
+Bash: gh issue edit 42 --add-label "status:resolved"
+Bash: gh issue comment 42 --body "Fixed in commit [hash]. All tests passed."
 
-# 6. If tests FAIL: Review tester's findings and iterate
+# 7. If tests FAIL: Review tester's findings and iterate
 # Read tester's report, fix issues, rebuild, and request re-testing
 ```
 

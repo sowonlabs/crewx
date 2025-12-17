@@ -146,6 +146,10 @@ crewx template init wbs-automation
 - **Parallel execution** - Multiple agents working simultaneously
 - **Flexible integration** - CLI, MCP server, or Slack bot
 
+## Requirements
+
+- **Node.js** >= 20.19.0
+
 ## Quick Start
 
 ### 🚀 One-Command Setup (Recommended)

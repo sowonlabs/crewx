@@ -30,12 +30,6 @@ providers:
 
 # Project-level documents (optional)
 documents:
-  # Git-Bug Command Reference (Primary Bug Tracking)
-  git-bug-reference:
-    path: "docs/guides/git-bug-reference.md"
-    summary: "Git-bug command reference and CrewX bug workflow"
-    type: "markdown"
-
   # Branch Protection Rule (All Agents)
   branch-protection:
     path: "docs/rules/branch-protection.md"
@@ -96,10 +90,28 @@ documents:
     summary: "Crush-powered developer role with multi-model support, coding standards, and language policy"
     type: "markdown"
 
+  # Gemini Developer Role
+  dev-gemini:
+    path: "docs/prompts/dev-gemini.md"
+    summary: "Gemini-powered developer role, coding standards, and best practices"
+    type: "markdown"
+
+  # Dev Lead Role
+  dev-lead:
+    path: "docs/prompts/dev-lead.md"
+    summary: "Dev Lead role - issue assignment, agent coordination, project status management"
+    type: "markdown"
+
   # Template Modification Rules (for all developers)
   template-modification-rules:
     path: "docs/prompts/template-modification-rules.md"
     summary: "Critical rules and checklist for modifying template-related code"
+    type: "markdown"
+
+  # tsserver Skill Guide (for all developers)
+  tsserver-skill:
+    path: "docs/guides/tsserver-skill.md"
+    summary: "TypeScript code intelligence using tsserver"
     type: "markdown"
 
   # Project Structure (for all developers)
@@ -142,61 +154,26 @@ documents:
 
 # Add your custom agents below:
 agents:
-  - id: "crewx_codex_dev"
-    name: "CrewX Codex Developer"
-    role: "developer"
-    team: "Development Team"
-    description: "Specialized developer for analyzing and improving the CrewX project (powered by Codex)"
-    options:
-      query: ["exec", "--experimental-json"]
-      execute: ["exec", "-s", "workspace-write",  "--experimental-json"]
-    inline:
-      type: "agent"
-      provider: "cli/codex"
-      prompt: |
-        You are a developer for the CrewX project.
-
-        <document name="project-structure" type="codebase-map">
-        {{{documents.project-structure.content}}}
-        </document>
-
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
-
-        <document name="branch-protection">
-        {{{documents.branch-protection.content}}}
-        </document>
-
-        <document name="dev-codex">
-        {{{documents.dev-codex.content}}}
-        </document>
-
-        <document name="template-modification-rules">
-        {{{documents.template-modification-rules.content}}}
-        </document>
-
   - id: "crewx_claude_dev"
     name: "CrewX Developer"
-    role: "developer"
+    role: "Lead Developer"
     team: "Development Team"
-    description: "Specialized developer for analyzing and improving the CrewX project"
+    description: "CrewX Lead Developer (Claude-powered)"
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "cli/claude"
-      model: "sonnet"
+      model: "opus"
       prompt: |
         You are a developer for the CrewX project.
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
-        </document>
-
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
         </document>
 
         <document name="branch-protection">
@@ -211,11 +188,93 @@ agents:
         {{{documents.template-modification-rules.content}}}
         </document>
 
+        <document name="tsserver-skill">
+        {{{documents.tsserver-skill.content}}}
+        </document>
+
+  - id: "crewx_gemini_dev"
+    name: "CrewX Gemini Developer"
+    role: "Lead Developer"
+    team: "Development Team"
+    description: "CrewX Lead Developer (Gemini-powered)"
+    options:
+      query: ["--debug"]
+      execute: ["--debug", "--yolo"]
+    skills:
+      include:
+        - tsserver
+    inline:
+      type: "agent"
+      provider: "cli/gemini"
+      model: "gemini-3-pro-preview"
+      prompt: |
+        You are a developer for the CrewX project.
+
+        <document name="project-structure" type="codebase-map">
+        {{{documents.project-structure.content}}}
+        </document>
+
+        <document name="branch-protection">
+        {{{documents.branch-protection.content}}}
+        </document>
+
+        <document name="dev-gemini">
+        {{{documents.dev-gemini.content}}}
+        </document>
+
+        <document name="template-modification-rules">
+        {{{documents.template-modification-rules.content}}}
+        </document>
+
+        <document name="tsserver-skill">
+        {{{documents.tsserver-skill.content}}}
+        </document>
+
+  - id: "crewx_codex_dev"
+    name: "CrewX Codex Developer"
+    role: "Senior Developer"
+    team: "Development Team"
+    description: "CrewX Senior Developer (Codex-powered)"
+    options:
+      query: ["exec", "--experimental-json"]
+      execute: ["exec", "-s", "workspace-write",  "--experimental-json"]
+    skills:
+      include:
+        - tsserver
+    inline:
+      type: "agent"
+      provider: "cli/codex"
+      prompt: |
+        You are a developer for the CrewX project.
+
+        <document name="project-structure" type="codebase-map">
+        {{{documents.project-structure.content}}}
+        </document>
+
+        <document name="branch-protection">
+        {{{documents.branch-protection.content}}}
+        </document>
+
+        <document name="dev-codex">
+        {{{documents.dev-codex.content}}}
+        </document>
+
+        <document name="template-modification-rules">
+        {{{documents.template-modification-rules.content}}}
+        </document>
+
+        <document name="tsserver-skill">
+        {{{documents.tsserver-skill.content}}}
+        </document>
+
   - id: "crewx_crush_dev"
     name: "CrewX Crush Developer"
-    role: "developer"
+    role: "Developer"
     team: "Development Team"
-    description: "CrewX AI developer powered by Crush for advanced code generation and analysis"
+    description: "CrewX Developer (Crush-powered)"
+    skills:
+      include:
+        - tsserver
     inline:
       type: "agent"
       provider: "plugin/crush"
@@ -224,10 +283,6 @@ agents:
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
-        </document>
-
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
         </document>
 
         <document name="branch-protection">
@@ -244,7 +299,7 @@ agents:
 
   - id: "crewx_qa_lead"
     name: "CrewX QA Team Lead"
-    role: "qa_lead"
+    role: "QA Lead"
     team: "QA Team"
     description: "QA team leader who manages testing strategy, coordinates test execution, and makes release decisions"
     options:
@@ -256,10 +311,6 @@ agents:
       model: "sonnet"
       prompt: |
         You are the QA Team Lead for the CrewX project.
-
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
@@ -291,7 +342,7 @@ agents:
 
   - id: "crewx_tester"
     name: "CrewX Tester"
-    role: "tester"
+    role: "Tester"
     team: "Development Team"
     description: "Specialized tester for analyzing and improving the CrewX project"
     working_directory: "."
@@ -301,13 +352,9 @@ agents:
     inline:
       type: "agent"
       provider: "cli/claude"
-      model: "haiku"
+      model: "sonnet"
       prompt: |
         You are a testing expert for the CrewX project.
-
-        <document name="git-bug-reference">
-        {{{documents.git-bug-reference.content}}}
-        </document>
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
@@ -323,7 +370,7 @@ agents:
 
   - id: "crewx_release_manager"
     name: "배포담당자"
-    role: "release_manager"
+    role: "Release Manager"
     team: "Development Team"
     description: "릴리스 프로세스, 브랜치 머지, 배포 워크플로우 전문 담당자"
     options:
@@ -332,7 +379,7 @@ agents:
     inline:
       type: "agent"
       provider: "cli/claude"
-      model: "haiku"
+      model: "sonnet"
       prompt: |
         You are the Release Manager for the CrewX project.
 
@@ -352,9 +399,40 @@ agents:
         {{{documents.release-manager.content}}}
         </document>
 
+  - id: "crewx_dev_lead"
+    name: "CrewX Dev Lead"
+    role: "Dev Lead"
+    team: "Management"
+    description: "개발팀장 - 이슈 할당, 에이전트 조율, 프로젝트 현황 관리"
+    options:
+      query: ["--verbose"]
+      execute: ["--verbose", "--dangerously-skip-permissions"]
+    inline:
+      type: "agent"
+      provider: "cli/claude"
+      model: "sonnet"
+      prompt: |
+        You are the Dev Lead for the CrewX project.
+        
+        <document name="dev-lead">
+        {{{documents.dev-lead.content}}}
+        </document>
+        
+        <document name="development-workflow">
+        {{{documents.development-workflow.content}}}
+        </document>
+        
+        <document name="branch-protection">
+        {{{documents.branch-protection.content}}}
+        </document>
+        
+        <document name="claude-system-prompt">
+        {{{documents.claude-system-prompt.content}}}
+        </document>
+
   - id: "sowonflow_claude_dev"
     name: "SowonFlow Developer"
-    role: "developer"
+    role: "Developer"
     team: "SowonFlow Team"
     description: "Specialized developer for analyzing the SowonFlow project (LangGraph-based production version)"
     working_directory: "/Users/doha/git/sowonai/packages/sowonflow"
@@ -437,7 +515,7 @@ agents:
 
   - id: "gemini_cli_analyzer"
     name: "Gemini CLI Analyzer"
-    role: "developer"
+    role: "Developer"
     team: "Development Team"
     description: "Specialized developer for analyzing Google's Gemini CLI source code"
     working_directory: "/Users/doha/git/gemini-cli"
@@ -509,7 +587,7 @@ agents:
 
   - id: "mastra_analyzer"
     name: "Mastra Framework Analyzer"
-    role: "analyst"
+    role: "Analyst"
     team: "Development Team"
     description: "Mastra framework expert who analyzes Agent, Tool, and tool calling implementation"
     working_directory: "/Users/doha/git/mastra"

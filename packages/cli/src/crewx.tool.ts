@@ -736,8 +736,9 @@ ${errorMessage}`,
       const securityKey = this.generateSecurityKey();
 
       // Build template context for rendering
-      // For query mode, exclude current message from conversation history
-      const contextMessages = messages && messages.length > 0 ? messages.slice(0, -1) : [];
+      // FIX: Don't slice - messages already contains previous conversation history only
+      // The current query is passed separately via user_input/query parameter
+      const contextMessages = messages && messages.length > 0 ? messages : [];
 
       // Load documents for template context
       const documents: Record<string, { content: string; toc?: string }> = {};
@@ -1196,8 +1197,9 @@ Please check the agent ID and try again.`
 
       // Build template context for rendering
       // For execute mode, exclude current task from conversation history
-      // The current task is added separately below as "Task: ${task}"
-      const contextMessages = messages && messages.length > 0 ? messages.slice(0, -1) : [];
+      // FIX: Don't slice - messages already contains previous conversation history only
+      // The current task is passed separately via user_input/task parameter
+      const contextMessages = messages && messages.length > 0 ? messages : [];
 
       // Load documents for template context
       const documentsForExecute: Record<string, { content: string; toc?: string }> = {};

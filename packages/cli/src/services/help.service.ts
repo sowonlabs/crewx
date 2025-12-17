@@ -7,16 +7,17 @@ import { join } from 'path';
 export class HelpService {
   private getPackageInfo() {
     try {
-      const packagePath = join(process.cwd(), 'package.json');
+      // Read from CLI package's own package.json, not cwd
+      const packagePath = join(__dirname, '..', '..', 'package.json');
       const packageContent = readFileSync(packagePath, 'utf8');
       const packageJson = JSON.parse(packageContent);
       return {
-        version: packageJson.version || '0.1.1',
+        version: packageJson.version || 'unknown',
         repository: packageJson.repository?.url || 'https://github.com/sowonlabs/crewx'
       };
     } catch (error) {
       return {
-        version: '0.1.1',
+        version: 'unknown',
         repository: 'https://github.com/sowonlabs/crewx'
       };
     }

@@ -289,8 +289,13 @@ export class LayoutLoader {
     const defaults: Record<string, any> = {};
 
     for (const [key, schema] of Object.entries(propsSchema)) {
-      if (schema && typeof schema === 'object' && 'defaultValue' in schema) {
-        defaults[key] = schema.defaultValue;
+      if (schema && typeof schema === 'object') {
+        // Support both 'defaultValue' and 'default' keys for flexibility
+        if ('defaultValue' in schema) {
+          defaults[key] = schema.defaultValue;
+        } else if ('default' in schema) {
+          defaults[key] = schema.default;
+        }
       }
     }
 

@@ -5,40 +5,46 @@
 2. Execute CrewX CLI commands using the Bash tool to run tests
 3. **Determine test type and report location** (see "Report Path Selection" below)
 4. Create test reports following the report-structure document guidelines
-5. **Update git-bug issue status** (see "Git-Bug Status Update" below)
+5. **Update GitHub Issue status** (see "GitHub Issue Status Update" below)
 
-## Git-Bug Status Update (CRITICAL)
+## GitHub Issue Status Update (CRITICAL)
 
-After completing bug tests, ALWAYS update the git-bug issue status:
+After completing bug tests, ALWAYS update the GitHub Issue status:
 
 ### ✅ Test PASSED
 ```bash
-# Add qa-completed label
-git bug bug label new {bug-hash} status:qa-completed
+# Add status:qa-completed label
+gh issue edit <issue-number> --add-label "status:qa-completed"
 
 # Add success comment with report reference
-git bug bug comment new {bug-hash} --message "✅ QA Test PASSED
+gh issue comment <issue-number> --body "$(cat <<'EOF'
+✅ QA Test PASSED
 
-Test Report: reports/bugs/bug-{hash}-test-{timestamp}.md
+Test Report: reports/bugs/issue-<number>-test-<timestamp>.md
 All test cases passed successfully.
-Ready for RC integration."
+Ready for RC integration.
+EOF
+)"
 ```
 
 ### ❌ Test FAILED or NOT IMPLEMENTED
 ```bash
-# Remove resolved label if exists
-git bug bug label rm {bug-hash} status:resolved
+# Remove status:resolved label if exists
+gh issue edit <issue-number> --remove-label "status:resolved"
 
-# Add rejected label
-git bug bug label new {bug-hash} status:rejected
+# Add status:rejected label
+gh issue edit <issue-number> --add-label "status:rejected"
 
 # Add failure comment with reason and report reference
-git bug bug comment new {bug-hash} --message "❌ QA Test FAILED: [Brief Reason]
+gh issue comment <issue-number> --body "$(cat <<'EOF'
+❌ QA Test FAILED: [Brief Reason]
 
-Test Report: reports/bugs/bug-{hash}-test-{timestamp}.md
+Test Report: reports/bugs/issue-<number>-test-<timestamp>.md
 
 Issue: [One-line summary of problem]
-Recommendation: [Fix needed / Re-implementation required / etc]"
+Recommendation: [Fix needed / Re-implementation required / etc]
+EOF
+)"
 ```
 
 **Example reasons:**
@@ -48,7 +54,7 @@ Recommendation: [Fix needed / Re-implementation required / etc]"
 - "Regression detected: breaks existing functionality"
 
 **🚨 IMPORTANT:**
-- Use bug hash (7-char like aae5d66), NOT bug-00000001 format
+- Use GitHub issue number (e.g., #42), NOT git-bug hash format
 - Always include report file path in comment
 - Keep comment concise - details are in the report
 - Update IMMEDIATELY after testing, don't batch updates
@@ -58,11 +64,11 @@ Recommendation: [Fix needed / Re-implementation required / etc]"
 **Analyze the task to determine report type:**
 
 ### Individual Bug Test
-**Triggers:** Task mentions single "bug-XXXXX" OR "individually"
-**Report path:** `/Users/doha/git/crewx/reports/bugs/bug-XXXXX-test-{timestamp}.md`
+**Triggers:** Task mentions single issue number OR "individually"
+**Report path:** `/Users/doha/git/crewx/reports/bugs/issue-<number>-test-{timestamp}.md`
 **Examples:**
-- "Test bug-00000027: verify TypeScript build"
-- "Test bug-00000018 individually: check Haiku tool usage"
+- "Test issue #42: verify TypeScript build"
+- "Test #18 individually: check Haiku tool usage"
 
 ### RC Integration Test
 **Triggers:** Task mentions "RC", "integration", "release/X.X.X", or testing multiple bugs together
@@ -72,13 +78,13 @@ Recommendation: [Fix needed / Re-implementation required / etc]"
 - "Test RC 0.1.16-rc.0 integration"
 
 ### General Test
-**Triggers:** No specific bug ID or RC version mentioned
+**Triggers:** No specific issue number or RC version mentioned
 **Report path:** `/Users/doha/git/crewx/reports/bugs/report-{timestamp}.md`
 
 **🚨 IMPORTANT:**
 - Create directory if it doesn't exist: `mkdir -p /path/to/reports/`
 - Use absolute paths, never relative paths
-- Include bug-ID or version in filename for easy tracking
+- Include issue number or version in filename for easy tracking
 
 ## How to Run CrewX Tests:
 Use the Bash tool to execute CrewX CLI commands:
@@ -91,8 +97,8 @@ node dist/main.js query "@claude:haiku @claude:haiku 1+1?"
 **Parallel Execute Test:**
 ```bash
 node dist/main.js execute \
-    "@claude:haiku gugudan1.js 파일에 javascript 구구단 프로그램을 만들어 주세요." \
-    "@claude:haiku gugudan2.js 파일에 javascript 구구단 프로그램을 만들어 주세요."
+    "@claude:haiku Create a JavaScript multiplication table program in gugudan1.js." \
+    "@claude:haiku Create a JavaScript multiplication table program in gugudan2.js."
 ```
 
 **Thread Option Test:**
@@ -100,7 +106,39 @@ node dist/main.js execute \
 node dist/main.js query "@claude:haiku test" --thread "test-thread"
 ```
 
-## Smoke Test Checklist (RC Testing)
+## RC 배포 전 필수 스모크 테스트 (MANDATORY)
+
+**🚨 CRITICAL: RC 배포 전 반드시 수행해야 하는 테스트입니다**
+
+### 스모크 테스트 가이드 참조
+
+**필수 참조:** [`docs/qa/smoke-test.md`](../qa/smoke-test.md)
+
+RC 배포 전 다음 테스트를 반드시 수행하세요:
+
+1. **Provider별 --thread 옵션 테스트**
+   - cli/claude, cli/codex에서 --thread 옵션 동작 확인
+   - 두 번째 메시지에서 이전 대화 기억 여부 확인
+
+2. **Conversation History 로그 검증**
+   - `.crewx/logs/` 로그 파일에서 `<conversation_history>` 섹션 확인
+   - 실제 LLM이 이전 대화를 기억하는지 확인
+
+3. **각 Provider 기본 동작 테스트**
+   - cli/claude, cli/codex, cli/gemini 각각 query 테스트
+   - 에러 없이 응답 받는지 확인
+
+### RC 배포 전 체크리스트
+
+```markdown
+- [ ] 스모크 테스트 전체 통과
+- [ ] 로그 파일 확인 (.crewx/logs/)
+- [ ] 실제 사용 시나리오 테스트
+```
+
+---
+
+## Smoke Test Checklist (RC Testing - Legacy)
 
 **🚨 CRITICAL: Always include these smoke tests in RC integration testing**
 

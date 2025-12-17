@@ -8,10 +8,19 @@
 import {
   APIProviderConfig,
   APIProviderType,
+  API_PROVIDER_TYPES,
   MCPServerConfig,
   ProviderOptions,
 } from '../types/api-provider.types';
 import { ProviderOptionsSchema } from '../schemas/api-provider.schema';
+
+/**
+ * Check if a string is a valid API provider type.
+ * Uses the single source of truth from API_PROVIDER_TYPES.
+ */
+function isValidAPIProvider(provider: string): provider is APIProviderType {
+  return (API_PROVIDER_TYPES as readonly string[]).includes(provider);
+}
 
 /**
  * Error thrown when API provider configuration parsing fails
@@ -105,20 +114,10 @@ export function parseAPIProviderConfig(
   // Substitute environment variables BEFORE validation
   const substitutedProvider = substituteEnvVars(providerStr, globalEnv);
 
-  // Validate provider type
-  const validProviders: APIProviderType[] = [
-    'api/openai',
-    'api/anthropic',
-    'api/google',
-    'api/bedrock',
-    'api/litellm',
-    'api/ollama',
-    'api/sowonai',
-  ];
-
-  if (!validProviders.includes(substitutedProvider as APIProviderType)) {
+  // Validate provider type using single source of truth
+  if (!isValidAPIProvider(substitutedProvider)) {
     throw new APIProviderParseError(
-      `Invalid API provider '${substitutedProvider}'. Valid providers: ${validProviders.join(', ')}`,
+      `Invalid API provider '${substitutedProvider}'. Valid providers: ${API_PROVIDER_TYPES.join(', ')}`,
     );
   }
 
@@ -304,7 +303,8 @@ export function substituteEnvVars(
   }
 
   // Replace {{env.VAR}} with actual environment variable value
-  return str.replace(/\{\{env\.([A-Z0-9_]+)\}\}/g, (match, varName) => {
+  // Supports both uppercase and lowercase variable names (e.g., {{env.API_KEY}} or {{env.api_key}})
+  return str.replace(/\{\{env\.([A-Za-z0-9_]+)\}\}/g, (match, varName) => {
     const value = env[varName];
     if (value === undefined) {
       throw new APIProviderParseError(
@@ -382,20 +382,10 @@ export function validateAPIProviderConfig(config: APIProviderConfig): boolean {
     throw new APIProviderParseError('Configuration must be a valid object');
   }
 
-  // Validate provider
-  const validProviders: APIProviderType[] = [
-    'api/openai',
-    'api/anthropic',
-    'api/google',
-    'api/bedrock',
-    'api/litellm',
-    'api/ollama',
-    'api/sowonai',
-  ];
-
-  if (!validProviders.includes(config.provider)) {
+  // Validate provider using single source of truth
+  if (!isValidAPIProvider(config.provider)) {
     throw new APIProviderParseError(
-      `Invalid provider '${config.provider}'. Valid providers: ${validProviders.join(', ')}`,
+      `Invalid provider '${config.provider}'. Valid providers: ${API_PROVIDER_TYPES.join(', ')}`,
     );
   }
 
