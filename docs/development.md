@@ -79,23 +79,22 @@ develop (development integration)
   ↑
 release/X.X.X-rc.N (release candidate integration)
   ↑
-feature/<issue-number>-<description> (all issue work, based on main)
+feature/issue-<number> (all issue work, based on main)
 ```
 
 **Branch Naming Rules:**
-- `feature/<issue-number>-<description>`: All issue work (**branched from main**)
+- `feature/issue-<number>`: All issue work (**branched from main**)
 - `release/X.X.X-rc.N`: RC integration branch (branched from develop)
 
 **Examples:**
-- `feature/42-fix-mcp-parsing` (bug fix)
-- `feature/55-add-layout-props` (feature addition)
-- `feature/60-cleanup-tests` (cleanup work)
+- `feature/issue-42` (bug fix)
+- `feature/issue-55` (feature addition)
+- `feature/issue-60` (cleanup work)
 
 **Core Principles:**
-- ALL branches use `feature/` prefix
+- ALL branches use `feature/issue-<number>` format (issue number only, no description)
 - Bug/feature/chore distinction managed via GitHub Labels
-- Description should be kebab-case (lowercase with hyphens)
-- Max 3-4 words in description
+- Prevents duplicate branches (description variations caused multiple branches for same issue)
 
 ### Worktree Usage
 **All branches are created via Git Worktree to provide isolated environments**
@@ -108,14 +107,14 @@ gh issue view 42
 
 # 2. Create Worktree (based on main)
 cd $(git rev-parse --show-toplevel)
-git worktree add worktree/feature-42-fix-mcp-parsing -b feature/42-fix-mcp-parsing main
+git worktree add worktree/feature-issue-42 -b feature/issue-42 main
 
 # 3. Record work branch (comment on GitHub Issue)
-gh issue comment 42 --body "Working on: feature/42-fix-mcp-parsing
-Worktree: $(git rev-parse --show-toplevel)/worktree/feature-42-fix-mcp-parsing"
+gh issue comment 42 --body "Working on: feature/issue-42
+Worktree: $(git rev-parse --show-toplevel)/worktree/feature-issue-42"
 
 # 4. Work
-cd worktree/feature-42-fix-mcp-parsing
+cd worktree/feature-issue-42
 # ... code modifications ...
 git add .
 git commit -m "fix(#42): resolve - description"
@@ -134,9 +133,9 @@ git worktree add worktree/release-0.3.9-rc.0 -b release/0.3.9-rc.0 develop
 
 # 2. Merge all resolved issue branches
 cd worktree/release-0.3.9-rc.0
-git merge --no-ff feature/42-fix-mcp-parsing
-git merge --no-ff feature/55-add-layout-props
-git merge --no-ff feature/60-cleanup-tests
+git merge --no-ff feature/issue-42
+git merge --no-ff feature/issue-55
+git merge --no-ff feature/issue-60
 # ... (all resolved issues)
 
 # 3. Build and integration testing
@@ -272,8 +271,8 @@ git worktree add worktree/release-0.3.9-rc.0 -b release/0.3.9-rc.0 develop
 cd worktree/release-0.3.9-rc.0
 
 # Merge all resolved issues
-git merge --no-ff feature/42-fix-mcp-parsing
-git merge --no-ff feature/55-add-layout-props
+git merge --no-ff feature/issue-42
+git merge --no-ff feature/issue-55
 # ... (resolve conflicts if any)
 ```
 
@@ -308,9 +307,9 @@ git worktree add worktree/release-0.3.9-rc.1 -b release/0.3.9-rc.1 develop
 cd worktree/release-0.3.9-rc.1
 
 # Merge only passed issues or include fixed issues
-git merge --no-ff feature/42-fix-mcp-parsing
-git merge --no-ff feature/60-cleanup-tests
-# (feature/55 excluded or included after re-fix)
+git merge --no-ff feature/issue-42
+git merge --no-ff feature/issue-60
+# (feature/issue-55 excluded or included after re-fix)
 ```
 
 ---

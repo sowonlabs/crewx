@@ -44,21 +44,21 @@ Day 10: QA PASS → Release v0.7.8
 ## Branch Strategy
 
 ```
-All issues:          feature/<issue-number>-<short-description>
+All issues:          feature/issue-<number>
 Integration testing: release/X.X.X-rc.N
 Stable development:  develop
 Production:          main
 ```
 
 **Branch naming rules:**
-- ALL branches use `feature/` prefix (bug/feature/chore distinction via GitHub Labels)
-- Description should be kebab-case (lowercase with hyphens)
-- Max 3-4 words in description
-- Examples: `feature/42-fix-mcp-parsing`, `feature/55-add-layout-props`, `feature/60-cleanup-tests`
+- ALL branches use `feature/issue-<number>` format (issue number only, no description)
+- Bug/feature/chore distinction via GitHub Labels
+- Examples: `feature/issue-42`, `feature/issue-55`, `feature/issue-60`
+- Reason: Prevents duplicate branches for same issue (description variations caused multiple branches)
 
 **Workflow:**
 ```
-feature/<issue>-<desc> → release/X.X.X-rc.N → develop → main
+feature/issue-<number> → release/X.X.X-rc.N → develop → main
 ```
 
 ## 🚨 Release Branch Workflow (Important!)
@@ -188,7 +188,7 @@ Understanding the complete flow from Issue to Release:
 | Step | Action | Responsible |
 |------|--------|-------------|
 | 1. Issue created | Add labels, assign worker | Dev Lead |
-| 2. Branch created | `feature/<issue>-<desc>` from develop | Worker |
+| 2. Branch created | `feature/issue-<number>` from develop | Worker |
 | 3. Implementation | Code changes in worktree | Worker |
 | 4. PR created | Target: release branch | Worker |
 | 5. PR verification | `gh pr diff`, check requirements | Dev Lead |
@@ -204,9 +204,9 @@ Understanding the complete flow from Issue to Release:
 # Step 1: Issue #28 created (log limits feature request)
 
 # Step 2: Worker creates branch
-git worktree add worktree/feature-28-log-limits develop
-cd worktree/feature-28-log-limits
-git checkout -b feature/28-log-limits
+git worktree add worktree/feature-issue-28 develop
+cd worktree/feature-issue-28
+git checkout -b feature/issue-28
 
 # Step 3: Implementation (code changes)
 # ... edit files ...
