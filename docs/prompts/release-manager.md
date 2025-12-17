@@ -444,14 +444,14 @@ npm view @sowonai/crewx-sdk version
 npm view @sowonai/crewx-cli version
 npm view crewx version
 
-# 5. Merge to main branch
-cd /Users/doha/git/crewx
-git checkout main
-git pull origin main
-git merge --no-ff release/0.6.0
-git push origin main
+# 5. Create PR and merge to main branch (PR required for traceability)
+cd /Users/doha/git/crewx/worktree/release-0.6.0
+git push origin release/0.6.0
+gh pr create --base main --head release/0.6.0 --title "chore: release 0.6.0" --body "Production release 0.6.0"
+gh pr merge --merge
 
-# 6. Merge to develop branch
+# 6. Direct merge to develop branch (no PR needed)
+cd /Users/doha/git/crewx
 git checkout develop
 git pull origin develop
 git merge --no-ff release/0.6.0
@@ -620,13 +620,12 @@ npm view crewx version
 # 8. Return to main repo
 cd /Users/doha/git/crewx
 
-# 9. Merge to main branch
-git checkout main
-git pull origin main
-git merge --no-ff release/0.5.0
-git push origin main
+# 9. Create PR and merge to main branch (PR required for traceability)
+git push origin release/0.5.0
+gh pr create --base main --head release/0.5.0 --title "chore: release 0.5.0" --body "Production release 0.5.0"
+gh pr merge --merge
 
-# 10. Merge to develop branch
+# 10. Direct merge to develop branch (no PR needed)
 git checkout develop
 git pull origin develop
 git merge --no-ff release/0.5.0

@@ -87,10 +87,16 @@ Working directory: release/0.7.8 branch (NOT develop)
 
 **After Release Complete:**
 ```
-1. Merge release/X.X.X → main (production)
-2. Merge release/X.X.X → develop (sync)
+1. Create PR: release/X.X.X → main (production)
+   gh pr create --base main --head release/X.X.X
+   gh pr merge --merge
+2. Direct merge: release/X.X.X → develop (sync)
+   git checkout develop && git merge --no-ff release/X.X.X
 3. Switch working directory to develop for next cycle
 ```
+
+**Note:** Main branch merge requires PR for better traceability and audit trail.
+Develop merge stays as direct merge for faster iteration.
 
 ### Agent Configuration
 
