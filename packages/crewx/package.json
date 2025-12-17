@@ -1,6 +1,6 @@
 {
   "name": "crewx",
-  "version": "0.7.8-rc.11",
+  "version": "0.7.8-rc.13",
   "license": "MIT",
   "description": "SowonAI CrewX CLI - Bring Your Own AI(BYOA) team in Slack/IDE(MCP) with your existing subscriptions",
   "private": false,
@@ -19,7 +19,7 @@
     "test:unit": "npm run test"
   },
   "dependencies": {
-    "@sowonai/crewx-cli": "^0.7.8-rc.11"
+    "@sowonai/crewx-cli": "^0.7.8-rc.13"
   },
   "publishConfig": {
     "access": "public"
