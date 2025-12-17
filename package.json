@@ -1,7 +1,7 @@
 {
   "name": "crewx-monorepo",
   "private": true,
-  "version": "0.7.8-rc.11",
+  "version": "0.7.8-rc.12",
   "license": "Apache-2.0",
   "description": "CrewX monorepo workspace",
   "workspaces": [
@@ -26,7 +26,7 @@
     "clean": "rimraf node_modules \"packages/*/node_modules\"",
     "bump:dev": "node ./scripts/dev-bump.mjs",
     "changeset": "changeset",
-    "version": "0.7.8-rc.9",
+    "version": "0.7.8-rc.12",
     "release": "npm run build && npm run test && changeset publish",
     "prerelease": "npm run build && npm run test"
   },
@@ -38,6 +38,11 @@
     "rimraf": "^5.0.5"
   },
   "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748",
+  "pnpm": {
+    "overrides": {
+      "@sindresorhus/slugify": "1.1.2"
+    }
+  },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.44",
     "@ai-sdk/google": "^2.0.31",
