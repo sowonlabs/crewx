@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-cli",
-  "version": "0.7.8",
+  "version": "0.8.0-rc.0",
   "license": "MIT",
   "engines": {
     "node": ">=20.19.0"
@@ -72,7 +72,7 @@
     "@nestjs/platform-express": "^11.0.0",
     "@slack/bolt": "^4.4.0",
     "@slack/web-api": "^7.10.0",
-    "@sowonai/crewx-sdk": "^0.7.8",
+    "@sowonai/crewx-sdk": "^0.8.0-rc.0",
     "@sowonai/nestjs-mcp-adapter": "^0.1.3",
     "@types/js-yaml": "^4.0.9",
     "@types/mdast": "^4.0.4",

@@ -146,6 +146,57 @@ crewx x "@crewx_claude_dev Implement #42, then wait for @crewx_gemini_dev review
 | **@crewx_codex_dev** | Boilerplate code, simple features, standard implementations |
 | **@crewx_tester** | Creating test cases, running test suites, verifying fixes |
 
+## WBS Skill (복잡한 작업 분해)
+
+**When to Use WBS:**
+- 여러 에이전트가 순차적으로 작업해야 할 때
+- 큰 기능을 30분 단위 Job으로 분해할 때
+- 사용자가 "WBS로 처리해" 또는 "작업 분해해서 진행해"라고 할 때
+- 아이디어 → 설계 → 구현 → 테스트 파이프라인이 필요할 때
+
+**How to Use:**
+```bash
+# WBS Planner에게 작업 분해 요청
+node skills/wbs/wbs.js q "다크모드 기능 추가 작업을 분해해줘"
+
+# 또는 직접 프로젝트 생성 후 Job 등록
+node skills/wbs/wbs.js create "다크모드 추가"
+node skills/wbs/wbs.js job add wbs-1 --title "ThemeContext 구현" --agent "@crewx_claude_dev" --seq 1
+node skills/wbs/wbs.js job add wbs-1 --title "컴포넌트 스타일링" --agent "@crewx_codex_dev" --seq 2
+# Job 등록 완료 → Coordinator 데몬이 자동 실행
+```
+
+**⚠️ CRITICAL: Dev Lead는 `job run` 직접 실행 금지!**
+- Job 등록까지만 하고, 실행은 Coordinator 데몬에 맡김
+- 데몬이 pending job을 감지하고 순차 실행함
+- 직접 run 실행시 동시성 문제 및 오류 발생 가능
+
+**데몬 확인 및 실행:**
+```bash
+# 1. 데몬 상태 확인
+node skills/wbs/wbs.js daemon status
+
+# 2. 데몬이 실행 중이 아니면 시작
+node skills/wbs/wbs.js daemon start
+```
+
+Job 등록 후 반드시 데몬 상태를 확인하고, 실행 중이 아니면 시작하세요.
+
+**WBS vs Direct Delegation:**
+
+| 상황 | 방식 |
+|-----|------|
+| 단순 이슈 1개 처리 | `crewx x "@agent 이슈 #N 처리해"` (직접) |
+| 여러 이슈 일괄 처리 | WBS로 Job 등록 후 `job run` |
+| 복잡한 기능 개발 | WBS로 분해 → detail.md 작성 → 순차 실행 |
+| 빠른 버그 수정 | 직접 delegation (WBS 불필요) |
+
+**WBS Skill Commands:**
+- `wbs.js q "..."` - Planner에게 작업 분해 요청
+- `wbs.js create "제목"` - 프로젝트 생성
+- `wbs.js job add/list/run` - Job 관리
+- `wbs.js status <wbs-id>` - 진행 상황 확인
+
 ## Release Process Delegation
 
 **CRITICAL**: Dev Lead does NOT execute git/release commands directly. Always delegate.
