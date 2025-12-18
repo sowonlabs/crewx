@@ -407,6 +407,9 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - wbs
     inline:
       type: "agent"
       provider: "cli/claude"
