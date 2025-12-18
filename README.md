@@ -498,3 +498,198 @@ For SDK contributions, please sign our [Contributor License Agreement (CLA)](doc
 ---
 
 Built by [SowonLabs](https://github.com/sowonlabs)
+
+## WBS Job Management Commands
+
+The Work Breakdown Structure (WBS) system provides comprehensive job management commands for tracking and executing project tasks efficiently.
+
+### Job Management Commands
+
+#### `crewx job add [options]`
+**Description**: Add a new job to the WBS system  
+**Usage**: `crewx job add --wbs <wbs-id> --phase <phase-number> --title <title> --description <description> [--priority <priority>] [--assignee <assignee>] [--estimation <hours>]`
+
+**Options**:
+- `--wbs <wbs-id>`: Target WBS ID (e.g., WBS-1, WBS-32)
+- `--phase <phase-number>`: Phase number within the WBS
+- `--title <title>`: Short job title
+- `--description <description>`: Detailed job description
+- `--priority <priority>`: Priority level (P0, P1, P2, P3)
+- `--assignee <assignee>`: Assigned team member (@crewx_claude_dev, @crewx_gemini_dev)
+- `--estimation <hours>`: Estimated completion time in hours
+
+**Examples**:
+```bash
+# Add a new job to WBS-1 Phase 1
+crewx job add --wbs WBS-1 --phase 1 --title "CLI Job Management" --description "Implement job add/list/update/run/next commands" --priority P0 --assignee @crewx_claude_dev --estimation 3
+
+# Add a research job with medium priority
+crewx job add --wbs WBS-28 --phase 2 --title "Provider Options Analysis" --description "Analyze provider compatibility and design unified options" --priority P1
+```
+
+#### `crewx job list [options]`
+**Description**: List jobs with filtering and status tracking  
+**Usage**: `crewx job list [--wbs <wbs-id>] [--assignee <assignee>] [--status <status>] [--priority <priority>]`
+
+**Options**:
+- `--wbs <wbs-id>`: Filter by specific WBS ID
+- `--assignee <assignee>`: Filter by assigned team member
+- `--status <status>`: Filter by status (pending, in-progress, completed, on-hold)
+- `--priority <priority>`: Filter by priority level
+- `--verbose`: Show detailed information including descriptions
+
+**Examples**:
+```bash
+# List all pending jobs
+crewx job list --status pending
+
+# List jobs for WBS-32 assigned to @crewx_gemini_dev
+crewx job list --wbs WBS-32 --assignee @crewx_gemini_dev
+
+# List all high priority jobs with details
+crewx job list --priority P0 --verbose
+```
+
+#### `crewx job update <job-id> [options]`
+**Description**: Update existing job properties  
+**Usage**: `crewx job update <job-id> [--status <status>] [--assignee <assignee>] [--priority <priority>] [--progress <progress>] [--notes <notes>]`
+
+**Options**:
+- `<job-id>`: Job identifier (UUID or shorthand)
+- `--status <status>`: New status (pending, in-progress, completed, on-hold)
+- `--assignee <assignee>`: New assignee
+- `--priority <priority>`: New priority level
+- `--progress <progress>`: Progress percentage (0-100)
+- `--notes <notes>`: Additional notes or updates
+
+**Examples**:
+```bash
+# Mark job as completed
+crewx job update job-123 --status completed --progress 100 --notes "Implemented all required features"
+
+# Reassign job to different team member
+crewx job update job-456 --assignee @crewx_codex_dev --priority P1
+
+# Update progress with notes
+crewx job update job-789 --progress 75 --notes "Core implementation complete, testing in progress"
+```
+
+#### `crewx job run <job-id>`
+**Description**: Execute a specific job through the WBS automation system  
+**Usage**: `crewx job run <job-id> [--thread <thread-id>] [--timeout <milliseconds>]`
+
+**Options**:
+- `<job-id>`: Job identifier to execute
+- `--thread <thread-id>`: Thread context ID for execution
+- `--timeout <milliseconds>`: Execution timeout (default: 1800000 = 30 minutes)
+- `--dry-run`: Preview what would be executed without running
+
+**Examples**:
+```bash
+# Execute a specific job
+crewx job run job-123
+
+# Execute with custom thread and timeout
+crewx job run job-456 --thread wbs-daily-context --timeout 3600000
+
+# Preview execution plan
+crewx job run job-789 --dry-run
+```
+
+#### `crewx job next`
+**Description**: Get the next recommended job to work on based on priority, dependencies, and team availability  
+**Usage**: `crewx job next [--wbs <wbs-id>] [--assignee <assignee>] [--count <count>]`
+
+**Options**:
+- `--wbs <wbs-id>`: Limit to specific WBS project
+- `--assignee <assignee>`: Show jobs for specific assignee
+- `--count <count>`: Number of recommended jobs (default: 3)
+- `--include-ongoing`: Include currently progressing jobs
+
+**Examples**:
+```bash
+# Get next 3 recommended jobs
+crewx job next
+
+# Get next job for specific WBS
+crewx job next --wbs WBS-1 --count 1
+
+# Get next jobs for specific team member
+crewx job next --assignee @crewx_claude_dev
+```
+
+### WBS Integration
+
+The job management commands integrate seamlessly with the existing WBS system:
+
+**Automatic wbs.md Updates**:
+- Job status changes automatically update the corresponding WBS entries
+- Progress tracking maintains the wbs.md completion status table
+- Time estimation and actual time tracking update the progress log
+
+**Phase Coordination**:
+- Jobs are organized by WBS ID and Phase number
+- Dependencies between phases are automatically handled
+- Parallel execution is supported for independent phases
+
+**Thread-based Context**:
+- All job executions use the thread system for context sharing
+- Previous job results are available to subsequent jobs
+- Cross-WBS coordination is supported through shared thread context
+
+### Job Status Flow
+
+```mermaid
+graph LR
+    A[⬜️ Pending] -->|Job add| B[🟡 In Progress]
+    B -->|Job update| C[✅ Completed]
+    B -->|Block| D[⏸️ On Hold]
+    D -->|Resume| B
+    C -->|Reopen| A
+```
+
+### Integration with CrewX Commands
+
+The job management system works with existing CrewX commands:
+
+```bash
+# Execute jobs using existing agent commands
+crewx execute "@crewx_claude_dev Execute WBS-1 job: Implement job management commands"
+
+# Query job status
+crewx query "@crewx_gemini_dev What is the current status of WBS-1 jobs?"
+
+# Use in chat mode
+crewx chat --thread wbs-context
+```
+
+### Configuration
+
+Jobs are stored in the project structure:
+- **Job definitions**: `.crewx/jobs/` directory
+- **Progress tracking**: `wbs-progress.log`
+- **Error tracking**: `wbs-errors.log`
+- **Thread contexts**: `.crewx/threads/`
+
+### Best Practices
+
+1. **Use descriptive titles and detailed descriptions** for better automation
+2. **Set realistic time estimations** based on AI agent capabilities
+3. **Update status regularly** to maintain accurate progress tracking
+4. **Use thread contexts** for jobs that need shared information
+5. **Leverage parallel execution** for independent phases
+
+### Error Handling
+
+The job management system includes comprehensive error handling:
+- **Automatic retries** for failed jobs (configurable)
+- **Timeout management** with customizable limits
+- **Dependency validation** before job execution
+- **Rollback mechanisms** for failed complex operations
+
+### Performance Optimization
+
+- **Parallel execution** of independent jobs
+- **Intelligent scheduling** based on priority and dependencies
+- **Resource utilization monitoring** and optimization
+- **Progress caching** for faster status queries
