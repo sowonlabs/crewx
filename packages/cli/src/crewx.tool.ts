@@ -325,11 +325,14 @@ export class CrewXTool implements OnModuleInit {
     }
   })
   async getTaskLogs(input: { taskId?: string }) {
+    // FIX #39: Validate input before accessing properties
+    const { taskId } = input || {};
+
     this.logger.log('=== getTaskLogs called ===');
-    this.logger.log(`Input taskId: ${input.taskId}`);
-    
+    this.logger.log(`Input taskId: ${taskId}`);
+
     try {
-      const logsContent = this.taskManagementService.getTaskLogsFromFile(input.taskId);
+      const logsContent = this.taskManagementService.getTaskLogsFromFile(taskId);
       
       return {
         content: [{ type: 'text', text: logsContent }],
@@ -627,7 +630,60 @@ agents:
     provider?: string; // NEW: Optional provider specification
     metadata?: Record<string, any>; // NEW: Platform-specific metadata (e.g., Slack channel_id, thread_ts)
   }) {
-    const { agentId, query, context, model, messages, platform, metadata } = args;
+    const { agentId, query, context, model, messages, platform, metadata } = args || {};
+
+    // FIX #39: Validate required parameters before processing
+    // MCP HTTP endpoint may not properly map JSON-RPC arguments to method parameters
+    if (!agentId || !query) {
+      const missingParams: string[] = [];
+      if (!agentId) missingParams.push('agentId');
+      if (!query) missingParams.push('query');
+
+      this.logger.error(`[queryAgent] Missing required parameters: ${missingParams.join(', ')}`);
+      this.logger.debug(`[queryAgent] Received args: ${JSON.stringify(args)}`);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `❌ **Parameter Validation Failed**
+
+**Error:** Missing required parameters: ${missingParams.join(', ')}
+
+**Received Arguments:**
+\`\`\`json
+${JSON.stringify(args, null, 2)}
+\`\`\`
+
+**Expected Parameters:**
+- \`agentId\` (required): Agent ID to query
+- \`query\` (required): Question or request to ask the agent
+
+Please ensure the MCP client is sending the correct JSON-RPC request format:
+\`\`\`json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "crewx_queryAgent",
+    "arguments": {
+      "agentId": "your-agent-id",
+      "query": "your question here"
+    }
+  }
+}
+\`\`\``
+          }
+        ],
+        success: false,
+        error: `Missing required parameters: ${missingParams.join(', ')}`,
+        missingParameters: missingParams,
+        receivedArgs: args,
+        readOnlyMode: true,
+        isError: true
+      };
+    }
 
     // Load agent first to get correct provider
     let taskId: string;
@@ -1090,7 +1146,60 @@ Read-Only Mode: No files were modified.`
     provider?: string; // NEW: Optional provider specification
     metadata?: Record<string, any>; // NEW: Platform-specific metadata (e.g., Slack channel_id, thread_ts)
   }) {
-    const { agentId, task, projectPath, context, model, messages, platform, metadata } = args;
+    const { agentId, task, projectPath, context, model, messages, platform, metadata } = args || {};
+
+    // FIX #39: Validate required parameters before processing
+    // MCP HTTP endpoint may not properly map JSON-RPC arguments to method parameters
+    if (!agentId || !task) {
+      const missingParams: string[] = [];
+      if (!agentId) missingParams.push('agentId');
+      if (!task) missingParams.push('task');
+
+      this.logger.error(`[executeAgent] Missing required parameters: ${missingParams.join(', ')}`);
+      this.logger.debug(`[executeAgent] Received args: ${JSON.stringify(args)}`);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `❌ **Parameter Validation Failed**
+
+**Error:** Missing required parameters: ${missingParams.join(', ')}
+
+**Received Arguments:**
+\`\`\`json
+${JSON.stringify(args, null, 2)}
+\`\`\`
+
+**Expected Parameters:**
+- \`agentId\` (required): Agent ID to execute
+- \`task\` (required): Task or implementation request for the agent
+
+Please ensure the MCP client is sending the correct JSON-RPC request format:
+\`\`\`json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "crewx_executeAgent",
+    "arguments": {
+      "agentId": "your-agent-id",
+      "task": "your task description here"
+    }
+  }
+}
+\`\`\``
+          }
+        ],
+        success: false,
+        error: `Missing required parameters: ${missingParams.join(', ')}`,
+        missingParameters: missingParams,
+        receivedArgs: args,
+        executionMode: true,
+        isError: true
+      };
+    }
 
     // Load agent first to get correct provider
     let taskId: string;
@@ -1673,9 +1782,10 @@ Task: ${task}
     }>;
   }) {
     try {
-      const { queries } = args;
-      
-      this.logger.log(`Starting parallel agent queries (${queries.length} queries)`);
+      // FIX #39: Validate args before destructuring
+      const { queries } = args || {};
+
+      this.logger.log(`Starting parallel agent queries (${queries?.length || 0} queries)`);
       
       if (!queries || queries.length === 0) {
         return {
@@ -1711,7 +1821,9 @@ Please provide at least one query in the queries array.
 
       // Log each query
       queries.forEach((q, index) => {
-        this.logger.log(`Query ${index + 1}: ${q.agentId} -> "${q.query.substring(0, 50)}..."`);
+        // FIX #39: Add null check for query before substring
+        const queryPreview = q.query ? q.query.substring(0, 50) : '(no query)';
+        this.logger.log(`Query ${index + 1}: ${q.agentId || '(no agent)'} -> "${queryPreview}..."`);
       });
 
       // Execute queries in parallel using Promise.all to preserve template processing
@@ -1877,9 +1989,10 @@ Read-Only Mode: No files were modified.`
     }>;
   }) {
     try {
-      const { tasks } = args;
-      
-      this.logger.log(`Starting parallel agent execution (${tasks.length} tasks)`);
+      // FIX #39: Validate args before destructuring
+      const { tasks } = args || {};
+
+      this.logger.log(`Starting parallel agent execution (${tasks?.length || 0} tasks)`);
       
       if (!tasks || tasks.length === 0) {
         return {
@@ -1918,7 +2031,9 @@ Please provide at least one task in the tasks array.
 
       // Log each task
       tasks.forEach((t, index) => {
-        this.logger.log(`Task ${index + 1}: ${t.agentId} -> "${t.task.substring(0, 50)}..."`);
+        // FIX #39: Add null check for task before substring
+        const taskPreview = t.task ? t.task.substring(0, 50) : '(no task)';
+        this.logger.log(`Task ${index + 1}: ${t.agentId || '(no agent)'} -> "${taskPreview}..."`);
       });
 
       const startTime = Date.now();
