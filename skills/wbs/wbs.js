@@ -15,11 +15,19 @@ const fs = require('fs');
 // Data file for persistence
 const DATA_FILE = path.join(__dirname, '.wbs-data.json');
 const USAGE_LOG = path.join(__dirname, 'usage.log');
-const SESSION_FILE = path.join(__dirname, '.wbs-plan.session.json');
-const SESSION_TTL_MINUTES = 30;
 const DAEMON_PID_FILE = path.join(__dirname, '.daemon.pid');
 const DAEMON_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const ZOMBIE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
+// Get project root (git root) for running crewx commands
+function getProjectRoot() {
+  try {
+    return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
+  } catch (e) {
+    // Fallback to parent of skills directory
+    return path.resolve(__dirname, '../..');
+  }
+}
 
 // Log facade calls
 function getLocalTimestamp() {
@@ -110,94 +118,6 @@ function saveData() {
     executions: alasql('SELECT * FROM executions')
   };
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-// ==========================================
-// Session Management for Planner
-// ==========================================
-
-/**
- * Load existing session or return null
- * @returns {object|null} Session object or null
- */
-function loadSession() {
-  if (!fs.existsSync(SESSION_FILE)) {
-    return null;
-  }
-  try {
-    return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Create a new session
- * @returns {object} New session object
- */
-function createSession() {
-  const now = new Date();
-  return {
-    thread: `wbs-plan-${Date.now()}`,
-    turn: 1,
-    created_at: now.toISOString(),
-    expires_at: new Date(now.getTime() + SESSION_TTL_MINUTES * 60 * 1000).toISOString()
-  };
-}
-
-/**
- * Save session to file
- * @param {object} session - Session object
- */
-function saveSession(session) {
-  fs.writeFileSync(SESSION_FILE, JSON.stringify(session, null, 2));
-}
-
-/**
- * Check if session is expired
- * @param {object} session - Session object
- * @returns {boolean} True if expired
- */
-function isSessionExpired(session) {
-  if (!session || !session.expires_at) return true;
-  return new Date(session.expires_at) <= new Date();
-}
-
-/**
- * Refresh session TTL
- * @param {object} session - Session object
- * @returns {object} Updated session
- */
-function refreshSessionTTL(session) {
-  const now = new Date();
-  session.expires_at = new Date(now.getTime() + SESSION_TTL_MINUTES * 60 * 1000).toISOString();
-  session.turn++;
-  return session;
-}
-
-/**
- * Format projects context for planner
- * @returns {string} Context string
- */
-function formatProjectsContext() {
-  const projects = wbs.list();
-  if (projects.length === 0) {
-    return '[현재 WBS 프로젝트: 없음]';
-  }
-
-  const projectLines = projects.map(p => {
-    const jobs = alasql('SELECT * FROM jobs WHERE wbs_id = ?', [p.id]);
-    const pending = jobs.filter(j => j.status === 'pending').length;
-    const completed = jobs.filter(j => j.status === 'completed').length;
-    const failed = jobs.filter(j => j.status === 'failed').length;
-    let line = `- ${p.id}: ${p.title} (${p.status}) [Jobs: ${completed}완료/${pending}대기/${failed}실패]`;
-    if (p.detail_path) {
-      line += `\n  Detail: ${p.detail_path}`;
-    }
-    return line;
-  });
-
-  return `[현재 WBS 프로젝트]\n${projectLines.join('\n')}`;
 }
 
 // Initialize on module load
@@ -312,14 +232,56 @@ const wbs = {
       prompt += `\n\n상세 지시:\n${job.description}`;
     }
 
-    // Add branch instructions
-    let branchName;
+    // Build job context based on whether issue exists
     if (job.issue_number) {
-      branchName = `feature/${job.issue_number}-wbs-${job.wbs_id}`;
+      // Issue 기반 작업: 개발자의 기존 프로세스 활용
+      prompt += `
+
+## 작업 지시
+GitHub Issue #${job.issue_number}를 처리하세요.
+
+**당신의 기존 개발 프로세스를 따르세요:**
+1. \`gh issue view ${job.issue_number}\`로 이슈 확인
+2. 브랜치 생성 및 작업
+3. PR 생성
+4. 이슈에 결과 코멘트
+
+WBS 추적 정보:
+- WBS: ${job.wbs_id}
+- Job: ${job.id}
+`;
     } else {
-      branchName = `feature/wbs-${job.wbs_id}`;
+      // 독립 작업: WBS 전용 워크플로우
+      const branchName = `feature/wbs-${job.wbs_id.replace('wbs-', '')}-${job.id.replace('job-', '')}`;
+      prompt += `
+
+## 작업 지시 (WBS 독립 작업)
+
+이 작업은 GitHub Issue 없이 WBS에서 직접 생성된 작업입니다.
+
+### Git 워크플로우
+\`\`\`bash
+# 1. worktree 생성
+git worktree add worktree/${branchName} -b ${branchName}
+
+# 2. 해당 디렉토리에서 작업
+cd worktree/${branchName}
+
+# 3. 작업 완료 후 PR 생성
+gh pr create --title "[WBS-${job.wbs_id}] ${job.title}" --body "WBS Job: ${job.id}"
+\`\`\`
+
+### 주의사항
+- main/develop에서 직접 작업 금지
+- 반드시 worktree에서 작업
+- PR 생성 후 링크 출력
+
+WBS 추적 정보:
+- WBS: ${job.wbs_id}
+- Job: ${job.id}
+- 브랜치: ${branchName}
+`;
     }
-    prompt += `\n\n## 브랜치\n- worktree: worktree/${branchName}\n- 브랜치: ${branchName}\n- worktree로 생성 후 작업하세요`;
 
     return new Promise((resolve) => {
       // Build command: crewx x "@agent prompt"
@@ -327,7 +289,7 @@ const wbs = {
       const command = `${job.agent} ${prompt}`;
       const child = spawn('crewx', ['x', command], {
         stdio: 'inherit',
-        cwd: process.cwd()
+        cwd: getProjectRoot()
       });
 
       // Create execution record with PID
@@ -597,18 +559,68 @@ function getStatusIcon(status) {
 }
 
 /**
+ * Get display width of a string (CJK/Korean = 2, emoji = 2, others = 1)
+ * @param {string} str - Input string
+ * @returns {number} Display width
+ */
+function getDisplayWidth(str) {
+  let width = 0;
+  for (const char of String(str)) {
+    const code = char.codePointAt(0);
+    // CJK characters (Korean, Chinese, Japanese)
+    if (
+      (code >= 0x1100 && code <= 0x11FF) ||   // Hangul Jamo
+      (code >= 0x3000 && code <= 0x303F) ||   // CJK Punctuation
+      (code >= 0x3040 && code <= 0x309F) ||   // Hiragana
+      (code >= 0x30A0 && code <= 0x30FF) ||   // Katakana
+      (code >= 0x3130 && code <= 0x318F) ||   // Hangul Compatibility Jamo
+      (code >= 0x3200 && code <= 0x32FF) ||   // Enclosed CJK
+      (code >= 0x4E00 && code <= 0x9FFF) ||   // CJK Unified Ideographs
+      (code >= 0xAC00 && code <= 0xD7AF) ||   // Hangul Syllables
+      (code >= 0xF900 && code <= 0xFAFF) ||   // CJK Compatibility
+      (code >= 0xFF00 && code <= 0xFFEF)      // Fullwidth Forms
+    ) {
+      width += 2;
+    // Emoji (common ranges)
+    } else if (
+      (code >= 0x1F300 && code <= 0x1F9FF) || // Misc Symbols, Emoticons, etc.
+      (code >= 0x2600 && code <= 0x26FF) ||   // Misc Symbols
+      (code >= 0x2700 && code <= 0x27BF)      // Dingbats
+    ) {
+      width += 2;
+    } else {
+      width += 1;
+    }
+  }
+  return width;
+}
+
+/**
+ * Pad string to target display width
+ * @param {string} str - Input string
+ * @param {number} targetWidth - Target display width
+ * @returns {string} Padded string
+ */
+function padToWidth(str, targetWidth) {
+  const s = String(str);
+  const currentWidth = getDisplayWidth(s);
+  const padding = targetWidth - currentWidth;
+  return padding > 0 ? s + ' '.repeat(padding) : s;
+}
+
+/**
  * Calculate column widths for a table
  * @param {string[]} headers - Column headers
  * @param {string[][]} rows - Row data
  * @returns {number[]} Column widths
  */
 function calculateColumnWidths(headers, rows) {
-  const widths = headers.map(h => h.length);
+  const widths = headers.map(h => getDisplayWidth(h));
   rows.forEach(row => {
     row.forEach((cell, i) => {
-      const cellLen = String(cell).length;
-      if (cellLen > widths[i]) {
-        widths[i] = cellLen;
+      const cellWidth = getDisplayWidth(String(cell));
+      if (cellWidth > widths[i]) {
+        widths[i] = cellWidth;
       }
     });
   });
@@ -622,7 +634,7 @@ function calculateColumnWidths(headers, rows) {
  * @returns {string} Formatted row
  */
 function formatRow(cells, widths) {
-  return '| ' + cells.map((cell, i) => String(cell).padEnd(widths[i])).join(' | ') + ' |';
+  return '| ' + cells.map((cell, i) => padToWidth(String(cell), widths[i])).join(' | ') + ' |';
 }
 
 /**
@@ -727,10 +739,11 @@ function formatProjectStatus(result) {
     lines.push('   Jobs: None');
   } else {
     lines.push('   Jobs:');
-    const headers = ['상태', '#', '작업명', '담당'];
+    const headers = ['상태', '#', 'ID', '작업명', '담당'];
     const rows = jobs.map((j, index) => [
       getStatusIcon(j.status),
       String(index + 1),
+      j.id,
       j.title,
       j.agent
     ]);
@@ -756,10 +769,11 @@ function formatJobList(jobs, wbsId) {
     return `📋 Jobs for ${wbsId} (0)\n\nNo jobs found.`;
   }
 
-  const headers = ['상태', '#', '작업명', '담당', 'Status'];
+  const headers = ['상태', '#', 'ID', '작업명', '담당', 'Status'];
   const rows = jobs.map((j, index) => [
     getStatusIcon(j.status),
     String(index + 1),
+    j.id,
     j.title,
     j.agent,
     j.status
@@ -1476,9 +1490,8 @@ Daemon Commands:
   wbs.js daemon tick              Manual tick (for testing)
 
 Coordinator Commands (Natural Language):
-  wbs.js q "질문"                 Ask coordinator a question (sonnet)
-  wbs.js x "요청"                 Request coordinator to execute (sonnet)
-  wbs.js plan "작업명" [--new]    Plan with AI (opus, 30min session TTL)
+  wbs.js q "질문"                 Ask coordinator a question
+  wbs.js x "요청"                 Request coordinator to execute
 
 Output Options:
   --json    Output raw JSON instead of human-readable table
@@ -1659,57 +1672,6 @@ if (require.main === module) {
       }
       // Call coordinator via crewx x
       const command = `crewx x "@wbs_coordinator ${prompt}"`;
-      try {
-        execSync(command, { stdio: 'inherit', cwd: __dirname });
-      } catch (e) {
-        process.exit(e.status || 1);
-      }
-      break;
-    }
-
-    // === Planner Natural Language Interface ===
-    case 'plan': {
-      // Check for --new flag
-      const hasNewFlag = args.includes('--new');
-      const filteredArgs = args.slice(1).filter(a => a !== '--new');
-      const prompt = filteredArgs.join(' ');
-
-      if (!prompt) {
-        console.error('Usage: wbs.js plan "task description" [--new]');
-        console.error('Options:');
-        console.error('  --new    Force start a new planning session');
-        console.error('Example: wbs.js plan "User authentication 기능 구현"');
-        process.exit(1);
-      }
-
-      // Session management
-      let session = loadSession();
-      let isNewSession = false;
-
-      if (hasNewFlag || !session || isSessionExpired(session)) {
-        session = createSession();
-        isNewSession = true;
-        if (hasNewFlag) {
-          console.log(`📋 새 플래닝 세션 시작 (--new)`);
-        } else if (!session) {
-          console.log(`📋 새 플래닝 세션 시작`);
-        } else {
-          console.log(`📋 새 플래닝 세션 시작 (이전 세션 만료)`);
-        }
-      } else {
-        session = refreshSessionTTL(session);
-        console.log(`📋 기존 세션 이어서 (turn ${session.turn})`);
-      }
-
-      // Build context with current projects
-      const projectsContext = formatProjectsContext();
-      const fullPrompt = `${projectsContext}\n\n사용자: ${prompt}`;
-
-      // Save session before calling planner
-      saveSession(session);
-
-      // Call planner via crewx x with thread (uses opus model)
-      const command = `crewx x "@wbs_planner ${fullPrompt}" --thread ${session.thread}`;
       try {
         execSync(command, { stdio: 'inherit', cwd: __dirname });
       } catch (e) {

@@ -1,0 +1,28 @@
+{
+  "name": "@crewx/wbs-skill",
+  "version": "0.1.0",
+  "description": "WBS (Work Breakdown Structure) skill for CrewX - State management and worker execution for task decomposition",
+  "main": "coordinator.js",
+  "bin": {
+    "wbs-coordinator": "./coordinator.js"
+  },
+  "scripts": {
+    "test": "node coordinator.js"
+  },
+  "keywords": [
+    "crewx",
+    "skill",
+    "wbs",
+    "work-breakdown-structure",
+    "task-management",
+    "ai-agent"
+  ],
+  "author": "CrewX Team",
+  "license": "MIT",
+  "dependencies": {
+    "alasql": "^4.5.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
