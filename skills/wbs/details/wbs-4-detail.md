@@ -209,16 +209,137 @@ providers: [
 
 ---
 
-### 1.7 결론 및 권고사항
+### 1.7 WBS-36 설계 검토 항목과 코드베이스 매핑
 
-#### 1.7.1 기술적 실현 가능성
+#### 1.7.1 Phase 1-1: traces 테이블 구조 분석
+
+WBS-36 설계 검토 항목과 기존 코드베이스 비교:
+
+| 검토 항목 | 설계 요구사항 | 기존 코드 참조 | 구현 전략 |
+|-----------|--------------|----------------|----------|
+| `id` 생성 전략 | UUID | `task_{timestamp}_{random}` (TaskManagementService:56) | UUID 채택 권장 |
+| `created_at`, `completed_at` | TEXT (ISO 8601) | `new Date()` 객체 사용 | ISO 8601 문자열로 표준화 |
+| `status` CHECK | running/completed/failed | 동일 (TaskLog:14) | 그대로 유지 |
+| `prompt_tokens`, `response_tokens` | INTEGER | 미추적 | 새로 추가 필요 |
+| `thread_id` | nullable | metadata에서 간접 참조 (crewx.tool.ts:777) | metadata.thread_ts에서 추출 |
+| `parent_trace_id` | 자기참조 FK | 없음 | 새로 추가 (병렬 에이전트용) |
+
+#### 1.7.2 Phase 2-1: TracingService 인터페이스 설계
+
+기존 TaskManagementService 메서드와 TracingService 메서드 매핑:
+
+| TaskManagementService 메서드 | TracingService 대응 메서드 | 차이점 |
+|------------------------------|---------------------------|--------|
+| `createTask(options)` | `startTrace(options)` | SQLite 기반, 토큰 추적 추가 |
+| `addTaskLog(taskId, log)` | `recordSkillUsage()`, `recordCommand()` | 구조화된 별도 테이블 |
+| `completeTask(taskId, result, success)` | `completeTrace(traceId, result)` | 토큰 카운트 포함 |
+| `getTask(taskId)` | `findTraceById(traceId)` | SQLite 쿼리 |
+| `getTasksByStatus(status)` | `findTraces(filters)` | 필터 확장 |
+| `getTaskStatistics()` | `getTraceStats(options)` | 그래프 데이터 포함 |
+| `cleanupOldTasks(keepCount)` | `cleanOldTraces(days)` | 날짜 기반 삭제 |
+
+#### 1.7.3 Phase 2-2: 비동기 처리 패턴 분석
+
+**현재 TaskManagementService 패턴** (task-management.service.ts):
+- 동기적 파일 I/O: `fs.writeFileSync`, `fs.appendFileSync` (라인 316, 330)
+- 메모리 Map 사용: `private readonly taskLogs = new Map<string, TaskLog>()` (라인 44)
+
+**TracingService 권장 패턴**:
+- WAL 모드 SQLite로 읽기/쓰기 동시성 지원
+- Fire-and-forget 비동기 쓰기 (main flow 블로킹 없음)
+- busy_timeout 5000ms 설정
+
+**동시성 시나리오 분석**:
+```
+CLI 프로세스          Slack Bot 프로세스
+     │                      │
+     ▼                      ▼
+[TracingService]       [TracingService]
+     │                      │
+     └──────┬───────────────┘
+            │
+      [traces.db]
+       (WAL 모드)
+```
+
+#### 1.7.4 Phase 4-1: CrewXTool 통합 포인트 상세
+
+**queryAgent 통합** (crewx.tool.ts:620-1048):
+
+| 위치 | 현재 코드 | TracingService 통합 |
+|------|----------|---------------------|
+| 645-650 | `taskManagementService.createTask()` | `tracingService.startTrace()` 병렬 호출 |
+| 652 | `addTaskLog(taskId, ...)` | 선택적 상세 로깅 |
+| 702, 710 | `completeTask(taskId, ...)` | `tracingService.completeTrace()` |
+| 777 | `metadata: metadata` | `thread_id: metadata?.thread_ts` 추출 |
+
+**executeAgent 통합** (crewx.tool.ts:1050-1499):
+
+| 위치 | 현재 코드 | TracingService 통합 |
+|------|----------|---------------------|
+| 1105-1110 | `taskManagementService.createTask()` | `tracingService.startTrace()` |
+| 1238 | `metadata: metadata` | `thread_id: metadata?.thread_ts` 추출 |
+| 완료 시점 | `completeTask()` | `tracingService.completeTrace()` |
+
+#### 1.7.5 Phase 4-2: Slack 스레드 통합 분석
+
+**thread_ts 흐름 분석** (slack-bot.ts):
+
+```
+[Slack Event]
+     │
+     ▼
+message.thread_ts (라인 142, 151, 394)
+     │
+     ▼
+threadId = `${channel}:${threadTs}` (라인 395)
+     │
+     ▼
+queryOptions.metadata = { thread_ts: threadTs } (라인 492)
+     │
+     ▼
+[CrewXTool.queryAgent]
+     │
+     ▼
+templateContext.metadata.thread_ts (라인 777)
+     │
+     ▼
+[TracingService.startTrace]
+traces.thread_id = metadata.thread_ts
+```
+
+**SlackConversationHistoryProvider 통합** (slack-conversation-history.provider.ts):
+- `threadId` 파싱: `channel:thread_ts` 형식 (라인 94-99)
+- 메시지에 `thread_ts` 메타데이터 포함 (라인 202)
+
+#### 1.7.6 Phase 5: 보안 및 성능 고려사항
+
+**민감정보 처리**:
+| 항목 | 현재 | 권장 |
+|------|------|------|
+| 프롬프트 저장 | TaskLog.prompt에 전체 저장 | 요약 또는 해시 옵션 |
+| API 키 필터링 | 없음 | 환경변수 패턴 필터링 |
+| DB 파일 권한 | N/A (텍스트 파일) | 0600 권한 설정 |
+
+**성능 영향 예측**:
+| 항목 | 예상 오버헤드 | 완화 전략 |
+|------|-------------|----------|
+| 트레이스 시작 | ~1-5ms | 비동기 쓰기 |
+| 트레이스 완료 | ~1-5ms | 비동기 쓰기 |
+| 스킬 기록 | ~1ms/스킬 | 배치 처리 고려 |
+
+---
+
+### 1.8 결론 및 권고사항
+
+#### 1.8.1 기술적 실현 가능성
 
 **결론**: ✅ 높음
 
 설계 문서의 Observability 시스템은 기존 코드베이스 패턴과 일관성이 있으며,
 TaskManagementService를 참조 구현으로 활용하여 구현 가능합니다.
 
-#### 1.7.2 주요 권고사항
+#### 1.8.2 주요 권고사항
 
 1. **TracingService 구현**
    - TaskManagementService 패턴 참조
@@ -235,6 +356,27 @@ TaskManagementService를 참조 구현으로 활용하여 구현 가능합니다
 4. **테스트 전략**
    - 기존 `tests/unit/services/` 구조 활용
    - SQLite 인메모리 모드로 단위 테스트
+
+#### 1.8.3 WBS-36 검토 항목 체크리스트
+
+**Phase 1: SQLite 스키마 검토**:
+- [x] traces 테이블 구조 분석 완료
+- [x] 기존 TaskLog 인터페이스와 비교 완료
+- [ ] 인덱스 전략 검토 (구현 시 확정)
+- [ ] FK 전략 검토 (구현 시 확정)
+
+**Phase 2: API 설계 검토**:
+- [x] TracingService 인터페이스 초안
+- [x] 비동기 처리 패턴 분석 완료
+
+**Phase 4: 통합 포인트 검토**:
+- [x] CrewXTool 통합 포인트 식별 (queryAgent, executeAgent)
+- [x] Slack 스레드 통합 흐름 분석 완료
+- [ ] 스킬 추적 구현 전략 확정 필요
+
+**Phase 5: 보안/성능**:
+- [x] 민감정보 처리 전략 초안
+- [x] 성능 영향 예측 완료
 
 ---
 
