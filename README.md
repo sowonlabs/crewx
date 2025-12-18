@@ -133,12 +133,242 @@ crewx template init wbs-automation
 ```
 
 **Available templates:**
-- `wbs-automation` - WBS task tracking with coordinator agent
+- `wbs-automation` - **WBS task tracking with coordinator agent** ⭐ **30-min timeboxing built-in**
 - `development` - Development team setup with code review agents
 - `deployment` - CI/CD deployment automation
 - More templates coming soon!
 
 👉 **[Project Templates Documentation →](./docs/project-templates.md)**
+
+### **WBS Skill - Work Breakdown Structure Automation**
+Intelligent task decomposition and project coordination using the Work Breakdown Structure methodology:
+
+- **30-Minute Timeboxing** - Each task is optimally sized for AI work sessions
+- **AI Coordinator Pattern** - Coordinator agents break down complex tasks into manageable jobs
+- **Worker Agent Execution** - Specialized agents execute specific jobs in sequence
+- **State Management** - Track project progress and job completion automatically
+- **Parallel & Sequential Execution** - Optimize workflow with intelligent job scheduling
+
+```yaml
+# Configure a WBS coordinator agent
+agents:
+  - id: "project_coordinator"
+    name: "Project Coordinator"
+    provider: ["cli/claude", "cli/gemini", "cli/copilot"]
+    skills:
+      include:
+        - wbs  # Enable WBS task decomposition skill
+    inline:
+      type: "agent"
+      prompt: |
+        You are a project coordinator. Use the WBS skill to decompose 
+        complex tasks into 30-minute jobs and assign them to appropriate worker agents.
+
+# Worker agents for task execution
+  - id: "frontend_dev"
+    name: "Frontend Developer"
+    inline:
+      type: "agent"
+      provider: "cli/copilot"
+      prompt: "You specialize in React and frontend development."
+
+  - id: "backend_dev"
+    name: "Backend Developer"
+    inline:
+      type: "agent"
+      provider: "cli/claude"
+      prompt: "You specialize in API design and backend implementation."
+
+  - id: "tester"
+    name: "QA Tester"
+    inline:
+      type: "agent"
+      provider: "cli/gemini"
+      prompt: "You specialize in testing and quality assurance."
+```
+
+#### 30-Minute Timeboxing Principle
+
+WBS follows strict timeboxing to optimize AI agent performance:
+
+| Category | Duration | Description |
+|----------|----------|-------------|
+| **Minimum** | 15 min | Below this → combine with related tasks |
+| **Optimal** | 25-30 min | Target duration for focused AI work |
+| **Maximum** | 45 min | Above this → re-decompose into smaller jobs |
+
+**Why 30-minute sessions?**
+- **Context Management** - Prevents "Lost in the Middle" and context rot in LLMs
+- **Focus Optimization** - Matches human Pomodoro technique for sustained attention
+- **Quality Assurance** - Smaller tasks yield more accurate results
+- **Parallelization** - Enables efficient multi-agent coordination
+
+#### Workflow Example
+
+```bash
+# 1. Coordinator analyzes and decomposes the task
+crewx query "@project_coordinator Plan and implement user authentication system"
+
+# 2. Coordinator creates WBS jobs:
+# - Job 1: Design auth architecture (@backend_dev, 30 min)
+# - Job 2: Implement login API (@backend_dev, 30 min)  
+# - Job 3: Create login UI components (@frontend_dev, 30 min)
+# - Job 4: Write authentication tests (@tester, 30 min)
+# - Job 5: Integrate and verify system (@project_coordinator, 30 min)
+
+# 3. Execute jobs sequentially or in parallel
+crewx execute "@backend_dev implement OAuth2 authentication flow"
+crewx execute "@frontend_dev create React login components"
+
+# 4. Monitor project status
+crewx query "@project_coordinator Show WBS project status"
+```
+
+#### Project Status Management
+
+```bash
+# List all WBS projects
+node skills/wbs/wbs.js list
+
+# Show detailed project status
+node skills/wbs/wbs.js status <project-id>
+
+# Execute next pending job automatically
+node skills/wbs/wbs.js job next <project-id>
+
+# Run all pending jobs sequentially
+node skills/wbs/wbs.js job run <project-id>
+```
+
+#### Job Status Flow
+
+```
+pending → running → completed
+                  → failed (retry available)
+```
+
+**Key Design Principles:**
+1. **AI Makes Intelligent Decisions** - Complexity analysis and task decomposition
+2. **Code Handles State Only** - WBS system manages job tracking and execution
+3. **30-Minute Sessions** - Optimal duration for AI agent focus and accuracy
+4. **Progressive Improvement** - Start simple, iterate based on results
+
+👉 **[WBS Skill Details →](./skills/wbs/SKILL.md)** | **[WBS Skill Examples →](./wbs/)**
+
+### **WBS Skill - Work Breakdown Structure Automation**
+Intelligent task decomposition and project coordination using the Work Breakdown Structure methodology:
+
+- **30-Minute Timeboxing** - Each task is optimally sized for AI work sessions
+- **AI Coordinator Pattern** - Coordinator agents break down complex tasks into manageable jobs
+- **Worker Agent Execution** - Specialized agents execute specific jobs in sequence
+- **State Management** - Track project progress and job completion automatically
+- **Parallel & Sequential Execution** - Optimize workflow with intelligent job scheduling
+
+```yaml
+# Configure a WBS coordinator agent
+agents:
+  - id: "project_coordinator"
+    name: "Project Coordinator"
+    provider: ["cli/claude", "cli/gemini", "cli/copilot"]
+    skills:
+      include:
+        - wbs  # Enable WBS task decomposition skill
+    inline:
+      type: "agent"
+      prompt: |
+        You are a project coordinator. Use the WBS skill to decompose 
+        complex tasks into 30-minute jobs and assign them to appropriate worker agents.
+
+# Worker agents for task execution
+  - id: "frontend_dev"
+    name: "Frontend Developer"
+    inline:
+      type: "agent"
+      provider: "cli/copilot"
+      prompt: "You specialize in React and frontend development."
+
+  - id: "backend_dev"
+    name: "Backend Developer"
+    inline:
+      type: "agent"
+      provider: "cli/claude"
+      prompt: "You specialize in API design and backend implementation."
+
+  - id: "tester"
+    name: "QA Tester"
+    inline:
+      type: "agent"
+      provider: "cli/gemini"
+      prompt: "You specialize in testing and quality assurance."
+```
+
+#### 30-Minute Timeboxing Principle
+
+WBS follows strict timeboxing to optimize AI agent performance:
+
+| Category | Duration | Description |
+|----------|----------|-------------|
+| **Minimum** | 15 min | Below this → combine with related tasks |
+| **Optimal** | 25-30 min | Target duration for focused AI work |
+| **Maximum** | 45 min | Above this → re-decompose into smaller jobs |
+
+**Why 30-minute sessions?**
+- **Context Management** - Prevents "Lost in the Middle" and context rot in LLMs
+- **Focus Optimization** - Matches human Pomodoro technique for sustained attention
+- **Quality Assurance** - Smaller tasks yield more accurate results
+- **Parallelization** - Enables efficient multi-agent coordination
+
+#### Workflow Example
+
+```bash
+# 1. Coordinator analyzes and decomposes the task
+crewx query "@project_coordinator Plan and implement user authentication system"
+
+# 2. Coordinator creates WBS jobs:
+# - Job 1: Design auth architecture (@backend_dev, 30 min)
+# - Job 2: Implement login API (@backend_dev, 30 min)  
+# - Job 3: Create login UI components (@frontend_dev, 30 min)
+# - Job 4: Write authentication tests (@tester, 30 min)
+# - Job 5: Integrate and verify system (@project_coordinator, 30 min)
+
+# 3. Execute jobs sequentially or in parallel
+crewx execute "@backend_dev implement OAuth2 authentication flow"
+crewx execute "@frontend_dev create React login components"
+
+# 4. Monitor project status
+crewx query "@project_coordinator Show WBS project status"
+```
+
+#### Project Status Management
+
+```bash
+# List all WBS projects
+node skills/wbs/wbs.js list
+
+# Show detailed project status
+node skills/wbs/wbs.js status <project-id>
+
+# Execute next pending job automatically
+node skills/wbs/wbs.js job next <project-id>
+
+# Run all pending jobs sequentially
+node skills/wbs/wbs.js job run <project-id>
+```
+
+#### Job Status Flow
+
+```
+pending → running → completed
+                  → failed (retry available)
+```
+
+**Key Design Principles:**
+1. **AI Makes Intelligent Decisions** - Complexity analysis and task decomposition
+2. **Code Handles State Only** - WBS system manages job tracking and execution
+3. **30-Minute Sessions** - Optimal duration for AI agent focus and accuracy
+4. **Progressive Improvement** - Start simple, iterate based on results
+
+👉 **[WBS Skill Details →](./skills/wbs/SKILL.md)** | **[WBS Skill Examples →](./wbs/)**
 
 ### Other Benefits
 - **No additional costs** - Use existing Claude Pro, Gemini, Codex or GitHub Copilot subscriptions
