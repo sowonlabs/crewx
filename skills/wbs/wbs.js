@@ -251,35 +251,30 @@ WBS 추적 정보:
 - Job: ${job.id}
 `;
     } else {
-      // 독립 작업: WBS 전용 워크플로우
-      const branchName = `feature/wbs-${job.wbs_id.replace('wbs-', '')}-${job.id.replace('job-', '')}`;
-      prompt += `
+      // 독립 작업: WBS 전용 워크플로우 (NO WORKTREE, NO PR)
+      const projectRoot = path.resolve(__dirname, '../..');
+      const currentBranch = execSync('git branch --show-current', {cwd: projectRoot, encoding: 'utf-8'}).trim();
+      prompt = `[WBS JOB - NO WORKTREE] [Current directory: ${projectRoot}] [Current branch: ${currentBranch}] ${prompt}
 
 ## 작업 지시 (WBS 독립 작업)
 
-이 작업은 GitHub Issue 없이 WBS에서 직접 생성된 작업입니다.
+이 작업은 GitHub Issue 없이 WBS에서 직접 생성된 분석/문서화 작업입니다.
 
-### Git 워크플로우
-\`\`\`bash
-# 1. worktree 생성
-git worktree add worktree/${branchName} -b ${branchName}
-
-# 2. 해당 디렉토리에서 작업
-cd worktree/${branchName}
-
-# 3. 작업 완료 후 PR 생성
-gh pr create --title "[WBS-${job.wbs_id}] ${job.title}" --body "WBS Job: ${job.id}"
-\`\`\`
+### 중요: Git 워크플로우
+- ✅ **현재 디렉토리**에서 직접 작업하세요: ${projectRoot}
+- ✅ **현재 브랜치**에서 직접 작업하세요: ${currentBranch}
+- ❌ worktree 생성 **금지**
+- ❌ PR 생성 **금지**
+- ✅ 파일 편집만 하고 완료 보고
 
 ### 주의사항
-- main/develop에서 직접 작업 금지
-- 반드시 worktree에서 작업
-- PR 생성 후 링크 출력
+- WBS 작업은 분석/문서화 작업입니다 (코드 구현 아님)
+- Edit tool을 사용해 detail.md 파일에 결과 기록
+- 작업 완료 후 변경 사항 요약만 출력
 
 WBS 추적 정보:
 - WBS: ${job.wbs_id}
 - Job: ${job.id}
-- 브랜치: ${branchName}
 `;
     }
 

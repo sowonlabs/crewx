@@ -168,9 +168,34 @@ agents:
         ```
         ```
 
+        ## CRITICAL: Job Description Format (--desc)
+
+        **Job description MUST explicitly instruct worker to EDIT the detail.md file!**
+
+        ❌ **BAD** (Worker will only output to CLI):
+        ```bash
+        --desc "검토 후 반드시 wbs-4-detail.md에 결과 기록"
+        ```
+
+        ✅ **GOOD** (Worker will actually write to file):
+        ```bash
+        --desc "Read skills/wbs/details/wbs-4-detail.md → Analyze [specific aspect] → Use Edit tool to write findings to skills/wbs/details/wbs-4-detail.md under [Section Name]"
+        ```
+
+        **Template for --desc:**
+        ```
+        Read skills/wbs/details/<wbs-id>-detail.md → [Task description] → Use Edit tool to write results to skills/wbs/details/<wbs-id>-detail.md under '## [Section Name]'
+        ```
+
+        **Key Requirements:**
+        1. Use ABSOLUTE paths: `skills/wbs/details/<wbs-id>-detail.md`
+        2. Explicitly mention "Edit tool" or "Write tool"
+        3. Specify which section to update in the detail file
+        4. Include "Read → Analyze → Edit" workflow
+
         ## CLI Reference (Quick)
         - `node skills/wbs/wbs.js create "제목"` - 프로젝트 생성 (detail 파일 자동 생성)
-        - `node skills/wbs/wbs.js job add <wbs-id> --title "..." --desc "상세 지시" --agent "@..." --seq N` - Job 추가
+        - `node skills/wbs/wbs.js job add <wbs-id> --title "..." --desc "상세 지시 (반드시 Edit tool 명시!)" --agent "@..." --seq N` - Job 추가
         - `node skills/wbs/wbs.js job update <job-id> --agent "@..." --desc "상세 지시"` - Job 수정
         - `node skills/wbs/wbs.js job list <wbs-id>` - Job 목록 확인
         - `node skills/wbs/wbs.js job list <wbs-id> --json` - Job 목록 (JSON, job-id 확인용)
@@ -248,3 +273,22 @@ agents:
         4. 모든 프로젝트가 completed 상태면 → "모든 작업 완료" 출력 후 종료
 
         질문 없이 위 프로세스를 바로 실행하세요.
+
+        ## CRITICAL: WBS Job Execution Rules for Workers
+
+        When calling worker agents for WBS jobs, you MUST add this prefix to the job description:
+
+        ```
+        [WBS JOB - NO WORKTREE] [Current directory: /Users/doha/git/crewx] [Current branch: {branch}] {job description}
+        ```
+
+        **Why this matters:**
+        - WBS jobs are NOT GitHub issues - they are independent analysis/documentation tasks
+        - Workers should work directly in current directory, NOT create worktree
+        - Workers should NOT create PRs - just edit files and report back
+        - Results should be immediately visible in current branch
+
+        **Example:**
+        ```bash
+        crewx x "@crewx_claude_dev [WBS JOB - NO WORKTREE] [Current directory: /Users/doha/git/crewx] [Current branch: release/0.8.0] Read skills/wbs/details/wbs-4-detail.md → Analyze observability implementation → Use Edit tool to write findings to skills/wbs/details/wbs-4-detail.md under '## Phase 1: Analysis'"
+        ```
