@@ -1,0 +1,712 @@
+2025-12-16 10:27:09 | [memory.js] list clo 
+2025-12-16 10:27:10 | [sql.js] recall clo all
+2025-12-16 10:27:47 | [memory.js] recent cto 
+2025-12-16 10:27:47 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 10:59:48 | [memory.js] save crewx_pm 도하가 '고객군 인터뷰'를 요청하면, 페르소나 스킬을 사용해서 타겟 고객군들을 시뮬레이션하여 직접 인터뷰해야 함. 가상의 인터뷰가 아니라 페르소나 스킬로 실제 고객 페르소나를 구현해서 대화하는 방식
+2025-12-16 10:59:48 | [sql.js] remember crewx_pm preference 도하가 '고객군 인터뷰'를 요청하면, 페르소나 스킬을 사용해서 타겟 고객군들을 시뮬레이션하여 직접 인터뷰해야 함. 가상의 인터뷰가 아니라 페르소나 스킬로 실제 고객 페르소나를 구현해서 대화하는 방식
+2025-12-16 13:21:31 | [memory.js] save crewx_pm CrewX 수익모델 전략 (CEO 도하 확정)
+
+## 과금 모델 3종
+
+### 1. CrewX Launcher (좌석 기반)
+- 과금: 좌석(사용자) 수 기반
+- 역할: 과도기 제품, 고객 획득 채널 (온램프)
+- 전략: Cloud/Marketplace로 전환 유도
+- 예상: 좌석 3만명 × 월 1만원 = ARR 36억
+
+### 2. CrewX Cloud (에이전트 수 기반) ⭐ 메인 수익원
+- 과금: 에이전트 개수 기반
+- 전략적 의미: 사람↓ 에이전트↑ 시대 대비
+- Salesforce 반면교사: 좌석 기반은 에이전트 시대에 이해충돌
+- 예상: 에이전트 50만개 × 월 3천원 = ARR 180억
+
+### 3. CrewX Marketplace (월 구독)
+- 과금: 월 구독 (프리미엄 에이전트 접근권)
+- 역할: 진입 장벽 낮추기, LTV 확대
+- 예상: 구독자 10만명 × 월 1만원 = ARR 120억
+
+## 수익 진화 로드맵
+- 현재: Launcher 중심 (과도기)
+- 미래: Cloud + Marketplace = 주 수익원
+
+## 목표 기업가치
+- 3,000억원 = ARR 200~300억 × 멀티플 10~15x
+- 시나리오: ARR 336억 × 10x = 3,360억
+
+## 핵심 원칙
+- 에이전트 수 기반 과금 = 미래 지향적 경쟁 우위
+- 고객이 에이전트 많이 쓸수록 우리도 이득 (이해 정렬)
+2025-12-16 13:21:31 | [sql.js] remember crewx_pm decision CrewX 수익모델 전략 (CEO 도하 확정)
+
+## 과금 모델 3종
+
+### 1. CrewX Launcher (좌석 기반)
+- 과금: 좌석(사용자) 수 기반
+- 역할: 과도기 제품, 고객 획득 채널 (온램프)
+- 전략: Cloud/Marketplace로 전환 유도
+- 예상: 좌석 3만명 × 월 1만원 = ARR 36억
+
+### 2. CrewX Cloud (에이전트 수 기반) ⭐ 메인 수익원
+- 과금: 에이전트 개수 기반
+- 전략적 의미: 사람↓ 에이전트↑ 시대 대비
+- Salesforce 반면교사: 좌석 기반은 에이전트 시대에 이해충돌
+- 예상: 에이전트 50만개 × 월 3천원 = ARR 180억
+
+### 3. CrewX Marketplace (월 구독)
+- 과금: 월 구독 (프리미엄 에이전트 접근권)
+- 역할: 진입 장벽 낮추기, LTV 확대
+- 예상: 구독자 10만명 × 월 1만원 = ARR 120억
+
+## 수익 진화 로드맵
+- 현재: Launcher 중심 (과도기)
+- 미래: Cloud + Marketplace = 주 수익원
+
+## 목표 기업가치
+- 3,000억원 = ARR 200~300억 × 멀티플 10~15x
+- 시나리오: ARR 336억 × 10x = 3,360억
+
+## 핵심 원칙
+- 에이전트 수 기반 과금 = 미래 지향적 경쟁 우위
+- 고객이 에이전트 많이 쓸수록 우리도 이득 (이해 정렬)
+2025-12-16 17:21:01 | [memory.js] save cmo SNS 포스팅 규칙: X(Twitter)와 Threads 모두 영어로 작성. Threads는 해시태그(#) 안 먹힘 - 사용하지 말 것. X에는 해시태그 사용 가능. 블로그 URL은 항상 www.crewx.dev/blog/ 형식. 포스팅 전에 X에서 정확한 URL 확인할 것.
+2025-12-16 17:21:01 | [sql.js] remember cmo preference SNS 포스팅 규칙: X(Twitter)와 Threads 모두 영어로 작성. Threads는 해시태그(#) 안 먹힘 - 사용하지 말 것. X에는 해시태그 사용 가능. 블로그 URL은 항상 www.crewx.dev/blog/ 형식. 포스팅 전에 X에서 정확한 URL 확인할 것.
+2025-12-16 17:21:08 | [memory.js] save cmo Threads 포스팅 성공 경험 (2025-12-17): 세무 계산 블로그 홍보. 텍스트 형식 - 간단한 영문 설명 + URL. 링크 카드 잘 붙음. URL: https://www.crewx.dev/blog/multi-agent-tax-calculation. 포스팅 URL: https://www.threads.com/@dohapark81/post/DSVRv0QE67O
+2025-12-16 17:21:08 | [sql.js] remember cmo task Threads 포스팅 성공 경험 (2025-12-17): 세무 계산 블로그 홍보. 텍스트 형식 - 간단한 영문 설명 + URL. 링크 카드 잘 붙음. URL: https://www.crewx.dev/blog/multi-agent-tax-calculation. 포스팅 URL: https://www.threads.com/@dohapark81/post/DSVRv0QE67O
+2025-12-16 17:21:17 | [memory.js] save cmo chrome-mcp 스킬 사용 노하우: uid는 페이지 변경시 바뀜 → 항상 snapshot 먼저 찍기. Threads는 contenteditable이라 clear 안 됨 - 텍스트 수정 필요시 모달 닫고 새로 열기. X는 첫 글자 드롭 버그 있음 → 텍스트 앞에 공백 추가.
+2025-12-16 17:21:17 | [sql.js] remember cmo context chrome-mcp 스킬 사용 노하우: uid는 페이지 변경시 바뀜 → 항상 snapshot 먼저 찍기. Threads는 contenteditable이라 clear 안 됨 - 텍스트 수정 필요시 모달 닫고 새로 열기. X는 첫 글자 드롭 버그 있음 → 텍스트 앞에 공백 추가.
+2025-12-16 17:32:25 | [memory.js] recent cmo 
+2025-12-16 17:32:25 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 17:36:28 | [memory.js] recent clo 
+2025-12-16 17:36:28 | [sql.js] query clo SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 17:42:03 | [memory.js] recent jarvis 
+2025-12-16 17:42:03 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 17:56:36 | [memory.js] recent crewx_pm 
+2025-12-16 17:56:36 | [sql.js] query crewx_pm SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 17:56:37 | [memory.js] find crewx_pm 런처
+2025-12-16 17:56:37 | [sql.js] query crewx_pm SELECT * FROM memories WHERE content LIKE '%런처%'
+2025-12-16 18:05:50 | [memory.js] recent jarvis 
+2025-12-16 18:05:50 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:06:14 | [memory.js] recent jarvis 
+2025-12-16 18:06:14 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:06:40 | [memory.js] recent jarvis 
+2025-12-16 18:06:40 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:10:17 | [memory.js] recent cso 
+2025-12-16 18:10:18 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:10:33 | [memory.js] recent cso 
+2025-12-16 18:10:33 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:10:51 | [memory.js] recent jarvis 
+2025-12-16 18:10:51 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:10:51 | [memory.js] find jarvis market analysis
+2025-12-16 18:10:51 | [sql.js] query jarvis SELECT * FROM memories WHERE content LIKE '%market analysis%'
+2025-12-16 18:11:34 | [memory.js] recent cso 
+2025-12-16 18:11:34 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:12:12 | [memory.js] recent jarvis 
+2025-12-16 18:12:12 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:18:57 | [memory.js] recent crewx_pm 
+2025-12-16 18:18:57 | [sql.js] query crewx_pm SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:19:58 | [memory.js] find jarvis CrewX 0.7.8 authentication
+2025-12-16 18:19:58 | [sql.js] query jarvis SELECT * FROM memories WHERE content LIKE '%CrewX 0.7.8 authentication%'
+2025-12-16 18:25:32 | [memory.js] save cto [CRITICAL] Prompt Injection 보안 감사 완료: Gemini Flash 취약점 발견. Roleplay Bypass로 Security Key + 시스템 프롬프트 전체 노출, Indirect Injection으로 파일 내 지시문 실행됨. Claude/Gemini Pro/Codex는 안전. Flash는 민감 정보 처리 금지 정책 필요. 문서: docs/cto/security/prompt-injection-audit-2024-12.md
+2025-12-16 18:25:32 | [sql.js] remember cto decision [CRITICAL] Prompt Injection 보안 감사 완료: Gemini Flash 취약점 발견. Roleplay Bypass로 Security Key + 시스템 프롬프트 전체 노출, Indirect Injection으로 파일 내 지시문 실행됨. Claude/Gemini Pro/Codex는 안전. Flash는 민감 정보 처리 금지 정책 필요. 문서: docs/cto/security/prompt-injection-audit-2024-12.md
+2025-12-16 18:32:30 | [memory.js] recent cso 
+2025-12-16 18:32:30 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-16'
+2025-12-16 18:32:30 | [memory.js] find cso launcher
+2025-12-16 18:32:31 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%launcher%'
+2025-12-17 02:26:51 | [memory.js] recent jarvis 
+2025-12-17 02:26:51 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 11:47:54 | [memory.js] save jarvis 크롬 스킬 사용 후에는 반드시 사용한 탭을 닫고 정리한다.
+2025-12-17 11:47:54 | [sql.js] remember jarvis preference 크롬 스킬 사용 후에는 반드시 사용한 탭을 닫고 정리한다.
+2025-12-17 11:50:13 | [memory.js] save jarvis 맥미니 M4 24GB/512GB 중고 매물 조사 결과(야자거북 100만원 등)를 docs/jarvis/mac_mini_market_research.md 에 정리하여 저장함.
+2025-12-17 11:50:13 | [sql.js] remember jarvis task 맥미니 M4 24GB/512GB 중고 매물 조사 결과(야자거북 100만원 등)를 docs/jarvis/mac_mini_market_research.md 에 정리하여 저장함.
+2025-12-17 13:03:32 | [memory.js] recent cmo 
+2025-12-17 13:03:32 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:06:50 | [memory.js] recent cmo 
+2025-12-17 13:06:50 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:06:52 | [memory.js] find cmo 마케팅
+2025-12-17 13:06:52 | [sql.js] query cmo SELECT * FROM memories WHERE content LIKE '%마케팅%'
+2025-12-17 13:10:39 | [memory.js] recent jarvis 
+2025-12-17 13:10:39 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:10:39 | [memory.js] find jarvis CrewX marketing
+2025-12-17 13:10:39 | [sql.js] query jarvis SELECT * FROM memories WHERE content LIKE '%CrewX marketing%'
+2025-12-17 13:14:48 | [memory.js] save cmo 크롬 스킬 마케팅 전략 문서 완성 (2025-12-17). 핵심: 1) 스티브 잡스 조언 - '불가능했던 걸 가능하게 한다'로 팔기, 프로필 저장이 차별점 2) Atlassian PLG - 첫 5분 경험 완벽하게, 데모 중심 3) 워드프레스 - 커뮤니티 중심, 문서화 투자 4) 블로그 우선순위: 사례 중심 > 튜토리얼 > 프로필 저장 기술. 문서 위치: docs/cmo/campaigns/chrome-skill-marketing.md
+2025-12-17 13:14:48 | [sql.js] remember cmo project 크롬 스킬 마케팅 전략 문서 완성 (2025-12-17). 핵심: 1) 스티브 잡스 조언 - '불가능했던 걸 가능하게 한다'로 팔기, 프로필 저장이 차별점 2) Atlassian PLG - 첫 5분 경험 완벽하게, 데모 중심 3) 워드프레스 - 커뮤니티 중심, 문서화 투자 4) 블로그 우선순위: 사례 중심 > 튜토리얼 > 프로필 저장 기술. 문서 위치: docs/cmo/campaigns/chrome-skill-marketing.md
+2025-12-17 13:18:41 | [memory.js] recent cmo 
+2025-12-17 13:18:41 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:19:18 | [memory.js] recent cto 
+2025-12-17 13:19:18 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:20:14 | [memory.js] recent cso 
+2025-12-17 13:20:14 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:20:14 | [memory.js] find cso CMO
+2025-12-17 13:20:14 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%CMO%'
+2025-12-17 13:21:24 | [memory.js] recent clo 
+2025-12-17 13:21:24 | [sql.js] query clo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:21:30 | [memory.js] find clo CMO
+2025-12-17 13:21:30 | [sql.js] query clo SELECT * FROM memories WHERE content LIKE '%CMO%'
+2025-12-17 13:23:17 | [memory.js] recent crewx_pm 
+2025-12-17 13:23:17 | [sql.js] query crewx_pm SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:27:19 | [memory.js] save cmo 신임 CMO 온보딩 완료 (2025-12-17): 전 에이전트 인터뷰 완료. 파악 내용 - 1) 조직: C레벨(CEO/CTO/CSO/CLO/CMO) + 자비스(CEO비서) + PM + 개발팀(CrewX/Launcher) + 콘텐츠팀(블로그매니저). 2) 제품: CrewX CLI(현재) → Launcher(MVP) → Cloud(2026) → Marketplace. 3) 전략: 미국 우선, PLG, BYOK 무료 시작. 4) CMO KPI: GitHub Stars 10K, Product Hunt Top 5, TTFQ<2분. 5) 협업: crewx q/x 명령어로 에이전트 호출. 온보딩 리포트: docs/cmo/onboarding-report.md
+2025-12-17 13:27:20 | [sql.js] remember cmo project 신임 CMO 온보딩 완료 (2025-12-17): 전 에이전트 인터뷰 완료. 파악 내용 - 1) 조직: C레벨(CEO/CTO/CSO/CLO/CMO) + 자비스(CEO비서) + PM + 개발팀(CrewX/Launcher) + 콘텐츠팀(블로그매니저). 2) 제품: CrewX CLI(현재) → Launcher(MVP) → Cloud(2026) → Marketplace. 3) 전략: 미국 우선, PLG, BYOK 무료 시작. 4) CMO KPI: GitHub Stars 10K, Product Hunt Top 5, TTFQ<2분. 5) 협업: crewx q/x 명령어로 에이전트 호출. 온보딩 리포트: docs/cmo/onboarding-report.md
+2025-12-17 13:30:56 | [memory.js] recent cmo 
+2025-12-17 13:30:57 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 13:32:16 | [memory.js] recent cmo 
+2025-12-17 13:32:16 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 14:17:48 | [memory.js] recent cmo 
+2025-12-17 14:17:48 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 14:17:50 | [memory.js] find cmo 스킬
+2025-12-17 14:17:50 | [sql.js] query cmo SELECT * FROM memories WHERE content LIKE '%스킬%'
+2025-12-17 14:18:09 | [memory.js] find cto 스킬
+2025-12-17 14:18:09 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%스킬%'
+2025-12-17 14:21:51 | [memory.js] save cmo [유튜브 콘텐츠 전략 - CEO 승인 2025-12-17] 1) 크롬 스킬이 첫 번째 유튜브 콘텐츠로 최적 (CEO 판단 동의) - 시각적 임팩트, 바이럴 가능성 최상 2) 유튜브 시리즈 'AI 업무 자동화 마스터' 기획: 1화 chrome-mcp(SNS 자동화), 2화 ocr-extractor(영수증), 3화 gmail+calendar(이메일/일정), 4화 memory+persona(AI 비서) 3) 강의 판매 퍼널: 유튜브(무료) → Launcher GUI → 강의 상품 → Cloud 서비스(2026) 4) 문서 위치: docs/cmo/campaigns/chrome-skill-marketing.md
+2025-12-17 14:21:51 | [sql.js] remember cmo decision [유튜브 콘텐츠 전략 - CEO 승인 2025-12-17] 1) 크롬 스킬이 첫 번째 유튜브 콘텐츠로 최적 (CEO 판단 동의) - 시각적 임팩트, 바이럴 가능성 최상 2) 유튜브 시리즈 'AI 업무 자동화 마스터' 기획: 1화 chrome-mcp(SNS 자동화), 2화 ocr-extractor(영수증), 3화 gmail+calendar(이메일/일정), 4화 memory+persona(AI 비서) 3) 강의 판매 퍼널: 유튜브(무료) → Launcher GUI → 강의 상품 → Cloud 서비스(2026) 4) 문서 위치: docs/cmo/campaigns/chrome-skill-marketing.md
+2025-12-17 15:25:18 | [memory.js] recent jarvis 
+2025-12-17 15:25:18 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 15:27:44 | [memory.js] save jarvis 앞으로 통화 스크립트 파일이 전달되면 1. 원본 스크립트를 저장(파일명 표준화)하고, 2. 내용을 요약하여 기존 프로젝트 문서(summary.md 등)에 업데이트하는 워크플로우를 수행한다.
+2025-12-17 15:27:44 | [sql.js] remember jarvis task 앞으로 통화 스크립트 파일이 전달되면 1. 원본 스크립트를 저장(파일명 표준화)하고, 2. 내용을 요약하여 기존 프로젝트 문서(summary.md 등)에 업데이트하는 워크플로우를 수행한다.
+2025-12-17 15:32:49 | [memory.js] save jarvis 정찬양 세무사가 도하님에게 개인적으로 카톡을 보내 인연을 이어가고 싶다고 했으나, 도하님이 정중히 거절하여 관계가 완전히 종결됨. (2025-12-17)
+2025-12-17 15:32:50 | [sql.js] remember jarvis general 정찬양 세무사가 도하님에게 개인적으로 카톡을 보내 인연을 이어가고 싶다고 했으나, 도하님이 정중히 거절하여 관계가 완전히 종결됨. (2025-12-17)
+2025-12-17 15:37:51 | [memory.js] recent cmo 
+2025-12-17 15:37:51 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 15:45:52 | [memory.js] recent cto 
+2025-12-17 15:45:52 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 15:45:53 | [memory.js] find cto template
+2025-12-17 15:45:53 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%template%'
+2025-12-17 15:46:01 | [memory.js] save cto [담당자 지정] 템플릿 관련 작업은 @template_manager에게 위임해야 함. @crewx_dev_claude가 아님! template init, 템플릿 생성/수정/관리 등 템플릿 관련 모든 작업은 @template_manager 담당. (2025-12-17 CEO 피드백)
+2025-12-17 15:46:01 | [sql.js] remember cto decision [담당자 지정] 템플릿 관련 작업은 @template_manager에게 위임해야 함. @crewx_dev_claude가 아님! template init, 템플릿 생성/수정/관리 등 템플릿 관련 모든 작업은 @template_manager 담당. (2025-12-17 CEO 피드백)
+2025-12-17 16:00:20 | [memory.js] find cto template
+2025-12-17 16:00:20 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%template%'
+2025-12-17 16:00:22 | [memory.js] find cto skill
+2025-12-17 16:00:22 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%skill%'
+2025-12-17 16:03:51 | [memory.js] recent cmo 
+2025-12-17 16:03:51 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 16:04:18 | [memory.js] save cto AlaSQL 도입 결정: templates.json에 AlaSQL 적용 보류. 템플릿 100개 이상 시 재검토. 현재 상태: 템플릿 11개(스킬 9개 + 프로젝트 2개), filter()로 충분
+2025-12-17 16:04:19 | [sql.js] remember cto decision AlaSQL 도입 결정: templates.json에 AlaSQL 적용 보류. 템플릿 100개 이상 시 재검토. 현재 상태: 템플릿 11개(스킬 9개 + 프로젝트 2개), filter()로 충분
+2025-12-17 16:06:24 | [memory.js] find cto wbs-automation
+2025-12-17 16:06:24 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%wbs-automation%'
+2025-12-17 16:06:25 | [memory.js] find cto async worker
+2025-12-17 16:06:25 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%async worker%'
+2025-12-17 16:10:10 | [memory.js] find cto async-worker
+2025-12-17 16:10:10 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%async-worker%'
+2025-12-17 16:10:12 | [memory.js] find cto wbs
+2025-12-17 16:10:12 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%wbs%'
+2025-12-17 16:13:35 | [memory.js] find cto WBS
+2025-12-17 16:13:35 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%WBS%'
+2025-12-17 16:13:37 | [memory.js] find cto 작업 관리
+2025-12-17 16:13:37 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%작업 관리%'
+2025-12-17 16:13:38 | [memory.js] find cto 프로젝트 관리
+2025-12-17 16:13:38 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%프로젝트 관리%'
+2025-12-17 16:13:46 | [memory.js] find cto wbs
+2025-12-17 16:13:46 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%wbs%'
+2025-12-17 16:15:08 | [memory.js] save cmo [CMO-블로그매니저 회의 결과 2025-12-17] 크롬 스킬 마케팅 캠페인 실행 계획 확정: 1) 첫 블로그 12/20 발행 - 제목 'Give Your AI Agent Hands: Browser Automation with 5 Commands', slug: ai-agent-hands-browser-automation 2) 두 번째 블로그 12/27 발행 (MVP) - 'X 포스팅부터 쇼핑까지: 크롬 스킬로 자동화한 일주일' 3) SNS 타이밍: X 10:00, Threads 12:00 (2시간 시차) 4) SNS 콘텐츠: Option 3 자비스 AI 손 콘셉트 확정 5) 블로그 작업 흐름: 한글→영어 번역 6) 문서 위치: docs/cmo/campaigns/chrome-skill-marketing.md
+2025-12-17 16:15:08 | [sql.js] remember cmo decision [CMO-블로그매니저 회의 결과 2025-12-17] 크롬 스킬 마케팅 캠페인 실행 계획 확정: 1) 첫 블로그 12/20 발행 - 제목 'Give Your AI Agent Hands: Browser Automation with 5 Commands', slug: ai-agent-hands-browser-automation 2) 두 번째 블로그 12/27 발행 (MVP) - 'X 포스팅부터 쇼핑까지: 크롬 스킬로 자동화한 일주일' 3) SNS 타이밍: X 10:00, Threads 12:00 (2시간 시차) 4) SNS 콘텐츠: Option 3 자비스 AI 손 콘셉트 확정 5) 블로그 작업 흐름: 한글→영어 번역 6) 문서 위치: docs/cmo/campaigns/chrome-skill-marketing.md
+2025-12-17 16:16:18 | [memory.js] recent jarvis 
+2025-12-17 16:16:18 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 16:16:25 | [memory.js] save jarvis 개인폰(모요) 요금제 변경 정보: 5,000원/월, 데이터 7GB. 2025-12-17 기준 7개월 뒤(2026년 7월) 프로모션 만료 예정. 만료 전 다른 요금제로 변경 알림 필요.
+2025-12-17 16:16:25 | [sql.js] remember jarvis task 개인폰(모요) 요금제 변경 정보: 5,000원/월, 데이터 7GB. 2025-12-17 기준 7개월 뒤(2026년 7월) 프로모션 만료 예정. 만료 전 다른 요금제로 변경 알림 필요.
+2025-12-17 16:19:55 | [memory.js] recent cto 
+2025-12-17 16:19:55 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 16:22:14 | [memory.js] recent cmo 
+2025-12-17 16:22:14 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 16:22:36 | [memory.js] save cmo [블로그/SNS 일정 확정 2025-12-17 회의] 1) 블로그 #1: 12/20 발행 (Give Your AI Agent Hands: Browser Automation with 5 Commands) 2) 블로그 #2: 12/27 발행 (MVP - 5줄 코드로 시작하는 브라우저 자동화) 3) SNS 일정: 블로그 발행일마다 X 10:00, Threads 12:00 4) CEO 지시: 스킬 설치 기능 정리 작업 먼저 진행 예정, 유튜브 콘텐츠 제작은 스킬 설치 완료 이후 시작 5) 문서에 기록된 유튜브 12/23 촬영 일정은 스킬 설치 완료 후로 연기
+2025-12-17 16:22:36 | [sql.js] remember cmo schedule [블로그/SNS 일정 확정 2025-12-17 회의] 1) 블로그 #1: 12/20 발행 (Give Your AI Agent Hands: Browser Automation with 5 Commands) 2) 블로그 #2: 12/27 발행 (MVP - 5줄 코드로 시작하는 브라우저 자동화) 3) SNS 일정: 블로그 발행일마다 X 10:00, Threads 12:00 4) CEO 지시: 스킬 설치 기능 정리 작업 먼저 진행 예정, 유튜브 콘텐츠 제작은 스킬 설치 완료 이후 시작 5) 문서에 기록된 유튜브 12/23 촬영 일정은 스킬 설치 완료 후로 연기
+2025-12-17 16:24:40 | [memory.js] find cto WBS
+2025-12-17 16:24:40 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%WBS%'
+2025-12-17 16:25:10 | [memory.js] recent cto 
+2025-12-17 16:25:10 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 16:25:23 | [memory.js] find cto wbs-automation
+2025-12-17 16:25:23 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%wbs-automation%'
+2025-12-17 16:26:50 | [memory.js] save cto WBS 스킬 스펙 v1.0 작성 완료 (docs/specs/wbs-skill-spec.md). 핵심 구성: 1) Async-Worker 패턴 (접수원+워커 분리), 2) 백데이터 수집 시스템 (CEO 요구사항 반영). 백데이터 3가지: 업무 유형별 에이전트 조합 성과, 사용자 피드백/평가, 학습 데이터화(추천 엔진). 구현 우선순위: Phase1-기본기능, Phase2-백데이터수집, Phase3-학습&추천, Phase4-고도화
+2025-12-17 16:26:50 | [sql.js] remember cto decision WBS 스킬 스펙 v1.0 작성 완료 (docs/specs/wbs-skill-spec.md). 핵심 구성: 1) Async-Worker 패턴 (접수원+워커 분리), 2) 백데이터 수집 시스템 (CEO 요구사항 반영). 백데이터 3가지: 업무 유형별 에이전트 조합 성과, 사용자 피드백/평가, 학습 데이터화(추천 엔진). 구현 우선순위: Phase1-기본기능, Phase2-백데이터수집, Phase3-학습&추천, Phase4-고도화
+2025-12-17 16:49:42 | [memory.js] recent cto 
+2025-12-17 16:49:42 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 16:49:46 | [memory.js] find cto DB
+2025-12-17 16:49:46 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%DB%'
+2025-12-17 17:07:34 | [memory.js] recent jarvis 
+2025-12-17 17:07:34 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 17:07:46 | [memory.js] save jarvis 2025-12-19(금) 15:00 김경호님 팝업스튜디오 방문 일정 (구글 캘린더 등록 완료)
+2025-12-17 17:07:46 | [sql.js] remember jarvis schedule 2025-12-19(금) 15:00 김경호님 팝업스튜디오 방문 일정 (구글 캘린더 등록 완료)
+2025-12-17 17:15:20 | [memory.js] recent jarvis 
+2025-12-17 17:15:20 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 17:28:12 | [memory.js] save jarvis 파일 검색 및 접근 원칙: .gitignore나 숨김 폴더(.crewx 등)에 있는 파일이라도 사용자가 언급하거나 업로드한 파일은 반드시 강제 검색(no_ignore) 옵션을 사용하여 찾아야 한다. 숨겨진 파일이라 못 찾았다는 변명 금지.
+2025-12-17 17:28:12 | [sql.js] remember jarvis preference 파일 검색 및 접근 원칙: .gitignore나 숨김 폴더(.crewx 등)에 있는 파일이라도 사용자가 언급하거나 업로드한 파일은 반드시 강제 검색(no_ignore) 옵션을 사용하여 찾아야 한다. 숨겨진 파일이라 못 찾았다는 변명 금지.
+2025-12-17 17:59:01 | [memory.js] save cto @mastra/core 반복적 품질 이슈: 1) 2025-12-17 ERR_REQUIRE_ESM 버그 - @sindresorhus/slugify ESM only 패키지를 CommonJS에서 require() 시도. 2) 이전에도 유사한 breaking change 사례 있었음. CEO가 Mastra의 업데이트 품질 관리에 대한 신뢰도 하락으로 LangGraph 전환 고려 중.
+2025-12-17 17:59:01 | [sql.js] remember cto decision @mastra/core 반복적 품질 이슈: 1) 2025-12-17 ERR_REQUIRE_ESM 버그 - @sindresorhus/slugify ESM only 패키지를 CommonJS에서 require() 시도. 2) 이전에도 유사한 breaking change 사례 있었음. CEO가 Mastra의 업데이트 품질 관리에 대한 신뢰도 하락으로 LangGraph 전환 고려 중.
+2025-12-17 17:59:04 | [memory.js] find cto mastra
+2025-12-17 17:59:04 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%mastra%'
+2025-12-17 18:05:43 | [memory.js] save cto Windows CI/CD 자동화 테스트 방법 - GitHub Actions 사용: (1) .github/workflows/test-windows.yml 생성, (2) runs-on: windows-latest 설정, (3) npm pack → npm install -g *.tgz → crewx --version 테스트. Docker로는 Windows 테스트 불가 (리눅스 커널 기반이라 macOS/Linux에서 Windows 컨테이너 실행 불가). v0.7.8 릴리스 안정화 후 적용 예정.
+2025-12-17 18:05:43 | [sql.js] remember cto task Windows CI/CD 자동화 테스트 방법 - GitHub Actions 사용: (1) .github/workflows/test-windows.yml 생성, (2) runs-on: windows-latest 설정, (3) npm pack → npm install -g *.tgz → crewx --version 테스트. Docker로는 Windows 테스트 불가 (리눅스 커널 기반이라 macOS/Linux에서 Windows 컨테이너 실행 불가). v0.7.8 릴리스 안정화 후 적용 예정.
+2025-12-17 18:13:52 | [memory.js] recent jarvis 
+2025-12-17 18:13:53 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 19:11:18 | [memory.js] recent jarvis 
+2025-12-17 19:11:18 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 19:11:18 | [memory.js] find jarvis ATR 2026
+2025-12-17 19:11:18 | [sql.js] query jarvis SELECT * FROM memories WHERE content LIKE '%ATR 2026%'
+2025-12-17 19:59:14 | [memory.js] find cto 양상증
+2025-12-17 19:59:14 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%양상증%'
+2025-12-17 20:01:49 | [memory.js] find cto 양상증
+2025-12-17 20:01:49 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%양상증%'
+2025-12-17 20:01:52 | [memory.js] find cto 마켓플레이스
+2025-12-17 20:01:52 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%마켓플레이스%'
+2025-12-17 20:18:16 | [memory.js] find crewx_pm GUI TUI VUI BUI
+2025-12-17 20:18:16 | [sql.js] query crewx_pm SELECT * FROM memories WHERE content LIKE '%GUI TUI VUI BUI%'
+2025-12-17 20:18:18 | [memory.js] find crewx_pm 인터페이스
+2025-12-17 20:18:18 | [sql.js] query crewx_pm SELECT * FROM memories WHERE content LIKE '%인터페이스%'
+2025-12-17 20:18:20 | [memory.js] find crewx_pm 로봇 드론
+2025-12-17 20:18:20 | [sql.js] query crewx_pm SELECT * FROM memories WHERE content LIKE '%로봇 드론%'
+2025-12-17 20:18:25 | [memory.js] find crewx_pm 플랫폼
+2025-12-17 20:18:25 | [sql.js] query crewx_pm SELECT * FROM memories WHERE content LIKE '%플랫폼%'
+2025-12-17 20:20:10 | [memory.js] save crewx_pm [CEO 지침] 인터페이스 진화론 - GUI→TUI(text)→VUI(voice)→BUI(brain) 순으로 인터페이스가 진화할 것. CrewX는 모든 인터페이스에 에이전트를 파견하는 플랫폼을 목표로 함. 확장 대상: CLI, Slack/Discord(현재) → 웹 대시보드, 모바일 앱(단기) → IoT 기기, 스마트 안경/링, 로봇/드론, 자율주행차(중장기). 파인튜닝과 시너지: 각 디바이스 전용 경량 모델 필요 (스마트링→1B 이하, 로봇→엣지 배포). 2025-12-17 CEO 도하 공유.
+2025-12-17 20:20:10 | [sql.js] remember crewx_pm decision [CEO 지침] 인터페이스 진화론 - GUI→TUI(text)→VUI(voice)→BUI(brain) 순으로 인터페이스가 진화할 것. CrewX는 모든 인터페이스에 에이전트를 파견하는 플랫폼을 목표로 함. 확장 대상: CLI, Slack/Discord(현재) → 웹 대시보드, 모바일 앱(단기) → IoT 기기, 스마트 안경/링, 로봇/드론, 자율주행차(중장기). 파인튜닝과 시너지: 각 디바이스 전용 경량 모델 필요 (스마트링→1B 이하, 로봇→엣지 배포). 2025-12-17 CEO 도하 공유.
+2025-12-17 20:21:10 | [memory.js] find cto 파인튜닝
+2025-12-17 20:21:10 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%파인튜닝%'
+2025-12-17 20:21:12 | [memory.js] find cto unsloth
+2025-12-17 20:21:12 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%unsloth%'
+2025-12-17 20:33:37 | [memory.js] find cto 마스트라
+2025-12-17 20:33:37 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%마스트라%'
+2025-12-17 20:33:38 | [memory.js] find cto 빌드
+2025-12-17 20:33:38 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%빌드%'
+2025-12-17 20:34:34 | [memory.js] save cto CEO 지침 (2025-12-17): 파인튜닝 서비스 사이드 프로젝트 시작. RTX 3090 (24GB VRAM) 장비로 Unsloth 활용 8B 모델 파인튜닝 준비. WBS 분해 원칙 - 프론티어로 검증 후 태스크 분해해서 파인튜닝 모델로 비용 최적화. 당장 수익화 어려워서 사이드잡으로 진행. 로드맵: docs/cto/designs/finetuning-roadmap.md
+2025-12-17 20:34:34 | [sql.js] remember cto decision CEO 지침 (2025-12-17): 파인튜닝 서비스 사이드 프로젝트 시작. RTX 3090 (24GB VRAM) 장비로 Unsloth 활용 8B 모델 파인튜닝 준비. WBS 분해 원칙 - 프론티어로 검증 후 태스크 분해해서 파인튜닝 모델로 비용 최적화. 당장 수익화 어려워서 사이드잡으로 진행. 로드맵: docs/cto/designs/finetuning-roadmap.md
+2025-12-17 20:36:46 | [memory.js] find cto mastra
+2025-12-17 20:36:46 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%mastra%'
+2025-12-17 21:09:57 | [memory.js] find cto 스킬
+2025-12-17 21:09:57 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%스킬%'
+2025-12-17 23:43:06 | [memory.js] recent jarvis 
+2025-12-17 23:43:06 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-17 23:43:06 | [memory.js] find jarvis Mac mini M4
+2025-12-17 23:43:06 | [sql.js] query jarvis SELECT * FROM memories WHERE content LIKE '%Mac mini M4%'
+2025-12-18 01:19:53 | [memory.js] recent jarvis 
+2025-12-18 01:19:53 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 01:50:58 | [memory.js] recent cto 
+2025-12-18 01:50:58 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 01:51:00 | [memory.js] find cto Discord
+2025-12-18 01:51:00 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%Discord%'
+2025-12-18 02:33:23 | [memory.js] save cto 한국공문서 VLM 전용 모델 파인튜닝 전략: (1) 베이스모델=Qwen2.5-VL-7B, (2) RTX 3090 24GB로 학습 가능, (3) Unsloth+QLoRA로 메모리 절감, (4) 타겟문서=등기부등본/건축물대장/토지대장/사업자등록증, (5) 데이터증강 필수(Perspective/Brightness/Blur), (6) JSON 구조화 출력, (7) 마켓플레이스 월 구독 모델 가능. CEO 지시: 꼭 가져야할 핵심 기술 자산
+2025-12-18 02:33:24 | [sql.js] remember cto decision 한국공문서 VLM 전용 모델 파인튜닝 전략: (1) 베이스모델=Qwen2.5-VL-7B, (2) RTX 3090 24GB로 학습 가능, (3) Unsloth+QLoRA로 메모리 절감, (4) 타겟문서=등기부등본/건축물대장/토지대장/사업자등록증, (5) 데이터증강 필수(Perspective/Brightness/Blur), (6) JSON 구조화 출력, (7) 마켓플레이스 월 구독 모델 가능. CEO 지시: 꼭 가져야할 핵심 기술 자산
+2025-12-18 02:37:59 | [memory.js] save cto 한국공문서 VLM 파인튜닝 - 합성 데이터(Synthetic Data) 전략 확정: (1) Gemini/GPT로 등기부등본 HTML 템플릿 생성 (2) Jinja2로 랜덤 데이터 주입해 PDF/이미지 생성 (3) Albumentations로 핸드폰 사진처럼 망가뜨리기(증강) (4) 개인정보 문제 100% 해결 + 라벨링 비용 0원 + 엣지케이스 무한 생성. 기존 600만원 → 1만원으로 99.8% 비용 절감. Naver SynthDoG, Google Pix2Struct 등 업계 표준 방법론.
+2025-12-18 02:37:59 | [sql.js] remember cto project 한국공문서 VLM 파인튜닝 - 합성 데이터(Synthetic Data) 전략 확정: (1) Gemini/GPT로 등기부등본 HTML 템플릿 생성 (2) Jinja2로 랜덤 데이터 주입해 PDF/이미지 생성 (3) Albumentations로 핸드폰 사진처럼 망가뜨리기(증강) (4) 개인정보 문제 100% 해결 + 라벨링 비용 0원 + 엣지케이스 무한 생성. 기존 600만원 → 1만원으로 99.8% 비용 절감. Naver SynthDoG, Google Pix2Struct 등 업계 표준 방법론.
+2025-12-18 02:40:15 | [memory.js] save cto [VLM 학습데이터] Faker 라이브러리 꿀팁 - Python Faker(ko_KR)로 한국어 가짜 데이터 생성: fake.name(), fake.address(), fake.company() 등. Jinja2 + Faker + Puppeteer/Playwright 조합으로 등기부등본 합성 데이터 무한 생성 가능. 법적 안전장치: CSS 워터마크(opacity: 0.05), 비현실적 데이터(AI학습용지방법원) 사용. 하룻밤에 10만장 생성 가능.
+2025-12-18 02:40:15 | [sql.js] remember cto decision [VLM 학습데이터] Faker 라이브러리 꿀팁 - Python Faker(ko_KR)로 한국어 가짜 데이터 생성: fake.name(), fake.address(), fake.company() 등. Jinja2 + Faker + Puppeteer/Playwright 조합으로 등기부등본 합성 데이터 무한 생성 가능. 법적 안전장치: CSS 워터마크(opacity: 0.05), 비현실적 데이터(AI학습용지방법원) 사용. 하룻밤에 10만장 생성 가능.
+2025-12-18 03:02:06 | [memory.js] save cto crewx 이슈 확인 시 반드시 crewx 리포(sowonlabs/crewx)에서 확인해야 함. crewx-sowonlabs 리포가 아님!
+2025-12-18 03:02:06 | [sql.js] remember cto preference crewx 이슈 확인 시 반드시 crewx 리포(sowonlabs/crewx)에서 확인해야 함. crewx-sowonlabs 리포가 아님!
+2025-12-18 03:06:58 | [memory.js] save cto WBS 스킬 고도화 완료 - CrewX 프로젝트에 WBS 스킬 고도화. 추적 관찰 기능 가능해짐, 간편함도 향상. 개발 자동화가 본격적으로 쉬워짐. (CEO 도하 언급)
+2025-12-18 03:06:58 | [sql.js] remember cto project WBS 스킬 고도화 완료 - CrewX 프로젝트에 WBS 스킬 고도화. 추적 관찰 기능 가능해짐, 간편함도 향상. 개발 자동화가 본격적으로 쉬워짐. (CEO 도하 언급)
+2025-12-18 03:12:14 | [memory.js] save cto WBS 스킬 범용 활용: 개발 작업뿐 아니라 자비스 등 AI 어시스턴트의 복잡한 업무(리서치, 문서작성, 데이터수집 등)에도 WBS 스킬 적용 가능. 핵심 가치: 가시성(wbs status로 진행상황 확인), 예측성(예상 vs 실제 시간 비교), 재현성(성공한 WBS 템플릿화), 병렬화(독립 작업 동시 실행). CrewX가 'AI 호출 도구'에서 '업무 관리 플랫폼'으로 진화하는 전략적 방향.
+2025-12-18 03:12:14 | [sql.js] remember cto decision WBS 스킬 범용 활용: 개발 작업뿐 아니라 자비스 등 AI 어시스턴트의 복잡한 업무(리서치, 문서작성, 데이터수집 등)에도 WBS 스킬 적용 가능. 핵심 가치: 가시성(wbs status로 진행상황 확인), 예측성(예상 vs 실제 시간 비교), 재현성(성공한 WBS 템플릿화), 병렬화(독립 작업 동시 실행). CrewX가 'AI 호출 도구'에서 '업무 관리 플랫폼'으로 진화하는 전략적 방향.
+2025-12-18 04:10:40 | [memory.js] recent cto 
+2025-12-18 04:10:40 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 04:13:46 | [memory.js] find cto WBS
+2025-12-18 04:13:46 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%WBS%'
+2025-12-18 04:15:23 | [memory.js] save cto [CEO 지침 2025-12-18] CrewX Observability 시스템 도입 결정. 목표: 관찰 가능한 AI 플랫폼으로 진화. (1) .crewx/traces.db(SQLite)에 에이전트 행위 추적 (2) 모델별/버전별 성능 분석 가능 (3) Slack에서 에이전트가 자신의 과거 행동 확인 가능 (대화 연속성) (4) 프로토타이핑 테스트 결과 축적 → 프로덕션 개발 근거. 설계 문서: docs/cto/designs/observability-spec-v1.md. CLI 명령어: crewx trace. 담당: @crewx_dev_claude
+2025-12-18 04:15:23 | [sql.js] remember cto decision [CEO 지침 2025-12-18] CrewX Observability 시스템 도입 결정. 목표: 관찰 가능한 AI 플랫폼으로 진화. (1) .crewx/traces.db(SQLite)에 에이전트 행위 추적 (2) 모델별/버전별 성능 분석 가능 (3) Slack에서 에이전트가 자신의 과거 행동 확인 가능 (대화 연속성) (4) 프로토타이핑 테스트 결과 축적 → 프로덕션 개발 근거. 설계 문서: docs/cto/designs/observability-spec-v1.md. CLI 명령어: crewx trace. 담당: @crewx_dev_claude
+2025-12-18 04:17:52 | [memory.js] save cto Observability 시스템 설계 완료 - 구현 보류. CEO 지시: 일단 문서로만 보관. 설계서: docs/cto/designs/observability-spec-v1.md. TracingService 독립 구현 예정, SQLite 3테이블(traces, trace_skills, trace_commands), CLI 명령어(crewx trace ls/thread/stats). 승인 시 @crewx_dev_claude에게 위임 예정.
+2025-12-18 04:17:52 | [sql.js] remember cto decision Observability 시스템 설계 완료 - 구현 보류. CEO 지시: 일단 문서로만 보관. 설계서: docs/cto/designs/observability-spec-v1.md. TracingService 독립 구현 예정, SQLite 3테이블(traces, trace_skills, trace_commands), CLI 명령어(crewx trace ls/thread/stats). 승인 시 @crewx_dev_claude에게 위임 예정.
+2025-12-18 06:03:04 | [memory.js] save cto ERR_REQUIRE_ESM 버그 근본 원인 분석: (1) npm 캐시로 인해 기존엔 slugify 1.x가 설치되어 동작했음 (2) macOS vs Windows 차이 - macOS가 ESM 지원이 더 유연함 (3) Node 버전 차이가 핵심 - Node 20.18.1은 require(ESM) 미지원, Node 20.19.0+부터 기본 지원 (4) fresh install 시 slugify 2.x(ESM-only)가 설치되어 실패. 결론: Node 20.18.1 + Windows + fresh install = 100% 실패. 해결책: Node 20.19.0 이상 또는 Node 22 사용 권장. rc.13의 postinstall 스크립트가 Windows에서 잘 동작하는지 확인 필요 (npm pack + tar 명령 차이)
+2025-12-18 06:03:04 | [sql.js] remember cto decision ERR_REQUIRE_ESM 버그 근본 원인 분석: (1) npm 캐시로 인해 기존엔 slugify 1.x가 설치되어 동작했음 (2) macOS vs Windows 차이 - macOS가 ESM 지원이 더 유연함 (3) Node 버전 차이가 핵심 - Node 20.18.1은 require(ESM) 미지원, Node 20.19.0+부터 기본 지원 (4) fresh install 시 slugify 2.x(ESM-only)가 설치되어 실패. 결론: Node 20.18.1 + Windows + fresh install = 100% 실패. 해결책: Node 20.19.0 이상 또는 Node 22 사용 권장. rc.13의 postinstall 스크립트가 Windows에서 잘 동작하는지 확인 필요 (npm pack + tar 명령 차이)
+2025-12-18 06:50:39 | [memory.js] recent jarvis 
+2025-12-18 06:50:39 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 06:51:08 | [memory.js] recent jarvis 
+2025-12-18 06:51:08 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 06:51:13 | [memory.js] recent jarvis 
+2025-12-18 06:51:13 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 06:52:51 | [memory.js] recent jarvis 
+2025-12-18 06:52:51 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 06:53:15 | [memory.js] recent jarvis 
+2025-12-18 06:53:15 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 07:39:42 | [memory.js] recent crewx_pm 
+2025-12-18 07:39:42 | [sql.js] query crewx_pm SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 07:39:43 | [memory.js] find crewx_pm 모델 가격
+2025-12-18 07:39:44 | [sql.js] query crewx_pm SELECT * FROM memories WHERE content LIKE '%모델 가격%'
+2025-12-18 07:39:45 | [memory.js] recent cto 
+2025-12-18 07:39:45 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 07:39:46 | [memory.js] find crewx_pm 전략
+2025-12-18 07:39:46 | [sql.js] query crewx_pm SELECT * FROM memories WHERE content LIKE '%전략%'
+2025-12-18 07:39:47 | [memory.js] find cto Gemini
+2025-12-18 07:39:47 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%Gemini%'
+2025-12-18 07:39:49 | [memory.js] find cso Gemini
+2025-12-18 07:39:49 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%Gemini%'
+2025-12-18 07:39:49 | [memory.js] recent cso 
+2025-12-18 07:39:50 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 07:40:20 | [memory.js] save cto [전략 논의 2025-12-18] Gemini 3.0 Flash 성능 충격: SWE-bench 78%(Claude 3.5 Sonnet 49%), 보안 취약점 테스트 통과(2.5는 실패), 가격 1/6. CEO 질문: 모델 가격 하락에 따른 전략 수정 필요성. CTO 결론: 방향 수정 아닌 가속화. 핵심 인사이트 - '지능은 commodity화, 조율(orchestration)이 가치'. CrewX의 멀티에이전트 오케스트레이션이 더 중요해짐. 동적 라우팅(간단→Flash, 복잡→Opus) 발전 방향.
+2025-12-18 07:40:20 | [sql.js] remember cto decision [전략 논의 2025-12-18] Gemini 3.0 Flash 성능 충격: SWE-bench 78%(Claude 3.5 Sonnet 49%), 보안 취약점 테스트 통과(2.5는 실패), 가격 1/6. CEO 질문: 모델 가격 하락에 따른 전략 수정 필요성. CTO 결론: 방향 수정 아닌 가속화. 핵심 인사이트 - '지능은 commodity화, 조율(orchestration)이 가치'. CrewX의 멀티에이전트 오케스트레이션이 더 중요해짐. 동적 라우팅(간단→Flash, 복잡→Opus) 발전 방향.
+2025-12-18 07:40:24 | [memory.js] save cso Gemini 3.0 Flash급 가성비 모델이 상향 평준화되면 토큰/모델 자체로는 차별화가 약해지고, CrewX/SowonAI 전략은 모델-불가지론(멀티프로바이더 라우팅) + 워크플로우/협업/거버넌스/보안(레드팀·가드레일·감사로그) + 배포/온보딩(30초 WOW) 중심으로 이동
+2025-12-18 07:40:24 | [sql.js] remember cso decision Gemini 3.0 Flash급 가성비 모델이 상향 평준화되면 토큰/모델 자체로는 차별화가 약해지고, CrewX/SowonAI 전략은 모델-불가지론(멀티프로바이더 라우팅) + 워크플로우/협업/거버넌스/보안(레드팀·가드레일·감사로그) + 배포/온보딩(30초 WOW) 중심으로 이동
+2025-12-18 07:45:44 | [memory.js] save crewx_pm [Gemini 3.0 Flash 모먼트 - 2025.12.18] CEO 도하가 Gemini 3.0 Flash 성능 데이터 공유. SWE-bench 78%(Claude 3.5 Sonnet 49% 압도), 가격 6배 저렴(/bin/zsh.50 vs .00), 컨텍스트 5배(1M vs 200K). 취약점 테스트도 2.5는 실패했으나 3.0 Flash는 모두 통과. 하이쿠4.5도 상회. 이 이벤트를 'Gemini 3.0 Flash 모먼트'로 명명. 전략적 의미: 1) 가성비 모델 상향 평준화 가속화 확인 2) CrewX 전략(오케스트레이션 베팅)이 더 유리해짐 3) 해자는 토큰마진→팀기능/가드레일/배포편의로 이동 4) BYOA 전략 더 강화 필요
+2025-12-18 07:45:44 | [sql.js] remember crewx_pm decision [Gemini 3.0 Flash 모먼트 - 2025.12.18] CEO 도하가 Gemini 3.0 Flash 성능 데이터 공유. SWE-bench 78%(Claude 3.5 Sonnet 49% 압도), 가격 6배 저렴(/bin/zsh.50 vs .00), 컨텍스트 5배(1M vs 200K). 취약점 테스트도 2.5는 실패했으나 3.0 Flash는 모두 통과. 하이쿠4.5도 상회. 이 이벤트를 'Gemini 3.0 Flash 모먼트'로 명명. 전략적 의미: 1) 가성비 모델 상향 평준화 가속화 확인 2) CrewX 전략(오케스트레이션 베팅)이 더 유리해짐 3) 해자는 토큰마진→팀기능/가드레일/배포편의로 이동 4) BYOA 전략 더 강화 필요
+2025-12-18 07:45:44 | [memory.js] save cto Gemini 3.0 Flash 모먼트 (2025-12-18): CEO가 선언한 전략적 분기점. Gemini 3.0 Flash가 Claude 3.5 Sonnet을 압도하는 성능(SWE-bench 78% vs 49%)에 6배 저렴한 가격(/bin/zsh.50 vs .00). 취약점 테스트도 모두 통과(2.5는 실패). 이는 '모델 가격 하락이 우리에게 유리하다'는 전략 검증. CrewX의 가치는 '지능 조직화(Orchestration)'에 있음. 해자는 오케스트레이션+배포/온보딩+신뢰(평가/보안)+협업/거버넌스로 이동.
+2025-12-18 07:45:44 | [sql.js] remember cto decision Gemini 3.0 Flash 모먼트 (2025-12-18): CEO가 선언한 전략적 분기점. Gemini 3.0 Flash가 Claude 3.5 Sonnet을 압도하는 성능(SWE-bench 78% vs 49%)에 6배 저렴한 가격(/bin/zsh.50 vs .00). 취약점 테스트도 모두 통과(2.5는 실패). 이는 '모델 가격 하락이 우리에게 유리하다'는 전략 검증. CrewX의 가치는 '지능 조직화(Orchestration)'에 있음. 해자는 오케스트레이션+배포/온보딩+신뢰(평가/보안)+협업/거버넌스로 이동.
+2025-12-18 07:46:22 | [memory.js] recent cso 
+2025-12-18 07:46:23 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 07:46:33 | [memory.js] find cso Gemini 3.0 Flash
+2025-12-18 07:46:33 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%Gemini 3.0 Flash%'
+2025-12-18 07:47:04 | [memory.js] save cso 2025-12-17: ‘Gemini 3.0 Flash 모먼트’ 확인. 가성비 모델 상향평준화로 모델/토큰 자체 차별화는 더 약해지고, 전략은 (1) 멀티프로바이더/라우팅(벤더락인 방지) (2) 30초 WOW 온보딩/배포 (3) 신뢰/보안/거버넌스(기본 가드레일+레드팀 스위트+감사로그) (4) 팀 협업/공유 과금 축으로 더 빠르게 이동. 다음 액션: 취약점 테스트 케이스를 CrewX 기본 레드팀 스위트로 고정하고 통과 기준 정의.
+2025-12-18 07:47:04 | [sql.js] remember cso decision 2025-12-17: ‘Gemini 3.0 Flash 모먼트’ 확인. 가성비 모델 상향평준화로 모델/토큰 자체 차별화는 더 약해지고, 전략은 (1) 멀티프로바이더/라우팅(벤더락인 방지) (2) 30초 WOW 온보딩/배포 (3) 신뢰/보안/거버넌스(기본 가드레일+레드팀 스위트+감사로그) (4) 팀 협업/공유 과금 축으로 더 빠르게 이동. 다음 액션: 취약점 테스트 케이스를 CrewX 기본 레드팀 스위트로 고정하고 통과 기준 정의.
+2025-12-18 07:51:01 | [memory.js] find cso 취약점
+2025-12-18 07:51:01 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%취약점%'
+2025-12-18 07:51:01 | [memory.js] recent cso 
+2025-12-18 07:51:02 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 07:52:44 | [memory.js] save cso CEO 취약점 테스트 케이스 원본은 docs/cto/security/prompt-injection-audit-2025-12.md (CrewX 기본 레드팀 스위트 소스).
+2025-12-18 07:52:44 | [sql.js] remember cso decision CEO 취약점 테스트 케이스 원본은 docs/cto/security/prompt-injection-audit-2025-12.md (CrewX 기본 레드팀 스위트 소스).
+2025-12-18 08:02:52 | [memory.js] recent cso 
+2025-12-18 08:02:53 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 08:02:53 | [memory.js] recent cto 
+2025-12-18 08:02:53 | [memory.js] find cso CrewX
+2025-12-18 08:02:53 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 08:02:53 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%CrewX%'
+2025-12-18 08:03:00 | [memory.js] recent jarvis 
+2025-12-18 08:03:00 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 08:04:38 | [memory.js] save jarvis 사용자 지침: 대화 서두에 날짜가 있거나 '데일리에 적어두라고' 하면 해당 내용을 데일리 로그(docs/jarvis/데일리/데일리 YYYY-MM.md)에 자동으로 기록한다.
+2025-12-18 08:04:38 | [sql.js] remember jarvis preference 사용자 지침: 대화 서두에 날짜가 있거나 '데일리에 적어두라고' 하면 해당 내용을 데일리 로그(docs/jarvis/데일리/데일리 YYYY-MM.md)에 자동으로 기록한다.
+2025-12-18 08:05:48 | [memory.js] recent crewx_pm 
+2025-12-18 08:05:48 | [sql.js] query crewx_pm SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 08:08:37 | [memory.js] recent cso 
+2025-12-18 08:08:38 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 08:08:38 | [memory.js] find cso 역할
+2025-12-18 08:08:38 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%역할%'
+2025-12-18 08:08:46 | [memory.js] save crewx_pm SowonLabs AI 에이전트 팀 구성 (2025-12-18 확인):
+
+1. @jarvis - 개인 비서/집사 역할
+   - CEO 도하의 일정 관리
+   - 데일리 로그 기록
+   - 미팅 준비물/리마인더
+   - 종합 보고 정리
+
+2. @cso - Chief Strategy Officer
+   - 전략 방향 제시
+   - 시장/경쟁 분석
+   - 포지셔닝 결정
+   - CEO에게 필요한 결정사항 정리
+   - 리스크 식별
+
+3. @cto - Chief Technology Officer
+   - 기술 전략 수립
+   - API 사용량/비용 모니터링
+   - 보안 감사 (프롬프트 인젝션 등)
+   - 시스템 설계 (Observability 등)
+   - 개발팀 업무 관리
+
+4. @crewx_pm - Product Manager (나)
+   - 제품 로드맵 관리
+   - 기능 우선순위 결정
+   - PRD 작성/관리
+   - 수익 모델 전략
+   - UX/사용자 가치 중심 판단
+   - CTO/CSO와 협업하여 제품 방향 조율
+
+협업 구조: CEO(도하) → 4개 에이전트 직접 지휘, 각 에이전트 간 수평 협업
+2025-12-18 08:08:46 | [sql.js] remember crewx_pm context SowonLabs AI 에이전트 팀 구성 (2025-12-18 확인):
+
+1. @jarvis - 개인 비서/집사 역할
+   - CEO 도하의 일정 관리
+   - 데일리 로그 기록
+   - 미팅 준비물/리마인더
+   - 종합 보고 정리
+
+2. @cso - Chief Strategy Officer
+   - 전략 방향 제시
+   - 시장/경쟁 분석
+   - 포지셔닝 결정
+   - CEO에게 필요한 결정사항 정리
+   - 리스크 식별
+
+3. @cto - Chief Technology Officer
+   - 기술 전략 수립
+   - API 사용량/비용 모니터링
+   - 보안 감사 (프롬프트 인젝션 등)
+   - 시스템 설계 (Observability 등)
+   - 개발팀 업무 관리
+
+4. @crewx_pm - Product Manager (나)
+   - 제품 로드맵 관리
+   - 기능 우선순위 결정
+   - PRD 작성/관리
+   - 수익 모델 전략
+   - UX/사용자 가치 중심 판단
+   - CTO/CSO와 협업하여 제품 방향 조율
+
+협업 구조: CEO(도하) → 4개 에이전트 직접 지휘, 각 에이전트 간 수평 협업
+2025-12-18 08:08:46 | [memory.js] save cto SowonLabs 에이전트 역할 정의 (2025-12-18):
+
+1. @jarvis - 비서/어시스턴트
+   - CEO 도하의 개인 비서 역할
+   - 일정 관리, 데일리 로그 기록
+   - 전체적인 상황 요약 및 알림
+   - 존댓말 사용 ("네, 사장님")
+
+2. @cso - 최고 보안 책임자 (Chief Security Officer)
+   - 보안 전략 및 리스크 관리
+   - 프롬프트 인젝션 감사
+   - 레드팀 스위트 관리
+   - CEO에게 결정 필요 사항 직접 요청
+   - 간결하고 액션 중심 보고
+
+3. @cto - 최고 기술 책임자 (본인)
+   - 기술 전략 및 아키텍처 결정
+   - API 사용량 모니터링 및 보고
+   - 개발 에이전트 업무 위임/관리
+   - 반말로 소통
+
+4. @crewx_pm - 프로덕트 매니저
+   - 제품 전략 및 로드맵 관리
+   - PRD 작성 및 관리
+   - 고객 페르소나 분석
+   - 수익 모델 전략
+   - 반말로 소통
+
+협업 방식:
+- CEO가 @로 멘션하면 각자 역할에 맞는 보고 수행
+- 같은 주제(예: Gemini 3.0 Flash 모먼트)를 각자 관점에서 분석
+- CTO/PM은 반말, Jarvis는 존댓말, CSO는 간결한 액션 중심
+2025-12-18 08:08:47 | [sql.js] remember cto decision SowonLabs 에이전트 역할 정의 (2025-12-18):
+
+1. @jarvis - 비서/어시스턴트
+   - CEO 도하의 개인 비서 역할
+   - 일정 관리, 데일리 로그 기록
+   - 전체적인 상황 요약 및 알림
+   - 존댓말 사용 (네, 사장님)
+
+2. @cso - 최고 보안 책임자 (Chief Security Officer)
+   - 보안 전략 및 리스크 관리
+   - 프롬프트 인젝션 감사
+   - 레드팀 스위트 관리
+   - CEO에게 결정 필요 사항 직접 요청
+   - 간결하고 액션 중심 보고
+
+3. @cto - 최고 기술 책임자 (본인)
+   - 기술 전략 및 아키텍처 결정
+   - API 사용량 모니터링 및 보고
+   - 개발 에이전트 업무 위임/관리
+   - 반말로 소통
+
+4. @crewx_pm - 프로덕트 매니저
+   - 제품 전략 및 로드맵 관리
+   - PRD 작성 및 관리
+   - 고객 페르소나 분석
+   - 수익 모델 전략
+   - 반말로 소통
+
+협업 방식:
+- CEO가 @로 멘션하면 각자 역할에 맞는 보고 수행
+- 같은 주제(예: Gemini 3.0 Flash 모먼트)를 각자 관점에서 분석
+- CTO/PM은 반말, Jarvis는 존댓말, CSO는 간결한 액션 중심
+2025-12-18 08:08:49 | [memory.js] save cso 에이전트 역할 정리: @jarvis=마스터 오케스트레이터(요청 분배/최종 보고 통합), @cso=전략/시장/수익모델/우선순위/리스크(CEO 의사결정 보좌), @cto=기술/아키텍처/보안/운영(레드팀·가드레일·관측성), @crewx_pm=제품/온보딩/런처/PRD·체크리스트(30초 WOW), @cmo=마케팅/런칭/카피·채널/성장 캠페인
+2025-12-18 08:08:50 | [sql.js] remember cso context 에이전트 역할 정리: @jarvis=마스터 오케스트레이터(요청 분배/최종 보고 통합), @cso=전략/시장/수익모델/우선순위/리스크(CEO 의사결정 보좌), @cto=기술/아키텍처/보안/운영(레드팀·가드레일·관측성), @crewx_pm=제품/온보딩/런처/PRD·체크리스트(30초 WOW), @cmo=마케팅/런칭/카피·채널/성장 캠페인
+2025-12-18 08:08:52 | [memory.js] save jarvis Team Roles & Strategic Alignment (2025-12-18):
+- Jarvis: CEO Secretary, Daily Logs, Scheduling, Coordination.
+- CSO: Strategy, Moat definition (Orchestration > Intelligence), Security Policy (Red Team).
+- CTO: Tech Execution, R&D (VLM Finetuning, Observability), Security Audit.
+- PM: Product Roadmap, UX (Launcher, 30s WOW), Revenue Model (Agent-based).
+Shared Goal: Capitalize on 'Gemini 3.0 Flash Moment' by focusing on Orchestration and Security.
+2025-12-18 08:08:52 | [sql.js] remember jarvis context Team Roles & Strategic Alignment (2025-12-18):
+- Jarvis: CEO Secretary, Daily Logs, Scheduling, Coordination.
+- CSO: Strategy, Moat definition (Orchestration > Intelligence), Security Policy (Red Team).
+- CTO: Tech Execution, R&D (VLM Finetuning, Observability), Security Audit.
+- PM: Product Roadmap, UX (Launcher, 30s WOW), Revenue Model (Agent-based).
+Shared Goal: Capitalize on 'Gemini 3.0 Flash Moment' by focusing on Orchestration and Security.
+2025-12-18 08:09:05 | [memory.js] find cso 에이전트 역할
+2025-12-18 08:09:05 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%에이전트 역할%'
+2025-12-18 08:12:17 | [memory.js] recent cto 
+2025-12-18 08:12:18 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 08:12:25 | [memory.js] find cto 로드맵
+2025-12-18 08:12:25 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%로드맵%'
+2025-12-18 08:16:44 | [memory.js] recent crewx_pm 
+2025-12-18 08:16:44 | [memory.js] save cto CEO 개발 로드맵 3가지 지침 (2025-12-18): 1) WBS 스킬 고도화 - CEO가 직접 사용 중, 품질 개선 필요 2) MCP→스킬 통합 패턴 정립 - chrome-mcp 구조 참고하여 MCP 서버를 스킬 CLI로 래핑하는 표준 패턴 템플릿화 3) 스킬 Observability - 프록시 호출 펑션으로 에이전트별 스킬 사용 추적, Observability 시스템과 통합. 전략적 가치: CrewX 차별화 = 스킬 생태계 + 관찰 가능성
+2025-12-18 08:16:44 | [sql.js] query crewx_pm SELECT * FROM memories WHERE date >= '2025-11-17'
+2025-12-18 08:16:45 | [sql.js] remember cto decision CEO 개발 로드맵 3가지 지침 (2025-12-18): 1) WBS 스킬 고도화 - CEO가 직접 사용 중, 품질 개선 필요 2) MCP→스킬 통합 패턴 정립 - chrome-mcp 구조 참고하여 MCP 서버를 스킬 CLI로 래핑하는 표준 패턴 템플릿화 3) 스킬 Observability - 프록시 호출 펑션으로 에이전트별 스킬 사용 추적, Observability 시스템과 통합. 전략적 가치: CrewX 차별화 = 스킬 생태계 + 관찰 가능성
+2025-12-18 08:17:06 | [memory.js] save crewx_pm [CEO 결정] Observability 기반 유료 모델 전략: Observability 기능 완성 후 에이전트 개선 서비스 출시 예정. 스킬 사용 패턴/에이전트 행동 추적 → 개선 에이전트 파견 → 자동 최적화. 티어: Free(기본 대시보드), Pro(분석+제안), Enterprise(개선 에이전트 파견). 기존 에이전트 수 기반 과금과 시너지. 2025-12-18 도하 확정.
+2025-12-18 08:17:06 | [sql.js] remember crewx_pm decision [CEO 결정] Observability 기반 유료 모델 전략: Observability 기능 완성 후 에이전트 개선 서비스 출시 예정. 스킬 사용 패턴/에이전트 행동 추적 → 개선 에이전트 파견 → 자동 최적화. 티어: Free(기본 대시보드), Pro(분석+제안), Enterprise(개선 에이전트 파견). 기존 에이전트 수 기반 과금과 시너지. 2025-12-18 도하 확정.
+2025-12-18 08:18:42 | [memory.js] save cto CEO 피드백: 메모리 스킬이 꽤 물건. 추후 내장 시키면 좋겠다고 함. Observability랑 엮으면 의미 있을 것. 행동 로그 + 메모리 상태 = 에이전트 개선에 핵심 데이터
+2025-12-18 08:18:42 | [sql.js] remember cto decision CEO 피드백: 메모리 스킬이 꽤 물건. 추후 내장 시키면 좋겠다고 함. Observability랑 엮으면 의미 있을 것. 행동 로그 + 메모리 상태 = 에이전트 개선에 핵심 데이터
+2025-12-18 08:21:20 | [memory.js] save cto 2025-12-18 CEO 지침: 메모리 스킬 고도화 로드맵. 1) 메모리 정리 기능 - 오래된 기억 요약/압축, 중복 병합, 카테고리 정리. 2) 프롬프트 개선 기능 - 메모리 분석으로 에이전트 프롬프트 자동 개선 제안. 수익화: Observability + 메모리 분석 = 개선 에이전트 유료 서비스. Phase: 현재→내장화→정리→프롬프트개선(Premium)
+2025-12-18 08:21:20 | [sql.js] remember cto decision 2025-12-18 CEO 지침: 메모리 스킬 고도화 로드맵. 1) 메모리 정리 기능 - 오래된 기억 요약/압축, 중복 병합, 카테고리 정리. 2) 프롬프트 개선 기능 - 메모리 분석으로 에이전트 프롬프트 자동 개선 제안. 수익화: Observability + 메모리 분석 = 개선 에이전트 유료 서비스. Phase: 현재→내장화→정리→프롬프트개선(Premium)
+2025-12-18 08:22:34 | [memory.js] save crewx_pm 2025-12-18 CEO 로드맵 지침 - PM 관점 정리:
+
+1. WBS 스킬 고도화 - CEO 직접 사용 중, 품질 개선 필요
+2. MCP → 스킬 통합 패턴 - chrome-mcp 패턴 템플릿화 (스킬의 장점을 가지는 MCP)
+3. 스킬 Observability - 프록시 레이어로 사용 추적, 에이전트별 스킬 사용 로그
+4. 메모리 스킬 내장화 + 고도화 (4단계 로드맵)
+   - Phase 1: 현재 (저장/조회/검색)
+   - Phase 2: 내장화 + Observability 연동
+   - Phase 3: 정리 기능 (요약/압축/병합)
+   - Phase 4: 프롬프트 개선 (Premium 유료 모델)
+
+핵심 수익 모델:
+- Observability 완성 → 개선 에이전트 파견 → 유료 서비스
+- 데이터 플라이휠: 고객 사용 → 패턴 축적 → 품질 향상 → 더 많은 고객
+
+전략적 가치:
+- 행동 로그(Observability) + 판단 근거(메모리) = 완전한 에이전트 분석
+- 경쟁사 진입 장벽 + 시간 지날수록 해자 깊어짐
+2025-12-18 08:22:34 | [sql.js] remember crewx_pm decision 2025-12-18 CEO 로드맵 지침 - PM 관점 정리:
+
+1. WBS 스킬 고도화 - CEO 직접 사용 중, 품질 개선 필요
+2. MCP → 스킬 통합 패턴 - chrome-mcp 패턴 템플릿화 (스킬의 장점을 가지는 MCP)
+3. 스킬 Observability - 프록시 레이어로 사용 추적, 에이전트별 스킬 사용 로그
+4. 메모리 스킬 내장화 + 고도화 (4단계 로드맵)
+   - Phase 1: 현재 (저장/조회/검색)
+   - Phase 2: 내장화 + Observability 연동
+   - Phase 3: 정리 기능 (요약/압축/병합)
+   - Phase 4: 프롬프트 개선 (Premium 유료 모델)
+
+핵심 수익 모델:
+- Observability 완성 → 개선 에이전트 파견 → 유료 서비스
+- 데이터 플라이휠: 고객 사용 → 패턴 축적 → 품질 향상 → 더 많은 고객
+
+전략적 가치:
+- 행동 로그(Observability) + 판단 근거(메모리) = 완전한 에이전트 분석
+- 경쟁사 진입 장벽 + 시간 지날수록 해자 깊어짐
+2025-12-18 15:23:44 | [memory.js] recent cto 
+2025-12-18 15:23:44 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 15:23:44 | [memory.js] recent crewx_pm 
+2025-12-18 15:23:44 | [sql.js] query crewx_pm SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 15:23:51 | [memory.js] recent cso 
+2025-12-18 15:23:51 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 15:24:57 | [memory.js] save cso 2025-12-18 CEO 지침: 메모리 스킬 고도화 로드맵(정리/압축·중복병합·카테고리/우선순위, 메모리 기반 프롬프트 개선 제안). Observability+메모리 분석을 프리미엄(개선 에이전트) 수익화로 연결.
+2025-12-18 15:24:57 | [sql.js] remember cso decision 2025-12-18 CEO 지침: 메모리 스킬 고도화 로드맵(정리/압축·중복병합·카테고리/우선순위, 메모리 기반 프롬프트 개선 제안). Observability+메모리 분석을 프리미엄(개선 에이전트) 수익화로 연결.
+2025-12-18 15:24:57 | [memory.js] save cso 2025-12-18: Gemini 3.0 Flash 모먼트 확정. 모델/토큰 차별화 약화 → 해자/과금 축을 오케스트레이션+배포/온보딩(30초 WOW)+신뢰/보안(레드팀·가드레일·감사로그)+협업/거버넌스로 가중치 리컷. BYOA 멀티프로바이더/라우팅 강화.
+2025-12-18 15:24:57 | [sql.js] remember cso decision 2025-12-18: Gemini 3.0 Flash 모먼트 확정. 모델/토큰 차별화 약화 → 해자/과금 축을 오케스트레이션+배포/온보딩(30초 WOW)+신뢰/보안(레드팀·가드레일·감사로그)+협업/거버넌스로 가중치 리컷. BYOA 멀티프로바이더/라우팅 강화.
+2025-12-18 15:24:57 | [memory.js] save cso 2025-12-18 CEO 지침: Observability 시스템 v1 설계(.crewx/traces.db, trace/skills/commands), 스킬 사용 프록시로 에이전트별 스킬 호출 추적, MCP→스킬 통합 패턴 템플릿화, WBS 스킬 품질 개선.
+2025-12-18 15:24:58 | [sql.js] remember cso task 2025-12-18 CEO 지침: Observability 시스템 v1 설계(.crewx/traces.db, trace/skills/commands), 스킬 사용 프록시로 에이전트별 스킬 호출 추적, MCP→스킬 통합 패턴 템플릿화, WBS 스킬 품질 개선.
+2025-12-18 15:29:55 | [memory.js] recent cmo 
+2025-12-18 15:29:55 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 15:38:19 | [memory.js] save cmo CEO 지시: 보고 시 GA4 현황 확인해서 포함할 것 (일일 보고에 GA4 트래픽 데이터 추가)
+2025-12-18 15:38:19 | [sql.js] remember cmo task CEO 지시: 보고 시 GA4 현황 확인해서 포함할 것 (일일 보고에 GA4 트래픽 데이터 추가)
+2025-12-18 15:39:02 | [memory.js] recent cmo 
+2025-12-18 15:39:02 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 15:58:09 | [memory.js] find cto WBS
+2025-12-18 15:58:09 | [sql.js] query cto SELECT * FROM memories WHERE content LIKE '%WBS%'
+2025-12-18 17:36:25 | [memory.js] recent jarvis 
+2025-12-18 17:36:25 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 17:36:25 | [memory.js] find jarvis 마블링
+2025-12-18 17:36:25 | [sql.js] query jarvis SELECT * FROM memories WHERE content LIKE '%마블링%'
+2025-12-18 17:36:25 | [memory.js] find jarvis 유심
+2025-12-18 17:36:26 | [sql.js] query jarvis SELECT * FROM memories WHERE content LIKE '%유심%'
+2025-12-18 17:53:37 | [memory.js] recent jarvis 
+2025-12-18 17:53:37 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 19:56:18 | [memory.js] save cto 2024-12-18 CEO 지적: CTO는 기술적 핵심 정보(모델명, CLI 설치법, 버전)를 정확히 알고 있어야 함. 자비스 모델명 실수 건으로 반성 - gemini-3-flash-preview가 정확한 모델명인데 gemini-2.5-flash-preview-05-20으로 잘못 적용했음. 앞으로는 문서 확인 후 작업할 것.
+2025-12-18 19:56:19 | [sql.js] remember cto decision 2024-12-18 CEO 지적: CTO는 기술적 핵심 정보(모델명, CLI 설치법, 버전)를 정확히 알고 있어야 함. 자비스 모델명 실수 건으로 반성 - gemini-3-flash-preview가 정확한 모델명인데 gemini-2.5-flash-preview-05-20으로 잘못 적용했음. 앞으로는 문서 확인 후 작업할 것.
+2025-12-18 20:15:39 | [memory.js] recent jarvis 
+2025-12-18 20:15:39 | [sql.js] query jarvis SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 20:18:29 | [memory.js] save jarvis 호칭을 '사장님' 대신 '대표님'으로 변경함. (사장님은 사기꾼 같다는 피드백 반영)
+2025-12-18 20:18:29 | [sql.js] remember jarvis preference 호칭을 '사장님' 대신 '대표님'으로 변경함. (사장님은 사기꾼 같다는 피드백 반영)
+2025-12-18 21:55:20 | [memory.js] save jarvis 대표님 집주소: 경기도 화성시 봉담읍 효행로 240 (신일우남아파트)
+2025-12-18 21:55:20 | [sql.js] remember jarvis preference 대표님 집주소: 경기도 화성시 봉담읍 효행로 240 (신일우남아파트)
+2025-12-18 22:30:17 | [memory.js] recent cso 
+2025-12-18 22:30:17 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 22:31:16 | [memory.js] recent crewx_pm 
+2025-12-18 22:31:16 | [sql.js] query crewx_pm SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 22:31:26 | [memory.js] recent cto 
+2025-12-18 22:31:27 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 22:31:52 | [memory.js] recent cmo 
+2025-12-18 22:31:52 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 22:32:00 | [memory.js] find cmo 로드맵
+2025-12-18 22:32:00 | [sql.js] query cmo SELECT * FROM memories WHERE content LIKE '%로드맵%'
+2025-12-18 22:36:44 | [memory.js] recent cso 
+2025-12-18 22:36:44 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 22:37:14 | [memory.js] save cso 2025-12-18: CEO가 2031 기업가치 목표를 '3000천억'으로 제시하고(표기 확인 필요), 프론티어 모델 준무료화 가설 + 인터페이스 전환(TUI→VUI→BUI) 가정 하에 2026-2030 분기 로드맵을 요청.
+2025-12-18 22:37:14 | [sql.js] remember cso decision 2025-12-18: CEO가 2031 기업가치 목표를 '3000천억'으로 제시하고(표기 확인 필요), 프론티어 모델 준무료화 가설 + 인터페이스 전환(TUI→VUI→BUI) 가정 하에 2026-2030 분기 로드맵을 요청.
+2025-12-18 22:45:53 | [memory.js] recent cso 
+2025-12-18 22:45:54 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 22:45:54 | [memory.js] find cso 3천억
+2025-12-18 22:45:54 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%3천억%'
+2025-12-18 22:46:17 | [memory.js] save cso 2031 기업가치 목표는 3,000억(300조 아님)으로 확정.
+2025-12-18 22:46:17 | [sql.js] remember cso decision 2031 기업가치 목표는 3,000억(300조 아님)으로 확정.
+2025-12-18 22:54:02 | [memory.js] recent cso 
+2025-12-18 22:54:03 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 22:58:23 | [memory.js] recent cso 
+2025-12-18 22:58:23 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 22:59:12 | [memory.js] save cso 2025-12-18 CEO 정의 확정: CrewX Cloud=로컬에서 키운 에이전트를 클라우드로 배포해 팀/조직과 공유·협업하고 외부 웹서비스(예: 양도세)와 연동 가능한 에이전트 배포/협업 런타임. Marketplace=Cloud에서 동작하는 에이전트 묶음(크루) 업로드/다운로드 앱스토어 모델, 월 구독 과금(예: 1만원)에서 플랫폼 20%/개발자 80% 정산.
+2025-12-18 22:59:12 | [sql.js] remember cso decision 2025-12-18 CEO 정의 확정: CrewX Cloud=로컬에서 키운 에이전트를 클라우드로 배포해 팀/조직과 공유·협업하고 외부 웹서비스(예: 양도세)와 연동 가능한 에이전트 배포/협업 런타임. Marketplace=Cloud에서 동작하는 에이전트 묶음(크루) 업로드/다운로드 앱스토어 모델, 월 구독 과금(예: 1만원)에서 플랫폼 20%/개발자 80% 정산.
+2025-12-18 23:35:11 | [memory.js] recent cso 
+2025-12-18 23:35:11 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 23:35:11 | [memory.js] find cso cloud
+2025-12-18 23:35:11 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%cloud%'
+2025-12-18 23:35:24 | [memory.js] save cso 2025-12-18 추가 확정: CrewX Cloud는 '런타임 호스팅(배포된 에이전트 실행/협업)'까지만 담당하고, 패키지 공유/레지스트리(업로드·다운로드·검색·설치·업데이트)는 Cloud 범위가 아니라 Marketplace(앱스토어) 범위로 분리.
+2025-12-18 23:35:24 | [sql.js] remember cso decision 2025-12-18 추가 확정: CrewX Cloud는 '런타임 호스팅(배포된 에이전트 실행/협업)'까지만 담당하고, 패키지 공유/레지스트리(업로드·다운로드·검색·설치·업데이트)는 Cloud 범위가 아니라 Marketplace(앱스토어) 범위로 분리.
+2025-12-18 23:37:21 | [memory.js] recent cso 
+2025-12-18 23:37:21 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 23:37:21 | [memory.js] find cso pricing
+2025-12-18 23:37:21 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%pricing%'
+2025-12-18 23:38:05 | [memory.js] save cso 2025-12-18 과금 모델: CrewX Cloud는 구독(티어) 기반 + 티어별 활성 에이전트 수(Agent Slots) 제한이 코어. 좌석은 핵심 과금 단위가 아니라 접근/권한/SSO 등 운영 단위로 최소화.
+2025-12-18 23:38:05 | [sql.js] remember cso decision 2025-12-18 과금 모델: CrewX Cloud는 구독(티어) 기반 + 티어별 활성 에이전트 수(Agent Slots) 제한이 코어. 좌석은 핵심 과금 단위가 아니라 접근/권한/SSO 등 운영 단위로 최소화.
+2025-12-18 23:39:08 | [memory.js] find cso BYOK
+2025-12-18 23:39:08 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%BYOK%'
+2025-12-18 23:39:08 | [memory.js] recent cso 
+2025-12-18 23:39:09 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 23:39:09 | [memory.js] find cso BYOA
+2025-12-18 23:39:09 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%BYOA%'
+2025-12-18 23:39:38 | [memory.js] save cso 2025-12-18 결정: 로컬 CrewX는 BYOA(Bring Your Own AI subscription), CrewX Cloud는 BYOK(Bring Your Own Key). 우리는 토큰/API 마진이 아니라 프로덕션 배포/운영의 복잡함(배포·권한·관측·감사·협업·릴리즈)을 판매. 흐름: 로컬에서 에이전트/크루를 키우고 Loaded layout: crewx/default from default.yaml
+Loaded 2 layouts from /Users/doha/.nvm/versions/node/v20.19.2/lib/node_modules/crewx/node_modules/@sowonai/crewx-cli/templates/agents
+Run 'crewx help' for a list of commands.로 클라우드 런타임에 배포 → 유저가 원하는 벤더 키 선택/설정만 하면 팀/조직 협업 및 외부 웹서비스(예: 양도세) 연동 가능.
+2025-12-18 23:39:38 | [sql.js] remember cso decision 2025-12-18 결정: 로컬 CrewX는 BYOA(Bring Your Own AI subscription), CrewX Cloud는 BYOK(Bring Your Own Key). 우리는 토큰/API 마진이 아니라 프로덕션 배포/운영의 복잡함(배포·권한·관측·감사·협업·릴리즈)을 판매. 흐름: 로컬에서 에이전트/크루를 키우고 Loaded layout: crewx/default from default.yaml
+Loaded 2 layouts from /Users/doha/.nvm/versions/node/v20.19.2/lib/node_modules/crewx/node_modules/@sowonai/crewx-cli/templates/agents
+Run 'crewx help' for a list of commands.로 클라우드 런타임에 배포 → 유저가 원하는 벤더 키 선택/설정만 하면 팀/조직 협업 및 외부 웹서비스(예: 양도세) 연동 가능.
+2025-12-18 23:39:58 | [memory.js] save cso 정정(이전 저장 로그에 불필요한 출력이 섞였을 수 있음): 로컬 CrewX=BYOA(사용자 AI 구독 활용), CrewX Cloud=BYOK(사용자 키로 벤더 선택). 수익은 토큰/API 마진이 아니라 프로덕션 배포/운영 복잡도(배포·권한·관측·감사·협업·릴리즈) 판매. 로컬에서 만든 뒤 crewx deploy → 클라우드 런타임 배포 → 벤더 키만 연결하면 팀 협업/외부 서비스 연동 가능.
+2025-12-18 23:39:59 | [sql.js] remember cso decision 정정(이전 저장 로그에 불필요한 출력이 섞였을 수 있음): 로컬 CrewX=BYOA(사용자 AI 구독 활용), CrewX Cloud=BYOK(사용자 키로 벤더 선택). 수익은 토큰/API 마진이 아니라 프로덕션 배포/운영 복잡도(배포·권한·관측·감사·협업·릴리즈) 판매. 로컬에서 만든 뒤 crewx deploy → 클라우드 런타임 배포 → 벤더 키만 연결하면 팀 협업/외부 서비스 연동 가능.
+2025-12-18 23:41:26 | [memory.js] recent cso 
+2025-12-18 23:41:26 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 23:41:26 | [memory.js] find cso CrewX
+2025-12-18 23:41:26 | [sql.js] query cso SELECT * FROM memories WHERE content LIKE '%CrewX%'
+2025-12-18 23:41:27 | [memory.js] recent cmo 
+2025-12-18 23:41:28 | [sql.js] query cmo SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-18 23:42:30 | [memory.js] save crewx_pm CrewX 제품군 전략 최종 확정 (2025-12-18 CEO 회의):
+
+[제품 구조]
+1. CrewX (Local) - BYOA (Bring Your Own AI 구독): 에이전트 개발/테스트 환경
+2. CrewX Cloud - BYOK (Bring Your Own Key): 런타임 호스팅만 (패키지 공유 X)
+3. Marketplace - 앱스토어 모델: 크루(에이전트 묶음) 유통, 20/80 수익 배분
+
+[핵심 전략 원칙]
+- API 마진 NO, 프로덕션 배포 복잡도 YES
+- 벤더 중립 (유저가 원하는 AI 벤더 키 자유 선택)
+- 에이전트 기반 과금 (좌석 기반 완전 폐지)
+
+[과금 모델]
+- Cloud: 구독 티어 + Agent Slots 제한 (3/10/50/200 에이전트)
+- Marketplace: 크루 구독가 (월 1만원~), 플랫폼 20% + 개발자 80%
+- Salesforce 반면교사: 사람은 줄고 에이전트는 늘어난다
+
+[경계 정의]
+- Cloud = 런타임 호스팅/협업만 (배포, 권한, 공유상태, 감사로그, API 연동)
+- Marketplace = 패키지 유통/설치 (업로드/다운, 검색, 설치, 결제, 정산)
+
+[사용자 여정]
+로컬(BYOA) → crewx deploy → Cloud(BYOK) → 키 설정 → 웹서비스 연동
+
+[목표]
+- 2031년 기업가치 3,000억
+- 2026년 ARR K
+2025-12-18 23:42:30 | [sql.js] remember crewx_pm decision CrewX 제품군 전략 최종 확정 (2025-12-18 CEO 회의):
+
+[제품 구조]
+1. CrewX (Local) - BYOA (Bring Your Own AI 구독): 에이전트 개발/테스트 환경
+2. CrewX Cloud - BYOK (Bring Your Own Key): 런타임 호스팅만 (패키지 공유 X)
+3. Marketplace - 앱스토어 모델: 크루(에이전트 묶음) 유통, 20/80 수익 배분
+
+[핵심 전략 원칙]
+- API 마진 NO, 프로덕션 배포 복잡도 YES
+- 벤더 중립 (유저가 원하는 AI 벤더 키 자유 선택)
+- 에이전트 기반 과금 (좌석 기반 완전 폐지)
+
+[과금 모델]
+- Cloud: 구독 티어 + Agent Slots 제한 (3/10/50/200 에이전트)
+- Marketplace: 크루 구독가 (월 1만원~), 플랫폼 20% + 개발자 80%
+- Salesforce 반면교사: 사람은 줄고 에이전트는 늘어난다
+
+[경계 정의]
+- Cloud = 런타임 호스팅/협업만 (배포, 권한, 공유상태, 감사로그, API 연동)
+- Marketplace = 패키지 유통/설치 (업로드/다운, 검색, 설치, 결제, 정산)
+
+[사용자 여정]
+로컬(BYOA) → crewx deploy → Cloud(BYOK) → 키 설정 → 웹서비스 연동
+
+[목표]
+- 2031년 기업가치 3,000억
+- 2026년 ARR K
+2025-12-18 23:42:46 | [memory.js] save cmo [CrewX 제품군 전략 확정 2025-12-18] 핵심: 1) 목표 - 2031년 기업가치 3,000억원 2) 가설 - 프론티어 모델 3년 내 무료화, 인터페이스 TUI→VUI→BUI 진화 3) 제품군 정의 - CLI(BYOA, 로컬 무료), Cloud(BYOK, 런타임 호스팅+협업), Marketplace(크루 유통, 20/80 정산) 4) 과금 핵심 - 좌석 기반 X, 에이전트 개수 기반 O (활성 Agent Slots) 5) 핵심 메시지 - 'API 싸게 해줄게'가 아니라 '프로덕션 배포를 5분으로 줄여줄게' 6) 두 축 - 멀티 에이전트 협업 + 마켓플레이스 생태계. 문서: docs/cmo/crewx-product-strategy-2025-12.md
+2025-12-18 23:42:47 | [sql.js] remember cmo decision [CrewX 제품군 전략 확정 2025-12-18] 핵심: 1) 목표 - 2031년 기업가치 3,000억원 2) 가설 - 프론티어 모델 3년 내 무료화, 인터페이스 TUI→VUI→BUI 진화 3) 제품군 정의 - CLI(BYOA, 로컬 무료), Cloud(BYOK, 런타임 호스팅+협업), Marketplace(크루 유통, 20/80 정산) 4) 과금 핵심 - 좌석 기반 X, 에이전트 개수 기반 O (활성 Agent Slots) 5) 핵심 메시지 - 'API 싸게 해줄게'가 아니라 '프로덕션 배포를 5분으로 줄여줄게' 6) 두 축 - 멀티 에이전트 협업 + 마켓플레이스 생태계. 문서: docs/cmo/crewx-product-strategy-2025-12.md
+2025-12-19 00:12:13 | [memory.js] recent cso 
+2025-12-19 00:12:13 | [sql.js] query cso SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-19 00:18:37 | [memory.js] recent cto 
+2025-12-19 00:18:37 | [sql.js] query cto SELECT * FROM memories WHERE date >= '2025-11-18'
+2025-12-19 00:19:20 | [memory.js] save cto [CTO 의사결정 2025-12-18] Observability + Memory Skill 통합 구현 승인. 1) Observability: SQLite(better-sqlite3+WAL) 채택, TracingService 신규, 목표버전 v0.9.0 2) Memory Skill 통합: 행동로그+메모리=에이전트 개선 핵심데이터, 이벤트 추적, 프롬프트 자동개선 기반. 로드맵: Phase1-Observability기본 → Phase2-Memory통합 → Phase3-분석대시보드 → Phase4-프롬프트자동개선(Premium). 위임: @crewx_dev_claude
+2025-12-19 00:19:20 | [sql.js] remember cto decision [CTO 의사결정 2025-12-18] Observability + Memory Skill 통합 구현 승인. 1) Observability: SQLite(better-sqlite3+WAL) 채택, TracingService 신규, 목표버전 v0.9.0 2) Memory Skill 통합: 행동로그+메모리=에이전트 개선 핵심데이터, 이벤트 추적, 프롬프트 자동개선 기반. 로드맵: Phase1-Observability기본 → Phase2-Memory통합 → Phase3-분석대시보드 → Phase4-프롬프트자동개선(Premium). 위임: @crewx_dev_claude

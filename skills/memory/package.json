@@ -1,0 +1,12 @@
+{
+  "name": "crewx-memory-skill",
+  "version": "0.2.0",
+  "description": "Memory skill for CrewX agents with SQL query support",
+  "main": "memory.js",
+  "scripts": {
+    "test": "node memory.js"
+  },
+  "dependencies": {
+    "alasql": "^4.6.2"
+  }
+}
