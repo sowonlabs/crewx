@@ -140,6 +140,69 @@ export class CrewXTool implements OnModuleInit {
   }
 
   /**
+   * Get the rendered system prompt for an agent
+   * Used by CLI 'crewx agent prompt' command to debug agent context
+   */
+  async getRenderedAgentPrompt(agentId: string, mockInput?: string): Promise<string> {
+    // 1. Load Agent
+    const agents = await this.agentLoaderService.getAllAgents();
+    const agent = agents.find((a) => a.id === agentId);
+
+    if (!agent) {
+      throw new Error(`Agent '${agentId}' not found.`);
+    }
+
+    // 2. Prepare Context (consistent with queryAgent/executeAgent)
+    const securityKey = this.generateSecurityKey();
+
+    // Load documents for template context
+    const documents: Record<string, { content: string; toc: string; summary: string }> = {};
+    if (this.documentLoaderService.isInitialized()) {
+      const docNames = this.documentLoaderService.getDocumentNames();
+      for (const docName of docNames) {
+        const content = await this.documentLoaderService.getDocumentContent(docName);
+        const toc = await this.documentLoaderService.getDocumentToc(docName);
+        const summary = await this.documentLoaderService.getDocumentSummary(docName);
+        documents[docName] = {
+          content: content || '',
+          toc: toc || '',
+          summary: summary || '',
+        };
+      }
+    }
+
+    const templateContext: RenderContext = {
+      user_input: mockInput || 'Sample input for prompt preview',
+      messages: [],
+      agent: {
+        id: agent.id,
+        name: agent.name || agent.id,
+        provider: (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude',
+        model: agent.inline?.model,
+        workingDirectory: agent.workingDirectory || './',
+        inline: {
+          prompt: agent.inline?.prompt || agent.inline?.system_prompt || agent.systemPrompt || '',
+        },
+        specialties: agent.specialties,
+        capabilities: agent.capabilities,
+        description: agent.description,
+      },
+      documents: documents as any,
+      vars: {
+        security_key: securityKey,
+      },
+      props: {},
+      mode: 'query',
+      platform: 'cli',
+      env: process.env as Record<string, string>,
+      tools: this.buildToolsContext(),
+    };
+
+    // 3. Process Prompt
+    return this.processAgentSystemPrompt(agent, templateContext);
+  }
+
+  /**
    * Process agent system prompt using SDK layout services if inline.layout is defined
    * Falls back to inline.system_prompt if no layout is specified
    *
