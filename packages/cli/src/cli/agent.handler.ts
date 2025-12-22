@@ -14,7 +14,17 @@ export async function handleAgent(app: any, args: CliOptions) {
   try {
     const crewXTool = app.get(CrewXTool);
     const raw = Boolean(args.raw);
-    const resolvedSubcommand = (args.subcommand || process.argv[3] || '').toLowerCase();
+    
+    // Robust subcommand detection
+    let resolvedSubcommand = (args.subcommand || '').toLowerCase();
+    
+    // If subcommand is not recognized but 'prompt' exists in argv, use it
+    const promptIndex = process.argv.indexOf('prompt');
+    if (promptIndex !== -1) {
+      resolvedSubcommand = 'prompt';
+    } else if (!resolvedSubcommand && process.argv[3]) {
+      resolvedSubcommand = process.argv[3].toLowerCase();
+    }
 
     switch (resolvedSubcommand) {
       case 'ls':
@@ -22,6 +32,19 @@ export async function handleAgent(app: any, args: CliOptions) {
       case '':
         // Default to list when no subcommand (crewx agent → crewx agent ls)
         await handleAgentList(crewXTool, raw);
+        break;
+
+      case 'prompt':
+      case 'p':
+        // Get agent ID from the argument after 'prompt'
+        const agentIdRaw = promptIndex !== -1 ? process.argv[promptIndex + 1] : process.argv[4];
+        if (!agentIdRaw) {
+          console.error('❌ Missing agent ID. Usage: crewx agent prompt @agent_name');
+          process.exit(1);
+        }
+        // Remove leading '@' if present
+        const agentId = agentIdRaw.startsWith('@') ? agentIdRaw.slice(1) : agentIdRaw;
+        await handleAgentPrompt(crewXTool, agentId, raw);
         break;
 
       default:
@@ -138,6 +161,34 @@ async function handleAgentList(crewXTool: CrewXTool, raw: boolean) {
   }
 }
 
+async function handleAgentPrompt(crewXTool: CrewXTool, agentId: string, raw: boolean) {
+  if (!agentId) {
+    console.error('❌ Error: Agent ID is required for prompt command.');
+    console.log('Usage: crewx agent prompt <agentId>');
+    process.exit(1);
+  }
+
+  logger.log(`Inspecting prompt for agent: ${agentId}`);
+
+  try {
+    const renderedPrompt = await crewXTool.getRenderedAgentPrompt(agentId);
+    
+    if (raw) {
+      console.log(renderedPrompt);
+    } else {
+      console.log(`\n🤖 **Rendered Prompt for Agent: ${agentId}**\n`);
+      console.log('--- BEGIN PROMPT ---');
+      console.log(renderedPrompt);
+      console.log('--- END PROMPT ---');
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(`Failed to get agent prompt: ${message}`);
+    console.error(`❌ Failed to get agent prompt: ${message}`);
+    process.exit(1);
+  }
+}
+
 function formatProvider(provider: AgentInfo['provider']): string {
   if (Array.isArray(provider)) {
     return provider.join(', ');
@@ -153,6 +204,7 @@ Usage:
   crewx agent             # List configured agents (default)
   crewx agent ls          # List configured agents
   crewx agent list        # Alias for ls
+  crewx agent prompt <id> # Inspect rendered agent prompt
 
 Examples:
   crewx agent
