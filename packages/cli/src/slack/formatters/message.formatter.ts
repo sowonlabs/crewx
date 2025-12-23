@@ -29,7 +29,7 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
   // Can be overridden with SLACK_MAX_RESPONSE_LENGTH env var
   private readonly maxResponseLength: number;
   private readonly maxBlockSize: number; // Per block limit with safety margin
-  private markdownToSlackFn: ((text: string) => string) | null = null;
+  private markdownToSlackFn: (text: string) => string;
 
   constructor() {
     super();
@@ -45,17 +45,23 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
       parseInt(process.env.SLACK_MAX_BLOCK_SIZE || '2900', 10),
       3000
     );
-    this.loadMarkdownConverter();
+    // Load markdown converter synchronously to avoid race condition
+    this.markdownToSlackFn = this.loadMarkdownConverter();
   }
 
-  private async loadMarkdownConverter(): Promise<void> {
+  /**
+   * Load markdown converter synchronously using require()
+   * This avoids race condition where markdownToSlackFn is null when convertMarkdownToMrkdwn is called
+   */
+  private loadMarkdownConverter(): (text: string) => string {
     try {
-      const { markdownToSlack } = await import('md-to-slack');
-      this.markdownToSlackFn = markdownToSlack;
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { markdownToSlack } = require('md-to-slack');
+      return markdownToSlack;
     } catch (error) {
       console.error('Failed to load md-to-slack:', error);
       // Fallback to identity function
-      this.markdownToSlackFn = (text: string) => text;
+      return (text: string) => text;
     }
   }
 
@@ -232,12 +238,14 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
     const withHeadings = text.replace(/^(#{1,6})\s+(.+)$/gm, '**$2**');
 
     // 2. Basic markdown -> mrkdwn conversion
-    const slackText = this.markdownToSlackFn
-      ? this.markdownToSlackFn(withHeadings)
-      : withHeadings;
+    const slackText = this.markdownToSlackFn(withHeadings);
 
-    // 3. Convert emoji codes to Unicode
-    const withEmoji = this.convertEmojiCodes(slackText);
+    // 3. Post-process: Convert remaining **bold** patterns to Slack *bold*
+    // md-to-slack doesn't convert bold text inside list items (e.g., "- **text**")
+    const withBold = slackText.replace(/\*\*([^*]+)\*\*/g, '*$1*');
+
+    // 4. Convert emoji codes to Unicode
+    const withEmoji = this.convertEmojiCodes(withBold);
 
     return withEmoji;
   }
