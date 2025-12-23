@@ -489,6 +489,9 @@ Started: ${timestamp}
           ...process.env,
           LANG: 'en_US.UTF-8',
           LC_ALL: 'en_US.UTF-8',
+          CREWX_TASK_ID: taskId,
+          CREWX_AGENT_ID: options.agentId || '',
+          CREWX_USER_ID: process.env.USER || process.env.USERNAME || 'unknown',
           ...this.getEnv(),
         };
         if (process.platform === 'win32') {
@@ -708,6 +711,9 @@ Started: ${timestamp}
           ...process.env,
           LANG: 'en_US.UTF-8',
           LC_ALL: 'en_US.UTF-8',
+          CREWX_TASK_ID: taskId,
+          CREWX_AGENT_ID: options.agentId || '',
+          CREWX_USER_ID: process.env.USER || process.env.USERNAME || 'unknown',
           ...this.getEnv(),
         };
         if (process.platform === 'win32') {
