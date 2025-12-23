@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional, Inject } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
@@ -107,7 +107,9 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
   private db: Database.Database | null = null;
   private dbPath: string;
 
-  constructor(options?: TracingServiceOptions) {
+  constructor(
+    @Optional() @Inject('TRACING_OPTIONS') options?: TracingServiceOptions,
+  ) {
     if (options?.dbPath) {
       this.dbPath = options.dbPath;
     } else {
