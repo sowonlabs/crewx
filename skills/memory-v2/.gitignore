@@ -1,0 +1,8 @@
+# Dependencies
+node_modules/
+
+# Package lock (optional - can include if needed)
+package-lock.json
+
+# OS files
+.DS_Store

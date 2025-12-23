@@ -1,0 +1,16 @@
+{
+  "name": "memory-v2",
+  "version": "1.0.0",
+  "main": "memory-v2.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "nanoid": "^3.3.11"
+  }
+}
