@@ -109,9 +109,14 @@ function loadAllEntries(agentId) {
   const entries = [];
 
   for (const file of files) {
-    const content = fs.readFileSync(path.join(entriesDir, file), 'utf-8');
-    const { data } = parseFrontmatter(content);
-    entries.push({ file, ...data });
+    const raw = fs.readFileSync(path.join(entriesDir, file), 'utf-8');
+    const { data, content } = parseFrontmatter(raw);
+
+    // Check if body has real content (not just placeholder or title)
+    const bodyText = content.replace(/^#[^\n]*\n*/m, '').trim();
+    const hasBody = bodyText && bodyText !== '(상세 내용을 여기에 추가)';
+
+    entries.push({ file, hasBody, ...data });
   }
 
   // Sort by date descending
@@ -156,10 +161,11 @@ function generateIndex(agentId) {
   if (recent.length === 0) {
     md += `(없음)\n\n`;
   } else {
-    md += `| 날짜 | 카테고리 | 요약 |\n`;
-    md += `|------|----------|------|\n`;
+    md += `| 날짜 | 카테고리 | 요약 | 상세 |\n`;
+    md += `|------|----------|------|------|\n`;
     for (const entry of recent.slice(0, 10)) {
-      md += `| ${entry.date} | ${entry.category || '-'} | [${entry.summary}](entries/${entry.file}) |\n`;
+      const detailIcon = entry.hasBody ? '📄' : '-';
+      md += `| ${entry.date} | ${entry.category || '-'} | [${entry.summary}](entries/${entry.file}) | ${detailIcon} |\n`;
     }
     md += `\n`;
   }

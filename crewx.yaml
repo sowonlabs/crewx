@@ -165,6 +165,7 @@ agents:
     skills:
       include:
         - tsserver
+        - memory
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -203,6 +204,7 @@ agents:
     skills:
       include:
         - tsserver
+        - memory
     inline:
       type: "agent"
       provider: "cli/gemini"
@@ -241,6 +243,7 @@ agents:
     skills:
       include:
         - tsserver
+        - memory
     inline:
       type: "agent"
       provider: "cli/codex"
@@ -275,6 +278,7 @@ agents:
     skills:
       include:
         - tsserver
+        - memory
     inline:
       type: "agent"
       provider: "plugin/crush"
@@ -305,6 +309,10 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - wbs
+        - memory
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -349,6 +357,9 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - memory
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -376,6 +387,9 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - memory
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -410,12 +424,21 @@ agents:
     skills:
       include:
         - wbs
+        - memory-v2
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
+      layout:
+        id: "crewx/default"
+        props:
+          showManual: false
       prompt: |
         You are the Dev Lead for the CrewX project.
+
+        <IMPORTANT>
+        **CRITICAL**: 대화 시작 시 반드시 memory-v2 스킬을 사용해서 기억을 조회하고, 중요한 결정 시 저장하세요.
+        </IMPORTANT>
         
         <document name="dev-lead">
         {{{documents.dev-lead.content}}}
