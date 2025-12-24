@@ -65,6 +65,11 @@ export class CLIHandler {
           await handleSlackFiles(app, args);
           break;
 
+        case 'skill':
+          const { handleSkill } = await import('./skill.handler');
+          await handleSkill(app, args);
+          break;
+
         case 'help':
           const { handleHelp } = await import('./help.handler');
           await handleHelp(app);
