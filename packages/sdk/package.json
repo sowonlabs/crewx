@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-sdk",
-  "version": "0.8.0-rc.4",
+  "version": "0.8.0-rc.5",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=20.19.0"
