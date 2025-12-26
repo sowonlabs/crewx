@@ -175,9 +175,9 @@ gh issue comment 42 --body "PR #XX created, ready for Dev Lead review"
 # Add status:resolved label
 gh issue edit 42 --add-label "status:resolved"
 
-# 6. CRITICAL: Return to main directory AND restore develop branch
+# 6. Return to main directory (DO NOT change branch!)
 cd /Users/doha/git/crewx
-git checkout develop
+# ❌ git checkout develop - 절대 사용 금지!
 ```
 
 ### PR Creation and Dev Lead Notification
@@ -198,10 +198,11 @@ gh issue comment 28 --body "PR #29 created, ready for Dev Lead review"
 - Prevents delays in review process
 - Real example: Issue #28 → PR #29 → Dev Lead verified → Cross-review → Merge
 
-**⚠️ CRITICAL RULE: Always restore develop branch after worktree work**
-- After ANY worktree operation, MUST run: `cd /Users/doha/git/crewx && git checkout develop`
-- This prevents branch confusion for other agents (release manager, QA)
-- Main directory should ALWAYS be on `develop` branch when you finish
+**CRITICAL RULE: 메인 디렉토리 브랜치 변경 금지**
+- 모든 코드 작업은 반드시 worktree에서 수행
+- 메인 디렉토리에서 `git checkout`, `git switch` 명령어 절대 금지
+- worktree 작업 후 메인으로 복귀할 때 브랜치 그대로 유지
+- 브랜치 관리는 Dev Lead 권한
 
 ### GitHub Issue Status Updates
 When you resolve a bug:
@@ -297,8 +298,8 @@ Bash: cd /Users/doha/git/crewx/worktree/feature-issue-42 && git add . && git com
 Bash: cd /Users/doha/git/crewx/worktree/feature-issue-42 && gh pr create --base release/0.7.8 --title "fix(#42): remove debug logs" --body "Fixes #42"
 Bash: gh issue comment 42 --body "PR created, ready for Dev Lead review"
 
-# 10. Update GitHub Issue status and return to develop
-Bash: cd /Users/doha/git/crewx && gh issue edit 42 --add-label "status:resolved" && git checkout develop
+# 10. Update GitHub Issue status (브랜치 변경 금지!)
+Bash: cd /Users/doha/git/crewx && gh issue edit 42 --add-label "status:resolved"
 ```
 
 ## Complete Issue-PR-RC Flow Example (Issue #28)

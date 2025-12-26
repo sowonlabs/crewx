@@ -161,9 +161,9 @@ git log --oneline -5
 # 8. Update GitHub issue
 gh issue comment 22 --body "✅ PR #23 merged to release/0.7.8 after cross-review approval by @crewx_gemini_dev"
 
-# 9. Return to main directory
+# 9. Return to main directory (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
+# ❌ git checkout 절대 사용 금지 - Dev Lead만 브랜치 관리
 
 # 10. Report to Dev Lead
 # - ✅ PR #23 reviewed by @crewx_gemini_dev (approved)
@@ -195,10 +195,10 @@ git checkout develop
 # Find all issues with status:resolved label
 gh issue list --label "status:resolved" --state open
 
-# 2. Verify you're in the main repo AND on develop branch
+# 2. Verify you're in the main repo (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
 pwd
+# 현재 브랜치 확인만 하고 변경하지 않음
 
 # 3. Create release worktree from main (branch name WITHOUT rc suffix)
 # Branch: release/0.1.14 (NOT release/0.1.14-rc.0)
@@ -270,9 +270,9 @@ npm run build
 # 11. Check git log to verify all merges
 git log --oneline -20
 
-# 12. CRITICAL: Return to main directory and restore develop branch
+# 12. Return to main directory (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
+# ❌ git checkout 절대 사용 금지 - Dev Lead만 브랜치 관리
 
 # 13. Report to Dev Lead
 # - Release branch created: release/0.1.14
@@ -376,9 +376,9 @@ cd /Users/doha/git/crewx/worktree/release-0.6.0
 git tag v0.6.0-rc.3
 git push origin v0.6.0-rc.3
 
-# 6. Return to main directory
+# 6. Return to main directory (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
+# ❌ git checkout 절대 사용 금지 - Dev Lead만 브랜치 관리
 
 # 7. Report to Dev Lead
 # - ✅ Published ALL 3 packages: 0.6.0-rc.3 to npm with 'next' tag
@@ -450,24 +450,27 @@ git push origin release/0.6.0
 gh pr create --base main --head release/0.6.0 --title "chore: release 0.6.0" --body "Production release 0.6.0"
 gh pr merge --merge
 
-# 6. Direct merge to develop branch (no PR needed)
+# 6. Merge to develop via worktree (메인 브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
+git worktree add worktree/develop-merge develop
+cd /Users/doha/git/crewx/worktree/develop-merge
 git pull origin develop
 git merge --no-ff release/0.6.0
 git push origin develop
+cd /Users/doha/git/crewx
+git worktree remove worktree/develop-merge
 
-# 7. Create and push git tag
+# 7. Create and push git tag (worktree에서)
+cd /Users/doha/git/crewx/worktree/release-0.6.0
 git tag v0.6.0
 git push origin v0.6.0
 
 # 8. Close resolved GitHub Issues
-# After merging to develop, close all issues included in this release
 gh issue close 42 --comment "Released in v0.6.0"
 gh issue close 35 --comment "Released in v0.6.0"
 
-# 9. Return to develop
-git checkout develop
+# 9. Return to main directory (브랜치 변경 금지!)
+cd /Users/doha/git/crewx
 
 # 10. Report to Dev Lead
 # - Final release 0.6.0 published to npm
