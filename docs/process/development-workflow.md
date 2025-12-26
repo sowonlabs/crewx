@@ -138,8 +138,8 @@ gh issue comment <issue-number> --body '**@<agent-name>** implementation complet
 gh issue edit <issue-number> --add-label 'worker:<agent-name>'
 ```
 
-### 4. Update status.md
-Record the agent name in the worker column
+### 4. Track Status
+Add `status:in-progress` label when work starts
 
 ## Issue-Branch-PR-RC Connection Flow
 
@@ -166,8 +166,8 @@ Understanding the complete flow from Issue to Release:
        │                                                        ▼
        ▼                                              ┌──────────────────┐
 ┌──────────────┐                                      │ Merge to release │
-│ status.md    │ ◄───────────────────────────────────│ branch           │
-│ updated      │                                      └──────────────────┘
+│ Issue label  │ ◄───────────────────────────────────│ branch           │
+│ → resolved   │                                      └──────────────────┘
 └──────────────┘                                               │
                                                                ▼
                                                     ┌──────────────────┐

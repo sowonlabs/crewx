@@ -114,6 +114,32 @@ documents:
     summary: "TypeScript code intelligence using tsserver"
     type: "markdown"
 
+  # Status Skill Guide (for all developers and QA)
+  status-skill:
+    path: "skills/status/SKILL.md"
+    summary: "Real-time project status via GitHub CLI - replaces status.md"
+    type: "markdown"
+
+  # Global Notice (required for all agents)
+  notice: |
+    <NOTICE>
+    ## Before Starting Work (Required)
+
+    1. **Check Project Status**
+    ```bash
+    node skills/status/status.js
+    ```
+    - Do NOT use status.md (deprecated)
+    - GitHub is the single source of truth
+
+    2. **Check Memory** (if you have memory-v2 skill)
+    ```bash
+    node skills/memory-v2/memory-v2.js index {{agent_id}}
+    ```
+    - Review past decisions and context before starting
+    - Save important decisions during work
+    </NOTICE>
+
   # Project Structure (for all developers)
   project-structure: |
     Read `./CREWX.md` for project overview,
@@ -165,13 +191,16 @@ agents:
     skills:
       include:
         - tsserver
-        - memory
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "opus"
       prompt: |
         You are a developer for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -204,13 +233,16 @@ agents:
     skills:
       include:
         - tsserver
-        - memory
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/gemini"
       model: "gemini-3-pro-preview"
       prompt: |
         You are a developer for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -243,12 +275,15 @@ agents:
     skills:
       include:
         - tsserver
-        - memory
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/codex"
       prompt: |
         You are a developer for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -278,12 +313,15 @@ agents:
     skills:
       include:
         - tsserver
-        - memory
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "plugin/crush"
       prompt: |
         You are a developer for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -312,13 +350,16 @@ agents:
     skills:
       include:
         - wbs
-        - memory
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
       prompt: |
         You are the QA Team Lead for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
@@ -359,13 +400,16 @@ agents:
       execute: ["--verbose", "--dangerously-skip-permissions"]
     skills:
       include:
-        - memory
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
       prompt: |
         You are a testing expert for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
@@ -389,13 +433,16 @@ agents:
       execute: ["--verbose", "--dangerously-skip-permissions"]
     skills:
       include:
-        - memory
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
       prompt: |
         You are the Release Manager for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
@@ -425,6 +472,7 @@ agents:
       include:
         - wbs
         - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -436,10 +484,8 @@ agents:
       prompt: |
         You are the Dev Lead for the CrewX project.
 
-        <IMPORTANT>
-        **CRITICAL**: 대화 시작 시 반드시 memory-v2 스킬을 사용해서 기억을 조회하고, 중요한 결정 시 저장하세요.
-        </IMPORTANT>
-        
+        {{{documents.notice.content}}}
+
         <document name="dev-lead">
         {{{documents.dev-lead.content}}}
         </document>
