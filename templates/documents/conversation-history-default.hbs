@@ -1,0 +1,17 @@
+{{#if messages}}
+{{#if primaryAgentId}}Primary agent: @{{primaryAgentId}}
+{{else}}Primary agent: (unknown)
+{{/if}}
+Previous conversation ({{messagesCount}} messages):
+{{#each messages}}
+{{#if isAssistant}}
+**Assistant{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
+{{else}}
+**{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
+{{/if}}{{#if timestamp}} _{{formatTimestamp timestamp}}_{{/if}}: {{{escapeHandlebars text}}}
+{{#if files}}
+{{#each files}}
+📎 {{name}} ({{formatFileSize size}}) - Local: {{localPath}}
+{{/each}}
+{{/if}}
+{{/each}}{{/if}}
