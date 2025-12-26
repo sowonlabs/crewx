@@ -209,6 +209,24 @@ function registerHandlebarsHelpers() {
     return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
   });
 
+  // Format timestamp to user's local timezone (e.g., 2024-03-21 14:30:00)
+  Handlebars.registerHelper('formatTimestamp', function(timestamp: Date | string) {
+    if (!timestamp) return '';
+    try {
+      const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return '';
+      
+      return date.toLocaleString('ko-KR', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+      });
+    } catch (e) {
+      return '';
+    }
+  });
+
   // Format conversation helper - supports both default and custom templates
   // 
   // Usage 1: Use default template (recommended)
@@ -296,7 +314,7 @@ Previous conversation ({{messagesCount}} messages):
 **Assistant{{#if metadata.agent_id}} (@{{metadata.agent_id}}){{/if}}**
 {{else}}
 **{{#if metadata.slack}}{{#with metadata.slack}}{{#if user_profile.display_name}}{{user_profile.display_name}}{{else if username}}{{username}}{{else if user_id}}User ({{user_id}}){{else}}User{{/if}}{{/with}}{{else}}User{{/if}}**
-{{/if}}: {{{escapeHandlebars text}}}
+{{/if}}{{#if timestamp}} _{{formatTimestamp timestamp}}_{{/if}}: {{{escapeHandlebars text}}}
 {{#if files}}
 {{#each files}}
 📎 {{name}} ({{formatFileSize size}}) - Local: {{localPath}}

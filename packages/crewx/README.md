@@ -97,7 +97,7 @@ crewx slack --mode execute
 # - Maintain context in threads
 # - Share AI insights with the whole team
 ```
-👉 **[Complete Slack Setup Guide →](./SLACK_INSTALL.md)**
+👉 **[Complete Slack Setup Guide →](../../docs/slack-install.md)**
 
 ### CLI Mode - Direct terminal usage
 ```bash
@@ -274,7 +274,7 @@ For more information, see:
 - [📝 Template Variables](docs/template-variables.md) - Dynamic variables in agent configurations
 - [🔧 Tool System](docs/tools.md) - Tool integration and creation guide
 - [🔧 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
-- [💬 Slack Integration](SLACK_INSTALL.md) - Slack bot setup
+- [💬 Slack Integration](../../docs/slack-install.md) - Slack bot setup
 
 ### Developer Guides
 - [🏗️ SDK API Reference](packages/sdk/README.md) - Build custom integrations

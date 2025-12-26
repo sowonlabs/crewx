@@ -1,7 +1,7 @@
 ---
 name: memory-v2
 description: 마크다운 + 프론트매터 기반 장기 기억 스킬. 드릴다운 구조로 확장성 있는 기억 관리.
-version: 0.2.1
+version: 0.4.1
 ---
 
 # Memory V2 Skill
@@ -45,14 +45,29 @@ skills/memory-v2/
 ### 저장
 
 ```bash
-node skills/memory-v2/memory-v2.js save <agent_id> "<summary>" [category] [--topic=xxx] [--tags=a,b,c]
+node skills/memory-v2/memory-v2.js save <agent_id> "<summary>" [category] [--topic=xxx] [--tags=a,b,c] [--body="상세 내용"]
 ```
 
-**카테고리**: decision, schedule, task, project, context, preference, general (기본값)
+**옵션:**
+| 옵션 | 설명 | 예시 |
+|------|------|------|
+| `category` | 기억 분류 | decision, task, project, schedule, context, preference, general |
+| `--topic` | 토픽 그룹 | `--topic=crewx-strategy` |
+| `--tags` | 태그 (쉼표 구분) | `--tags=gemini,pricing` |
+| `--body` | **상세 내용 (권장!)** | `--body="배경, 근거, 결정사항 등"` |
+
+**⚠️ 중요: `--body` 옵션을 반드시 사용하세요!**
+- `--body` 없으면 플레이스홀더만 저장됨
+- 나중에 맥락 파악이 어려워짐
+- 최소 1-2문장 이상 상세 내용 권장
 
 **예시:**
 ```bash
-node skills/memory-v2/memory-v2.js save cto "Gemini 3.0 Flash 모먼트 - 전략적 분기점" decision --topic=crewx-strategy --tags=gemini,pricing
+# ❌ 나쁜 예 - 상세 없음
+node skills/memory-v2/memory-v2.js save cto "Gemini 3.0 Flash 모먼트" decision --topic=crewx-strategy
+
+# ✅ 좋은 예 - 상세 포함
+node skills/memory-v2/memory-v2.js save cto "Gemini 3.0 Flash 모먼트 - 전략적 분기점" decision --topic=crewx-strategy --tags=gemini,pricing --body="SWE-bench 78%로 Claude 3.5 Sonnet(49%) 압도. 가격은 1/6. CrewX 전략 검증됨 - 오케스트레이션이 핵심 해자."
 ```
 
 ### 인덱스 조회
@@ -73,16 +88,100 @@ node skills/memory-v2/memory-v2.js topic <agent_id> <topic_name>
 node skills/memory-v2/memory-v2.js recent <agent_id> [days=30]
 ```
 
-### 검색
+### 키워드 검색 (빠름)
 
 ```bash
 node skills/memory-v2/memory-v2.js find <agent_id> "<keyword>"
+```
+
+grep 기반 문자열 매칭. 빠르고 무료.
+
+### 시맨틱 검색 (AI)
+
+```bash
+node skills/memory-v2/memory-v2.js search <agent_id> "<질문>"
+```
+
+**Gemini 2.0 Flash** 기반 시맨틱 검색. 유사어/맥락 이해.
+
+- 스킬 내부 `@memory_searcher` 에이전트 사용 (crewx.yaml)
+- 비용: ~$0.015/1M tokens (거의 무료)
+
+**예시:**
+```bash
+# 키워드 검색 (빠름)
+node memory-v2.js find crewx_dev_lead "에이전트"
+
+# 시맨틱 검색 (AI)
+node memory-v2.js search crewx_dev_lead "작업 배정할 때 주의할 점"
 ```
 
 ### 상세 조회 (드릴다운)
 
 ```bash
 node skills/memory-v2/memory-v2.js get <agent_id> <memory_id>
+```
+
+### 기억 수정 (update)
+
+```bash
+node skills/memory-v2/memory-v2.js update <agent_id> <memory_id> [옵션]
+```
+
+**옵션:**
+| 옵션 | 설명 |
+|------|------|
+| `--summary` | 요약 수정 |
+| `--body` | 상세 내용 수정 |
+| `--topic` | 토픽 변경 |
+| `--category` | 카테고리 변경 |
+| `--tags` | 태그 변경 (쉼표 구분) |
+
+**예시:**
+```bash
+# 요약과 상세 내용 수정
+node skills/memory-v2/memory-v2.js update cto VkY9X6 --summary="수정된 요약" --body="수정된 상세 내용"
+
+# 토픽만 변경
+node skills/memory-v2/memory-v2.js update cto VkY9X6 --topic=new-topic
+```
+
+### 기억 삭제 (delete)
+
+```bash
+node skills/memory-v2/memory-v2.js delete <agent_id> <memory_id> [--force]
+```
+
+- `--force` 없으면 확인 메시지만 출력
+- `--force` 있으면 실제 삭제
+
+**예시:**
+```bash
+# 삭제 확인
+node skills/memory-v2/memory-v2.js delete cto VkY9X6
+
+# 실제 삭제
+node skills/memory-v2/memory-v2.js delete cto VkY9X6 --force
+```
+
+### 기억 병합 (merge)
+
+```bash
+node skills/memory-v2/memory-v2.js merge <agent_id> <memory_id1> <memory_id2> [--summary="병합 요약"]
+```
+
+- 두 기억을 하나로 병합
+- 원본 두 기억은 삭제됨
+- 태그는 합쳐짐 (중복 제거)
+- 병합된 파일에 `merged_from` 메타데이터 추가
+
+**예시:**
+```bash
+# 두 기억 병합
+node skills/memory-v2/memory-v2.js merge cto abc123 def456
+
+# 커스텀 요약으로 병합
+node skills/memory-v2/memory-v2.js merge cto abc123 def456 --summary="VLM 파인튜닝 종합 정리"
 ```
 
 ## 프론트매터 스키마
@@ -140,14 +239,17 @@ node skills/memory-v2/memory-v2.js save {{agent_id}} "VLM 학습률 조정" deci
 node skills/memory-v2/memory-v2.js save {{agent_id}} "신규 기능 기획" decision --topic=new-feature-x
 ```
 
-## 저장 명령
+## 저장 명령 (--body 필수!)
 ```bash
-# 요약만
-node skills/memory-v2/memory-v2.js save {{agent_id}} "<요약>" <category> --topic=<topic>
-
-# 요약 + 상세
+# ⚠️ 항상 --body 포함해서 저장!
 node skills/memory-v2/memory-v2.js save {{agent_id}} "<요약>" <category> --topic=<topic> --body="<상세 내용>"
 ```
+
+**--body 작성 가이드:**
+- 왜 이 결정을 했는지 (배경/근거)
+- 핵심 수치나 데이터
+- 관련 파일/문서 경로
+- 후속 액션이 있으면 포함
 
 ## 카테고리 선택
 - **decision**: 의사결정, CEO 지침
@@ -171,9 +273,8 @@ node skills/memory-v2/memory-v2.js save {{agent_id}} "<요약>" <category> --top
 | 토픽 지원 | 없음 | 있음 |
 | 가독성 | 낮음 | 높음 |
 
-## 버전 히스토리
+## v1 → v2 마이그레이션
 
-| 버전 | 변경사항 |
-|------|----------|
-| v0.2.0 | nanoid 6자리 ID, get 드릴다운, index.md 제거(실시간 스캔), gray-matter |
-| v0.1.0 | 초기 버전 - save, index, topic, recent, find |
+```bash
+node skills/memory-v2/migrate.js <agent_id>
+```
