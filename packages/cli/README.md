@@ -165,7 +165,7 @@ crewx slack --mode execute
 crewx slack --log
 ```
 
-See [Slack Setup Guide](../../SLACK_INSTALL.md) for configuration.
+See [Slack Setup Guide](../../docs/slack-install.md) for configuration.
 
 ### templates
 
@@ -560,7 +560,7 @@ Full Slack integration with:
 - Team collaboration
 - Read-only or execute mode
 
-See [Slack Setup Guide](../../SLACK_INSTALL.md) for details.
+See [Slack Setup Guide](../../docs/slack-install.md) for details.
 
 ## MCP Server
 
