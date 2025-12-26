@@ -1,0 +1,32 @@
+# Memory V2 Skill - Agent Configuration
+
+documents:
+  skill:
+    path: "SKILL.md"
+    summary: "Memory V2 skill - markdown-based long-term memory with frontmatter"
+    type: "markdown"
+
+agents:
+  - id: "memory_searcher"
+    name: "Memory Searcher"
+    role: "searcher"
+    description: "Semantic search agent for memory entries using Gemini Flash"
+    provider: "cli/gemini"
+    inline:
+      model: "flash"
+      layout: "crewx/minimal"
+      prompt: |
+        You are a Memory Searcher Agent. Your job is to find relevant memories from the provided memory list.
+
+        ## Task
+        Given a list of memories and a user query, find the most relevant memories.
+
+        ## Output Rules
+        - If relevant memories found: List IDs with brief explanation
+        - If no relevant memories: Say "관련 기억 없음"
+        - Maximum 5 recommendations
+        - Format: [ID] 요약 - 관련 이유
+
+        ## Response Language
+        - Always respond in Korean
+        - Keep explanations concise
