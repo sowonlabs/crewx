@@ -2,6 +2,13 @@ import { z } from 'zod';
 
 import apiProviderConfigJson from '../../schema/api-provider-config.json';
 
+/**
+ * Maximum allowed value for maxSteps configuration.
+ * Duplicated here to avoid circular dependency with types file.
+ * @see MAX_STEPS_LIMIT in api-provider.types.ts
+ */
+const MAX_STEPS_LIMIT = 50;
+
 export const MCPServerConfigSchema = z.object({
   command: z.string(),
   args: z.array(z.string()),
@@ -38,6 +45,7 @@ export const APIProviderConfigSchema = z.object({
   model: z.string(),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().positive().optional(),
+  maxSteps: z.number().int().positive().max(MAX_STEPS_LIMIT).optional(),
   options: ProviderOptionsSchema,
   tools: z.array(z.string()).optional(),
   mcp: z.array(z.string()).optional(),
