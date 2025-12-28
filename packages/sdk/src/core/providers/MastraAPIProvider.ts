@@ -26,6 +26,7 @@ import type {
   ToolExecutionContext,
   ProviderExecutionMode,
 } from '../../types/api-provider.types';
+import { DEFAULT_MAX_STEPS, MAX_STEPS_LIMIT } from '../../types/api-provider.types';
 import { MastraToolAdapter } from '../../adapters/MastraToolAdapter';
 import {
   normalizeAPIProviderConfig,
@@ -312,16 +313,10 @@ export class MastraAPIProvider implements AIProvider {
         tools: mastraTools,
       });
 
-      // Force tool calling with 'required' when tools are available
-      // Add maxSteps to enable multi-turn agent loop (default: 10)
-      const generateOptions = Object.keys(mastraTools).length > 0
-        ? {
-            toolChoice: 'required' as const,
-            maxSteps: this.config.maxSteps ?? 10
-          }
-        : {
-            maxSteps: this.config.maxSteps ?? 10
-          };
+      // Add maxSteps to enable multi-turn agent loop (default: DEFAULT_MAX_STEPS)
+      // Note: toolChoice is NOT forced to 'required' - let the model decide when to use tools
+      const maxSteps = Math.min(this.config.maxSteps ?? DEFAULT_MAX_STEPS, MAX_STEPS_LIMIT);
+      const generateOptions = { maxSteps };
 
       console.log(`[INFO] Sending request to AI model (maxSteps: ${generateOptions.maxSteps})...`);
       const fullOutput = await agent.generate(prompt, generateOptions);

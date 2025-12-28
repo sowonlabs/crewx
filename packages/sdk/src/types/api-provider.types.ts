@@ -4,6 +4,18 @@ import {
 } from '../schemas/api-provider.schema';
 
 /**
+ * Default number of agent loop iterations (tool calls).
+ * Used when maxSteps is not specified in configuration.
+ */
+export const DEFAULT_MAX_STEPS = 10;
+
+/**
+ * Maximum allowed value for maxSteps configuration.
+ * Prevents runaway agent loops and potential resource exhaustion.
+ */
+export const MAX_STEPS_LIMIT = 50;
+
+/**
  * Valid API provider type values.
  * Single source of truth for API provider validation.
  */
