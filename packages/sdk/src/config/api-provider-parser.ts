@@ -44,6 +44,7 @@ export interface RawAgentConfig {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  maxSteps?: number;
   prompt?: string;
   tools?: string[] | { include?: string[]; exclude?: string[] };
   mcp?: string[] | { include?: string[]; exclude?: string[] };
@@ -54,6 +55,7 @@ export interface RawAgentConfig {
     model?: string;
     temperature?: number;
     maxTokens?: number;
+    maxSteps?: number;
     prompt?: string;
     tools?: string[];
     mcp?: string[];
@@ -170,6 +172,17 @@ export function parseAPIProviderConfig(
       );
     }
     config.maxTokens = maxTokens;
+  }
+
+  // Optional: maxSteps (inline.maxSteps takes precedence)
+  const maxSteps = rawConfig.inline?.maxSteps ?? rawConfig.maxSteps;
+  if (maxSteps !== undefined) {
+    if (typeof maxSteps !== 'number' || maxSteps < 1 || !Number.isInteger(maxSteps)) {
+      throw new APIProviderParseError(
+        `maxSteps must be a positive integer, got: ${maxSteps}`,
+      );
+    }
+    config.maxSteps = maxSteps;
   }
 
   // Optional: tools (inline.tools takes precedence)
@@ -408,6 +421,15 @@ export function validateAPIProviderConfig(config: APIProviderConfig): boolean {
     if (typeof config.maxTokens !== 'number' || config.maxTokens < 1 || !Number.isInteger(config.maxTokens)) {
       throw new APIProviderParseError(
         `maxTokens must be a positive integer, got: ${config.maxTokens}`,
+      );
+    }
+  }
+
+  // Validate maxSteps (if present)
+  if (config.maxSteps !== undefined) {
+    if (typeof config.maxSteps !== 'number' || config.maxSteps < 1 || !Number.isInteger(config.maxSteps)) {
+      throw new APIProviderParseError(
+        `maxSteps must be a positive integer, got: ${config.maxSteps}`,
       );
     }
   }
