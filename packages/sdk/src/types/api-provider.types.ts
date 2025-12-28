@@ -73,6 +73,8 @@ export interface APIProviderConfig extends LegacyProviderPermissionConfig {
   temperature?: number;
   /** Optional upper bound for completion tokens */
   maxTokens?: number;
+  /** Maximum number of agent loop iterations (tool calls). Default: 10 */
+  maxSteps?: number;
   /** Mode-based permissions (WBS-28 Phase 2). Takes precedence over legacy arrays. */
   options?: ProviderOptions;
 }

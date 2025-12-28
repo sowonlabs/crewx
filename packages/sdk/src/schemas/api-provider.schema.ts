@@ -38,6 +38,7 @@ export const APIProviderConfigSchema = z.object({
   model: z.string(),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().positive().optional(),
+  maxSteps: z.number().int().positive().optional(),
   options: ProviderOptionsSchema,
   tools: z.array(z.string()).optional(),
   mcp: z.array(z.string()).optional(),
