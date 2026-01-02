@@ -39,6 +39,26 @@ function exec(cmd) {
   }
 }
 
+function checkGhCli() {
+  // Check if gh is installed
+  try {
+    execSync('which gh', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (e) {
+    console.error('❌ Error: GitHub CLI (gh) is not installed.');
+    console.error('   Install with: brew install gh');
+    process.exit(1);
+  }
+
+  // Check if gh is authenticated
+  try {
+    execSync('gh auth status', { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (e) {
+    console.error('❌ Error: GitHub CLI (gh) is not authenticated.');
+    console.error('   Login with: gh auth login');
+    process.exit(1);
+  }
+}
+
 function countLines(str) {
   if (!str || str === '(없음)') return 0;
   return str.split('\n').filter(line => line.trim()).length;
@@ -310,6 +330,11 @@ const command = args.find(a => !a.startsWith('--'));
 const options = {
   json: args.includes('--json')
 };
+
+// Check gh CLI before running (except for help)
+if (command !== 'help' && command !== '--help' && command !== '-h' && command !== 'worktrees') {
+  checkGhCli();
+}
 
 // Log usage
 logUsage(command || 'all', options.json ? '--json' : '');
