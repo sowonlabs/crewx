@@ -11,6 +11,36 @@ skills:
 
 # Plugin Providers
 providers:
+  # ============================================
+  # Remote Providers (소원랩스 본사)
+  # ============================================
+
+  # CTO - 기술 의사결정, 아키텍처
+  - id: remote_cto
+    type: remote
+    location: "file:///Users/doha/git/crewx-sowonlabs/crewx.yaml"
+    external_agent_id: "cto"
+    display_name: "CTO (소원랩스)"
+    description: "기술 의사결정, 아키텍처 검토, 기술 방향성"
+    timeout:
+      query: 600000
+      execute: 1200000
+
+  # CPO - 제품 전략, PRD, UX
+  - id: remote_cpo
+    type: remote
+    location: "file:///Users/doha/git/crewx-sowonlabs/crewx.yaml"
+    external_agent_id: "cpo"
+    display_name: "CPO (소원랩스)"
+    description: "제품 전략, PRD 관리, UX 의사결정"
+    timeout:
+      query: 600000
+      execute: 1200000
+
+  # ============================================
+  # Plugin Providers
+  # ============================================
+
   # Crush AI Assistant
   - id: crush
     type: plugin
@@ -180,6 +210,29 @@ documents:
 
 # Add your custom agents below:
 agents:
+  # ============================================
+  # Remote Agents (소원랩스 본사)
+  # ============================================
+
+  # CTO - 기술 의사결정, 아키텍처
+  - id: "cto"
+    name: "CTO (소원랩스)"
+    role: "CTO"
+    team: "소원랩스 본사"
+    description: "기술 의사결정, 아키텍처 검토, 기술 방향성"
+    provider: remote/remote_cto
+
+  # CPO - 제품 전략, PRD, UX
+  - id: "cpo"
+    name: "CPO (소원랩스)"
+    role: "CPO"
+    team: "소원랩스 본사"
+    description: "제품 전략, PRD 관리, UX 의사결정"
+    provider: remote/remote_cpo
+
+  # ============================================
+  # CrewX 개발팀
+  # ============================================
   - id: "crewx_claude_dev"
     name: "CrewX Developer"
     role: "Lead Developer"
@@ -193,6 +246,7 @@ agents:
         - tsserver
         - memory-v2
         - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -235,6 +289,7 @@ agents:
         - tsserver
         - memory-v2
         - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/gemini"
@@ -277,6 +332,7 @@ agents:
         - tsserver
         - memory-v2
         - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/codex"
@@ -315,6 +371,7 @@ agents:
         - tsserver
         - memory-v2
         - status
+        - meeting
     inline:
       type: "agent"
       provider: "plugin/crush"
@@ -352,6 +409,7 @@ agents:
         - wbs
         - memory-v2
         - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -473,6 +531,7 @@ agents:
         - wbs
         - memory-v2
         - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/claude"
