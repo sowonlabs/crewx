@@ -253,8 +253,30 @@ export class SkillService {
     }
   }
 
+  /**
+   * Validates npm package name to prevent command injection.
+   * Valid package names: @scope/name, name, name@version
+   * Invalid: anything with shell metacharacters
+   */
+  private validatePackageName(packageName: string): boolean {
+    // npm package name regex: optional @scope/, name, optional @version
+    // Allows: letters, numbers, -, _, ., @, /
+    // Must not contain shell metacharacters: ; | & $ ` " ' \ ( ) { } [ ] < > ! # * ?
+    const validNpmPackagePattern = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*(@[a-z0-9-._~]+)?$/i;
+    return validNpmPackagePattern.test(packageName);
+  }
+
   private async addFromNpm(packageName: string): Promise<{ success: boolean; name: string; message: string }> {
     this.ensureInstalledSkillsDir();
+
+    // Validate package name to prevent command injection
+    if (!this.validatePackageName(packageName)) {
+      return {
+        success: false,
+        name: '',
+        message: `Invalid package name: ${packageName}. Package name contains invalid characters.`
+      };
+    }
 
     try {
       // Create temp directory for npm install
@@ -589,7 +611,30 @@ req.end();
   // Skill Removal
   // ─────────────────────────────────────────────────────────────────────────
 
+  /**
+   * Validates skill name to prevent path traversal attacks.
+   * Valid names: alphanumeric with hyphens, underscores, dots
+   * Invalid: anything with path separators (.., /, \)
+   */
+  private validateSkillName(name: string): boolean {
+    // Skill name should not contain path separators or traversal patterns
+    if (name.includes('/') || name.includes('\\') || name.includes('..')) {
+      return false;
+    }
+    // Additional validation: only allow safe characters
+    const validSkillNamePattern = /^[a-z0-9-._~]+$/i;
+    return validSkillNamePattern.test(name);
+  }
+
   async remove(name: string): Promise<{ success: boolean; message: string }> {
+    // Validate skill name to prevent path traversal
+    if (!this.validateSkillName(name)) {
+      return {
+        success: false,
+        message: `Invalid skill name: '${name}'. Skill name cannot contain path separators (/, \\, ..).`
+      };
+    }
+
     // Check if it's an installed skill (in .crewx/skills/)
     const installedPath = path.join(this.installedSkillsDir, name);
     const registry = this.loadRegistry();
