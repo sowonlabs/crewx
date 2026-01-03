@@ -220,6 +220,7 @@ agents:
     role: "CTO"
     team: "소원랩스 본사"
     description: "기술 의사결정, 아키텍처 검토, 기술 방향성"
+    working_directory: "/Users/doha/git/crewx-sowonlabs"
     provider: remote/remote_cto
 
   # CPO - 제품 전략, PRD, UX
@@ -228,6 +229,7 @@ agents:
     role: "CPO"
     team: "소원랩스 본사"
     description: "제품 전략, PRD 관리, UX 의사결정"
+    working_directory: "/Users/doha/git/crewx-sowonlabs"
     provider: remote/remote_cpo
 
   # ============================================
