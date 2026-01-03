@@ -102,28 +102,10 @@ documents:
     summary: "Tester role definition, test execution guidelines, and reporting standards"
     type: "markdown"
 
-  # Claude Developer Role
-  dev-claude:
-    path: "docs/prompts/dev-claude.md"
-    summary: "Claude-powered developer role, coding standards, and best practices"
-    type: "markdown"
-
-  # Codex Developer Role
-  dev-codex:
-    path: "docs/prompts/dev-codex.md"
-    summary: "Codex-powered developer role, coding standards, and best practices"
-    type: "markdown"
-
-  # Crush Developer Role
-  dev-crush:
-    path: "docs/prompts/dev-crush.md"
-    summary: "Crush-powered developer role with multi-model support, coding standards, and language policy"
-    type: "markdown"
-
-  # Gemini Developer Role
-  dev-gemini:
-    path: "docs/prompts/dev-gemini.md"
-    summary: "Gemini-powered developer role, coding standards, and best practices"
+  # Developer Role (공통)
+  dev:
+    path: "docs/prompts/dev.md"
+    summary: "Developer role - worktree workflow, coding standards, issue handling"
     type: "markdown"
 
   # Dev Lead Role
@@ -266,8 +248,8 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="dev-claude">
-        {{{documents.dev-claude.content}}}
+        <document name="dev">
+        {{{documents.dev.content}}}
         </document>
 
         <document name="template-modification-rules">
@@ -309,8 +291,8 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="dev-gemini">
-        {{{documents.dev-gemini.content}}}
+        <document name="dev">
+        {{{documents.dev.content}}}
         </document>
 
         <document name="template-modification-rules">
@@ -351,8 +333,8 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="dev-codex">
-        {{{documents.dev-codex.content}}}
+        <document name="dev">
+        {{{documents.dev.content}}}
         </document>
 
         <document name="template-modification-rules">
@@ -380,6 +362,11 @@ agents:
       prompt: |
         You are a developer for the CrewX project.
 
+        ## Language Policy (CRITICAL)
+        **ALWAYS respond in the same language as the user's message:**
+        - Korean question → Korean answer
+        - English question → English answer
+
         {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
@@ -390,8 +377,8 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="dev-crush">
-        {{{documents.dev-crush.content}}}
+        <document name="dev">
+        {{{documents.dev.content}}}
         </document>
 
         <document name="template-modification-rules">
