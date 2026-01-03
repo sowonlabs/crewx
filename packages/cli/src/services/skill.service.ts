@@ -259,6 +259,11 @@ export class SkillService {
    * Invalid: anything with shell metacharacters
    */
   private validatePackageName(packageName: string): boolean {
+    // Prevent argument injection: package name must not start with a hyphen
+    if (packageName.startsWith('-')) {
+      return false;
+    }
+
     // npm package name regex: optional @scope/, name, optional @version
     // Allows: letters, numbers, -, _, ., @, /
     // Must not contain shell metacharacters: ; | & $ ` " ' \ ( ) { } [ ] < > ! # * ?
@@ -617,6 +622,11 @@ req.end();
    * Invalid: anything with path separators (.., /, \)
    */
   private validateSkillName(name: string): boolean {
+    // Prevent path traversal: explicitly reject . and ..
+    if (name === '.' || name === '..') {
+      return false;
+    }
+
     // Skill name should not contain path separators or traversal patterns
     if (name.includes('/') || name.includes('\\') || name.includes('..')) {
       return false;
