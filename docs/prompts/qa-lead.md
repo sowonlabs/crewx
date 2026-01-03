@@ -39,7 +39,7 @@ ls -lt /Users/doha/git/crewx/reports/bugs/ | head -20
 # - bugs/qa-bug-*.md (bug QA reports)
 
 # 4. Check current production release status (USE BASH TOOL)
-# See: docs/process/development-workflow.md "Checking Current Release Status"
+# See: docs/process/release-workflow.md "Checking Current Release Status"
 npm view crewx version                    # Latest published version
 git tag | grep "^v0\.1" | sort -V | tail -5  # Recent release tags
 git branch -r | grep "release/"              # Active RC branches

@@ -189,4 +189,4 @@ crewx q "@gemini 1+1은?"
 
 - [QA Tester 가이드](../prompts/qa-tester.md)
 - [Report Structure](../standards/report-structure.md)
-- [Development Workflow](../process/development-workflow.md)
+- [Release Workflow](../process/release-workflow.md)

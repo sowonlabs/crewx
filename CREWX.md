@@ -60,7 +60,7 @@ git branch --show-current
 git checkout -b feature/42-fix-bug
 ```
 
-See [docs/process/development-workflow.md](docs/process/development-workflow.md) for details.
+See [docs/process/release-workflow.md](docs/process/release-workflow.md) for details.
 
 ## 🧪 Development
 

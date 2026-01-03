@@ -67,9 +67,9 @@ documents:
     type: "markdown"
 
   # Development Workflow Overview (QA Lead, Release Manager)
-  development-workflow:
-    path: "docs/process/development-workflow.md"
-    summary: "Bug status flow, RC process, branch strategy"
+  release-workflow:
+    path: "docs/process/release-workflow.md"
+    summary: "RC versioning, release process, branch strategy"
     type: "markdown"
 
   # Test Report Structure (Tester, QA Lead)
@@ -102,7 +102,13 @@ documents:
     summary: "Tester role definition, test execution guidelines, and reporting standards"
     type: "markdown"
 
-  # Developer Role (공통)
+  # Development Process (Common for Dev Lead & Developers)
+  dev-common:
+    path: "docs/prompts/dev-common.md"
+    summary: "Common development process - workflow diagram, status labels, code review"
+    type: "markdown"
+
+  # Developer Role
   dev:
     path: "docs/prompts/dev.md"
     summary: "Developer role - worktree workflow, coding standards, issue handling"
@@ -118,18 +124,6 @@ documents:
   template-modification-rules:
     path: "docs/prompts/template-modification-rules.md"
     summary: "Critical rules and checklist for modifying template-related code"
-    type: "markdown"
-
-  # tsserver Skill Guide (for all developers)
-  tsserver-skill:
-    path: "docs/guides/tsserver-skill.md"
-    summary: "TypeScript code intelligence using tsserver"
-    type: "markdown"
-
-  # Status Skill Guide (for all developers and QA)
-  status-skill:
-    path: "skills/status/SKILL.md"
-    summary: "Real-time project status via GitHub CLI - replaces status.md"
     type: "markdown"
 
   # Global Notice (required for all agents)
@@ -248,6 +242,10 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
+        </document>
+
         <document name="dev">
         {{{documents.dev.content}}}
         </document>
@@ -256,9 +254,6 @@ agents:
         {{{documents.template-modification-rules.content}}}
         </document>
 
-        <document name="tsserver-skill">
-        {{{documents.tsserver-skill.content}}}
-        </document>
 
   - id: "crewx_gemini_dev"
     name: "CrewX Gemini Developer"
@@ -291,6 +286,10 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
+        </document>
+
         <document name="dev">
         {{{documents.dev.content}}}
         </document>
@@ -299,9 +298,6 @@ agents:
         {{{documents.template-modification-rules.content}}}
         </document>
 
-        <document name="tsserver-skill">
-        {{{documents.tsserver-skill.content}}}
-        </document>
 
   - id: "crewx_codex_dev"
     name: "CrewX Codex Developer"
@@ -333,6 +329,10 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
+        </document>
+
         <document name="dev">
         {{{documents.dev.content}}}
         </document>
@@ -341,9 +341,6 @@ agents:
         {{{documents.template-modification-rules.content}}}
         </document>
 
-        <document name="tsserver-skill">
-        {{{documents.tsserver-skill.content}}}
-        </document>
 
   - id: "crewx_crush_dev"
     name: "CrewX Crush Developer"
@@ -375,6 +372,10 @@ agents:
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
+        </document>
+
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
         </document>
 
         <document name="dev">
@@ -412,8 +413,8 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="development-workflow">
-        {{{documents.development-workflow.content}}}
+        <document name="release-workflow">
+        {{{documents.release-workflow.content}}}
         </document>
 
         <document name="report-structure">
@@ -495,8 +496,8 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="development-workflow">
-        {{{documents.development-workflow.content}}}
+        <document name="release-workflow">
+        {{{documents.release-workflow.content}}}
         </document>
 
         <document name="rc-versioning">
@@ -537,11 +538,15 @@ agents:
         <document name="dev-lead">
         {{{documents.dev-lead.content}}}
         </document>
-        
-        <document name="development-workflow">
-        {{{documents.development-workflow.content}}}
+
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
         </document>
-        
+
+        <document name="release-workflow">
+        {{{documents.release-workflow.content}}}
+        </document>
+
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
         </document>

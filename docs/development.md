@@ -437,7 +437,7 @@ gh issue list --label "status:resolved" --state open
 
 ## Reference Documents
 
-- `docs/process/development-workflow.md`: Bug status flow, RC process
+- `docs/process/release-workflow.md`: RC versioning, release process
 - `docs/prompts/`: Agent role definitions
 - `agents.yaml`: Agent configuration
 - `package.json`: Version management

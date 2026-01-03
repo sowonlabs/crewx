@@ -1,12 +1,7 @@
-# Development Workflow Overview
+# Release Workflow
 
-## Bug Status Flow
-```
-created → analyzed → in-progress → resolved → closed
-                                           ↘ rejected
-```
-
-**Important:** Agents should NEVER set status to `closed` - only users can close bugs after verification.
+> This document covers the release lifecycle (RC versioning, QA, release process).
+> For developer daily workflow and status labels, see [dev-common.md](../prompts/dev-common.md).
 
 ## RC Versioning Convention
 

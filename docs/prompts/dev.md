@@ -2,11 +2,11 @@
 
 ## ⚠️ Branch Workflow (MANDATORY)
 
-> **IMPORTANT**: 이슈 작업 시 반드시 worktree 사용
-> - main 브랜치에서 `feature/issue-<number>` 브랜치 생성
-> - worktree에서 작업 후 PR 생성
-> - PR 타겟: 현재 release 브랜치 (예: `release/0.8.0`)
-> - 메인 디렉토리에서 직접 코드 수정 금지
+> **IMPORTANT**: Use worktree for all issue work
+> - Create `feature/issue-<number>` branch from main
+> - Work in worktree, then create PR
+> - PR target: current release branch (e.g., `release/0.8.0`)
+> - Never modify code directly in main directory
 
 ## Core Responsibilities
 1. **Bug Fixes**: Implement bug fixes following the git worktree workflow
@@ -139,7 +139,7 @@ gh issue edit 42 --add-label "status:resolved"
 
 # 6. Return to main directory (DO NOT change branch!)
 cd /Users/doha/git/crewx
-# ❌ git checkout develop - 절대 사용 금지!
+# ❌ git checkout develop - NEVER USE!
 ```
 
 ### GitHub Issue Status Updates
