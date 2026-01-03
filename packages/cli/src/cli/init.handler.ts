@@ -75,7 +75,7 @@ export class InitHandler {
         // Copy default conversation template
         try {
           const { readFileSync, writeFileSync } = require('fs');
-          const templateSource = join(__dirname, '..', '..', 'documents', 'templates', 'conversation-history-default.hbs');
+          const templateSource = join(__dirname, '..', '..', 'templates', 'documents', 'conversation-history-default.hbs');
           const templateDest = join(templatesDir, 'conversation-history-default.hbs');
           
           if (existsSync(templateSource)) {
