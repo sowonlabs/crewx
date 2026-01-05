@@ -27,6 +27,8 @@ export interface AIQueryOptions {
   agentId?: string;
   messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
   pipedContext?: string;
+  /** Phase 3b: Trace ID for call chain tracking */
+  traceId?: string;
 }
 
 export interface AIResponse {

@@ -492,6 +492,12 @@ Started: ${timestamp}
           CREWX_TASK_ID: taskId,
           CREWX_AGENT_ID: options.agentId || '',
           CREWX_USER_ID: process.env.USER || process.env.USERNAME || 'unknown',
+          // Phase 3b: Tracing chain propagation
+          // Pass trace_id, parent_task_id, caller_agent_id to child processes
+          // This enables call chain tracking across agent-to-agent calls
+          CREWX_TRACE_ID: options.traceId || process.env.CREWX_TRACE_ID || '',
+          CREWX_PARENT_TASK_ID: taskId, // Current task becomes parent for child calls
+          CREWX_CALLER_AGENT_ID: options.agentId || process.env.CREWX_CALLER_AGENT_ID || '',
           ...this.getEnv(),
         };
         if (process.platform === 'win32') {
@@ -507,7 +513,7 @@ Started: ${timestamp}
           // On Windows, if executable doesn't have extension, spawn needs shell
           useShell = true;
         }
-        
+
         const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
           cwd: options.workingDirectory || process.cwd(),
@@ -714,6 +720,12 @@ Started: ${timestamp}
           CREWX_TASK_ID: taskId,
           CREWX_AGENT_ID: options.agentId || '',
           CREWX_USER_ID: process.env.USER || process.env.USERNAME || 'unknown',
+          // Phase 3b: Tracing chain propagation
+          // Pass trace_id, parent_task_id, caller_agent_id to child processes
+          // This enables call chain tracking across agent-to-agent calls
+          CREWX_TRACE_ID: options.traceId || process.env.CREWX_TRACE_ID || '',
+          CREWX_PARENT_TASK_ID: taskId, // Current task becomes parent for child calls
+          CREWX_CALLER_AGENT_ID: options.agentId || process.env.CREWX_CALLER_AGENT_ID || '',
           ...this.getEnv(),
         };
         if (process.platform === 'win32') {
