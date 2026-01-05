@@ -784,7 +784,9 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       // Start tracing (graceful - won't crash if DB unavailable)
       // Phase 3a: Pass extended fields to TracingService
       // Phase 3b: Add trace_id, parent_task_id, caller_agent_id for chain tracing
+      // Issue #77: Pass taskId from TaskManagementService to ensure ID consistency
       traceTaskId = this.tracingService?.createTask({
+        id: taskId,  // Use same ID as TaskManagementService for consistency
         agent_id: agentId,
         prompt: query,
         mode: 'query',
@@ -1340,7 +1342,9 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       // Start tracing (graceful - won't crash if DB unavailable)
       // Phase 3a: Pass extended fields to TracingService
       // Phase 3b: Add trace_id, parent_task_id, caller_agent_id for chain tracing
+      // Issue #77: Pass taskId from TaskManagementService to ensure ID consistency
       traceTaskId = this.tracingService?.createTask({
+        id: taskId,  // Use same ID as TaskManagementService for consistency
         agent_id: agentId,
         prompt: task,
         mode: 'execute',
