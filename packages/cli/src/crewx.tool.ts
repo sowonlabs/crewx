@@ -1094,6 +1094,7 @@ ${query}
               taskId,
               securityKey,
               pipedContext: structuredPayload,
+              traceId,
             },
           });
         } finally {
@@ -1641,6 +1642,7 @@ Task: ${task}
               taskId,
               pipedContext: structuredPayload,
               securityKey,
+              traceId,
             },
           });
         } finally {
