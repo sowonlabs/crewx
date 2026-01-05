@@ -330,6 +330,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Create a new task record
+   * Phase 3b: Token estimation removed - will be populated via JSON parsing in future
    */
   createTask(input: CreateTaskInput): string | null {
     if (!this.db) {
@@ -338,9 +339,6 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
     const id = this.generateId();
     const now = this.now();
-
-    // Phase 3a: Estimate input tokens from prompt
-    const inputTokens = input.input_tokens ?? this.estimateTokens(input.prompt);
 
     // Phase 3a: Merge provider_version into metadata if provided
     const metadata = input.metadata ? { ...input.metadata } : {};
@@ -371,7 +369,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
         input.model ?? null,
         input.platform ?? 'cli',
         input.crewx_version ?? null,
-        inputTokens,
+        input.input_tokens ?? 0,  // Phase 3b: Token counting deferred to future JSON parsing
         input.output_tokens ?? 0,
         input.cost_usd ?? 0,
       );
@@ -388,7 +386,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Complete a task with success
-   * Phase 3a: Also updates output_tokens based on result length
+   * Phase 3b: output_tokens left at 0 - will be populated via JSON parsing in future
    */
   completeTask(taskId: string, result?: string): boolean {
     if (!this.db) {
@@ -397,8 +395,6 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const now = this.now();
-      // Phase 3a: Estimate output tokens from result
-      const outputTokens = this.estimateTokens(result ?? '');
 
       const stmt = this.db.prepare(`
         UPDATE tasks
@@ -408,7 +404,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
         WHERE id = ?
       `);
 
-      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, outputTokens, taskId);
+      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, 0, taskId);
       return info.changes > 0;
     } catch (error) {
       this.logger.error(

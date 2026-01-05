@@ -773,8 +773,17 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${agentDescriptor}` });
 
+      // Phase 3b: Chain tracing - inherit or generate trace_id
+      const inheritedTraceId = process.env.CREWX_TRACE_ID;
+      const inheritedParentTaskId = process.env.CREWX_PARENT_TASK_ID;
+      const inheritedCallerAgentId = process.env.CREWX_CALLER_AGENT_ID;
+
+      // Generate new trace_id if not inherited (root request)
+      const traceId = inheritedTraceId || crypto.randomUUID();
+
       // Start tracing (graceful - won't crash if DB unavailable)
       // Phase 3a: Pass extended fields to TracingService
+      // Phase 3b: Add trace_id, parent_task_id, caller_agent_id for chain tracing
       traceTaskId = this.tracingService?.createTask({
         agent_id: agentId,
         prompt: query,
@@ -782,6 +791,9 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
         model: model ?? undefined,
         platform: platform ?? 'cli',
         crewx_version: process.env.npm_package_version ?? '0.8.0',
+        trace_id: traceId,
+        parent_task_id: inheritedParentTaskId,
+        caller_agent_id: inheritedCallerAgentId,
         metadata: { provider: agentProvider, provider_version: undefined }, // provider_version will be captured in future
       }) ?? null;
 
@@ -1082,6 +1094,7 @@ ${query}
               taskId,
               securityKey,
               pipedContext: structuredPayload,
+              traceId,
             },
           });
         } finally {
@@ -1316,8 +1329,17 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${agentDescriptor}` });
 
+      // Phase 3b: Chain tracing - inherit or generate trace_id
+      const inheritedTraceId = process.env.CREWX_TRACE_ID;
+      const inheritedParentTaskId = process.env.CREWX_PARENT_TASK_ID;
+      const inheritedCallerAgentId = process.env.CREWX_CALLER_AGENT_ID;
+
+      // Generate new trace_id if not inherited (root request)
+      const traceId = inheritedTraceId || crypto.randomUUID();
+
       // Start tracing (graceful - won't crash if DB unavailable)
       // Phase 3a: Pass extended fields to TracingService
+      // Phase 3b: Add trace_id, parent_task_id, caller_agent_id for chain tracing
       traceTaskId = this.tracingService?.createTask({
         agent_id: agentId,
         prompt: task,
@@ -1325,6 +1347,9 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
         model: model ?? undefined,
         platform: platform ?? 'cli',
         crewx_version: process.env.npm_package_version ?? '0.8.0',
+        trace_id: traceId,
+        parent_task_id: inheritedParentTaskId,
+        caller_agent_id: inheritedCallerAgentId,
         metadata: { provider: agentProvider, provider_version: undefined }, // provider_version will be captured in future
       }) ?? null;
 
@@ -1617,6 +1642,7 @@ Task: ${task}
               taskId,
               pipedContext: structuredPayload,
               securityKey,
+              traceId,
             },
           });
         } finally {
