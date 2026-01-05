@@ -137,31 +137,63 @@ export async function handleSkill(app: any, args: CliOptions) {
   }
 
   // Execute skill
-  const skillName = action;
+  let skillName: string | undefined;
+  let isRunCommand = false;
+
+  if (action === 'run') {
+    isRunCommand = true;
+    skillName = args.skillTarget;
+    if (!skillName) {
+      logger.error('Usage: crewx skill run <name> [args...]');
+      process.exit(1);
+    }
+  } else {
+    // Deprecated mode: use action as skill name
+    skillName = action;
+    console.warn(`\x1b[33mWarning: "crewx skill ${skillName}" is deprecated. Please use "crewx skill run ${skillName}" instead.\x1b[0m`);
+  }
   
   // Use rawArgs to get accurate arguments including flags like --help
   let skillArgs: string[] = [];
   if (args.rawArgs) {
       const skillIndex = args.rawArgs.indexOf('skill');
-      // args.rawArgs[skillIndex] == 'skill'
-      // args.rawArgs[skillIndex+1] == skillName
-      // args start from skillIndex + 2
-      if (skillIndex !== -1 && args.rawArgs.length > skillIndex + 1) {
-          // Verify that the next arg is indeed the skill name
-          if (args.rawArgs[skillIndex + 1] === skillName) {
-              skillArgs = args.rawArgs.slice(skillIndex + 2);
+      
+      if (skillIndex !== -1) {
+          if (isRunCommand) {
+              // crewx skill run <name> [args]
+              // args.rawArgs[skillIndex] == 'skill'
+              // args.rawArgs[skillIndex+1] == 'run'
+              // args.rawArgs[skillIndex+2] == skillName
+              if (args.rawArgs.length > skillIndex + 2 && 
+                  args.rawArgs[skillIndex + 1] === 'run' && 
+                  args.rawArgs[skillIndex + 2] === skillName) {
+                  skillArgs = args.rawArgs.slice(skillIndex + 3);
+              }
+          } else {
+               // crewx skill <name> [args]
+               // args.rawArgs[skillIndex] == 'skill'
+               // args.rawArgs[skillIndex+1] == skillName
+               if (args.rawArgs.length > skillIndex + 1 && 
+                   args.rawArgs[skillIndex + 1] === skillName) {
+                   skillArgs = args.rawArgs.slice(skillIndex + 2);
+               }
           }
       }
   }
 
   // Fallback to parsed params if rawArgs extraction didn't produce anything
   // Note: This fallback might still miss flags if yargs consumed them, but it's safe default
-  if (skillArgs.length === 0 && (args.skillTarget || (args.skillParams && args.skillParams.length > 0))) {
-      skillArgs = [args.skillTarget, ...(args.skillParams || [])].filter(x => x !== undefined && x !== null) as string[];
+  if (skillArgs.length === 0) {
+      if (isRunCommand) {
+        skillArgs = (args.skillParams || []).filter(x => x !== undefined && x !== null) as string[];
+      } else {
+        const parts = [args.skillTarget, ...(args.skillParams || [])];
+        skillArgs = parts.filter(x => x !== undefined && x !== null) as string[];
+      }
   }
 
   try {
-    await skillService.execute(skillName, skillArgs);
+    await skillService.execute(skillName!, skillArgs);
   } catch (error) {
     logger.error(`Failed to execute skill '${skillName}': ${error}`);
     process.exit(1);
