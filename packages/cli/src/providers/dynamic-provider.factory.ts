@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseDynamicProviderFactory } from '@sowonai/crewx-sdk';
 import { createLoggerAdapter } from './logger.adapter';
+import { CREWX_VERSION } from '../version';
 
 /**
  * CLI-specific DynamicProviderFactory
@@ -21,6 +22,7 @@ export class DynamicProviderFactory extends BaseDynamicProviderFactory {
   constructor() {
     super({
       logger: createLoggerAdapter(DynamicProviderFactory.name),
+      crewxVersion: CREWX_VERSION,
     });
   }
 
