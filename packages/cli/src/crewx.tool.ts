@@ -774,11 +774,15 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${agentDescriptor}` });
 
       // Start tracing (graceful - won't crash if DB unavailable)
+      // Phase 3a: Pass extended fields to TracingService
       traceTaskId = this.tracingService?.createTask({
         agent_id: agentId,
         prompt: query,
         mode: 'query',
-        metadata: { model, platform, provider: agentProvider },
+        model: model ?? undefined,
+        platform: platform ?? 'cli',
+        crewx_version: process.env.npm_package_version ?? '0.8.0',
+        metadata: { provider: agentProvider, provider_version: undefined }, // provider_version will be captured in future
       }) ?? null;
 
       this.logger.log(`[${taskId}] Querying agent ${agentId}: ${query.substring(0, 50)}...`);
@@ -1313,11 +1317,15 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${agentDescriptor}` });
 
       // Start tracing (graceful - won't crash if DB unavailable)
+      // Phase 3a: Pass extended fields to TracingService
       traceTaskId = this.tracingService?.createTask({
         agent_id: agentId,
         prompt: task,
         mode: 'execute',
-        metadata: { model, platform, provider: agentProvider },
+        model: model ?? undefined,
+        platform: platform ?? 'cli',
+        crewx_version: process.env.npm_package_version ?? '0.8.0',
+        metadata: { provider: agentProvider, provider_version: undefined }, // provider_version will be captured in future
       }) ?? null;
 
       this.logger.log(`[${taskId}] Executing agent ${agentId}: ${task.substring(0, 50)}...`);
