@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parseSkillManifestFromFile } from '@sowonai/crewx-sdk';
 import { spawn, execSync } from 'child_process';
+import { TracingService, SpanKind } from './tracing.service';
 
 export interface SkillMetadata {
   name: string;
@@ -37,6 +38,7 @@ export class SkillService {
   private installedSkillsDir: string;
   private crewxDir: string;
   private registryPath: string;
+  private tracingService: TracingService | null = null;
 
   constructor() {
     this.crewxDir = path.join(process.cwd(), '.crewx');
@@ -48,6 +50,23 @@ export class SkillService {
       path.join(process.cwd(), 'skills'),
       this.installedSkillsDir
     ];
+
+    // Initialize TracingService for span tracking (Phase 3c)
+    this.initTracing();
+  }
+
+  /**
+   * Initialize TracingService lazily to avoid circular dependencies
+   */
+  private initTracing(): void {
+    try {
+      this.tracingService = new TracingService();
+      // Manually call onModuleInit since we're not using DI
+      this.tracingService.onModuleInit();
+    } catch (error) {
+      this.logger.warn(`Failed to initialize TracingService for skill tracking: ${error}`);
+      this.tracingService = null;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -189,7 +208,22 @@ export class SkillService {
     }
 
     const entryPath = path.join(skill.path, skill.entryPoint);
-    
+
+    // Phase 3c: Get task_id from environment variable for span tracking
+    const taskId = process.env.CREWX_TASK_ID;
+    let spanId: string | null = null;
+    const startTime = Date.now();
+
+    // Create span if we have a task_id and tracing is enabled
+    if (taskId && this.tracingService?.isEnabled()) {
+      spanId = this.tracingService.createSpan({
+        task_id: taskId,
+        name: `skill:${name}`,
+        kind: SpanKind.INTERNAL,
+        input: JSON.stringify({ skill: name, args }),
+      });
+    }
+
     return new Promise((resolve, reject) => {
         let command: string;
         let cmdArgs: string[];
@@ -204,20 +238,43 @@ export class SkillService {
             command = 'python3';
             cmdArgs = [entryPath, ...args];
         } else {
+             // Complete span with error before rejecting
+             if (spanId && this.tracingService) {
+               this.tracingService.failSpan(spanId, `Unsupported entry point: ${skill.entryPoint}`);
+             }
              reject(new Error(`Unsupported entry point: ${skill.entryPoint}`));
              return;
         }
 
         const child = spawn(command, cmdArgs, {
             cwd: skill.path,
-            stdio: 'inherit' 
+            stdio: 'inherit'
         });
 
         child.on('close', (code) => {
+            const durationMs = Date.now() - startTime;
+
+            // Phase 3c: Complete span based on exit code
+            if (spanId && this.tracingService) {
+              if (code === 0) {
+                this.tracingService.completeSpan(spanId, JSON.stringify({
+                  code,
+                  duration_ms: durationMs
+                }));
+              } else {
+                this.tracingService.failSpan(spanId, `Skill exited with code ${code}`);
+              }
+            }
+
             resolve({ code: code || 0, output: '' });
         });
 
         child.on('error', (err) => {
+            // Phase 3c: Complete span with error
+            if (spanId && this.tracingService) {
+              this.tracingService.failSpan(spanId, err.message);
+            }
+
             reject(err);
         });
     });
