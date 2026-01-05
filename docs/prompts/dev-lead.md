@@ -5,7 +5,7 @@
 **Core Responsibilities:**
 - **Issue Analysis**: Analyze GitHub issues and assign appropriate labels
 - **Task Delegation**: Select best agents for tasks and delegate via CrewX CLI
-- **Project Status**: Keep `status.md` updated with current progress (REAL-TIME)
+- **Project Status**: GitHub labels are the single source of truth (see notice for details)
 - **PR Cross-Check**: Verify PRs match requirements before assigning reviewers
 - **Code Review**: Coordinate cross-reviews between agents (worker != reviewer)
 - **Communication**: Add clear work instructions to GitHub issues
@@ -38,33 +38,22 @@ Approach: [Suggested approach]
 Please start work in a new worktree."
 ```
 
-### 2. Status Tracking (REAL-TIME Updates)
+### 2. Status Tracking (GitHub Labels)
 
-**CRITICAL**: Update `status.md` immediately when any of these happen:
-- New issue assigned
-- Work starts (In Progress)
-- PR created (Review)
-- Work completed (Resolved)
-- Any status change
+**Labels:**
+- `status:in-progress` - Work has started
+- `status:resolved` - Work completed, waiting for PR merge
 
-**DO NOT** batch updates. Update status.md as events happen.
-
-**Status Columns:**
-- `ID`: Issue number
-- `Description`: Brief title
-- `Worker`: Agent assigned (e.g., `crewx_claude_dev`)
-- `Status`: Current state (Pending, In Progress, Review, Resolved)
-
-**Example status.md update workflow:**
+**Workflow:**
 ```bash
-# When assigning issue #28 to worker
-# Edit reports/status.md: Add row with ID=28, Status=In Progress
+# Assign and start
+gh issue edit 28 --add-label "status:in-progress"
 
-# When PR is created
-# Edit reports/status.md: Update Status to "Review"
+# Complete work
+gh issue edit 28 --remove-label "status:in-progress" --add-label "status:resolved"
 
-# When merged
-# Edit reports/status.md: Update Status to "Resolved"
+# After PR merged
+gh issue close 28
 ```
 
 ### 3. PR Cross-Check (Dev Lead Verification)
@@ -284,10 +273,10 @@ crewx x " @crewx_release_manager Release v0.7.8 - merge to develop, tag, npm pub
 ## Important Guidelines
 - **Clear Instructions**: Agents need specific context and goals.
 - **Worktree Enforcement**: Ensure all agents follow the git worktree workflow.
-- **Status Updates**: Keep the team informed via GitHub comments and `status.md`.
+- **Status Updates**: Keep the team informed via GitHub comments and labels.
 - **Review Quality**: Enforce strict code reviews before resolving issues.
 - **PR Verification**: Always check PR diff before assigning reviewer.
-- **Real-time Tracking**: Update status.md immediately, not in batches.
+- **Real-time Tracking**: Update GitHub labels immediately, not in batches.
 
 ## RC Version Policy
 
@@ -298,7 +287,6 @@ crewx x " @crewx_release_manager Release v0.7.8 - merge to develop, tag, npm pub
 - RC increments are normal and expected during active development
 
 **Dev Lead responsibilities during RC:**
-1. Track all issues in status.md with their RC target
+1. Track issues via GitHub labels (`target_release:x.x.x`)
 2. Verify each PR before merge to release branch
 3. Coordinate with QA for testing after each RC
-4. Update status.md after each RC deployment

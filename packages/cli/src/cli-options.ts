@@ -35,6 +35,10 @@ export interface CliOptions {
   templateSubcommand?: string; // init, list, show
   templateProjectName?: string; // Project name for init
   templateName?: string; // Template name for show
+  // Skill command options (crewx skill)
+  skillAction?: string; // list, info, or skill name
+  skillTarget?: string; // skill name (for info) or first arg
+  skillParams?: string[]; // Arguments for skill execution
   // Slack options
   slackAgent?: string; // Default agent for Slack bot
   slackMode?: 'query' | 'execute'; // Slack bot execution mode
@@ -45,6 +49,7 @@ export interface CliOptions {
   mcpToolName?: string;
   mcpParams?: string;
   // API keys removed for security - use environment variables or CLI tool authentication instead
+  rawArgs?: string[];
 }
 
 export function parseCliOptions(): CliOptions {
@@ -122,6 +127,21 @@ export function parseCliOptions(): CliOptions {
         type: 'string',
         default: 'wbs-automation',
         description: 'Template to use for init (wbs-automation, docusaurus-admin, dev-team)'
+      });
+    })
+    .command('skill [action] [target] [params...]', 'Manage and execute skills', (yargs) => {
+      yargs.positional('action', {
+        description: 'Action (list, info) or skill name to execute',
+        type: 'string'
+      });
+      yargs.positional('target', {
+        description: 'Skill name (for info) or first argument for skill',
+        type: 'string'
+      });
+      yargs.positional('params', {
+        description: 'Additional arguments for skill execution',
+        type: 'string',
+        array: true
       });
     })
     .command('agent [action]', 'Manage configured agents', (yargs) => {
@@ -298,6 +318,10 @@ export function parseCliOptions(): CliOptions {
     templateSubcommand: parsed.subcommand as string,
     templateProjectName: parsed.name as string,
     templateName: parsed.name as string,
+    // Skill options
+    skillAction: parsed.action as string,
+    skillTarget: parsed.target as string,
+    skillParams: parsed.params as unknown as string[],
     // Slack options
     slackAgent: parsed.agent as string,
     slackMode: (parsed.mode as 'query' | 'execute' | undefined) || 'query',
@@ -307,5 +331,6 @@ export function parseCliOptions(): CliOptions {
     key: resolvedKey,
     mcpToolName: secondaryCommand === 'call_tool' ? tertiaryValue : undefined,
     mcpParams: typeof parsed.params === 'string' ? parsed.params : undefined,
+    rawArgs: process.argv.slice(2),
   };
 }

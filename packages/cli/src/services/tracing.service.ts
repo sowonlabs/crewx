@@ -320,6 +320,15 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Estimate token count from text (chars * 0.4 approximation)
+   * More accurate parsing (JSON extraction) is a future enhancement
+   */
+  private estimateTokens(text: string): number {
+    if (!text) return 0;
+    return Math.ceil(text.length * 0.4);
+  }
+
+  /**
    * Create a new task record
    * Phase 3b: Token estimation removed - will be populated via JSON parsing in future
    */
@@ -390,11 +399,12 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
       const stmt = this.db.prepare(`
         UPDATE tasks
         SET status = ?, result = ?, completed_at = ?,
-            duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)
+            duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER),
+            output_tokens = ?
         WHERE id = ?
       `);
 
-      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, taskId);
+      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, 0, taskId);
       return info.changes > 0;
     } catch (error) {
       this.logger.error(

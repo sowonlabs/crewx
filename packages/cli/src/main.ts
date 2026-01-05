@@ -32,8 +32,15 @@ process.stderr.on('error', (err: NodeJS.ErrnoException) => {
 });
 
 // If --help or -h is used, force the command to be 'help'
+// UNLESS it is 'skill' command with a specific skill/action target (to pass --help to the skill)
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  args.command = 'help';
+  const isSkillExecution = args.command === 'skill' && 
+    args.skillAction && 
+    !['list', 'ls', 'info'].includes(args.skillAction);
+    
+  if (!isSkillExecution) {
+    args.command = 'help';
+  }
 }
 
 async function cli() {

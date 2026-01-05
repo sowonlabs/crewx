@@ -151,6 +151,14 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
       if (slackFormatted.length > maxTotalLength) {
         response = this.truncateForSlack(result.response, maxTotalLength * 0.95); // Leave margin
         slackFormatted = this.convertMarkdownToMrkdwn(response);
+
+        // Issue #59: After re-conversion, content may still exceed block size limit
+        // md-to-slack conversion can increase character count due to escaping
+        // Force another check to ensure we stay within limits
+        if (slackFormatted.length > maxTotalLength) {
+          // Final truncation at mrkdwn level (post-conversion)
+          slackFormatted = this.truncateAtMrkdwnLevel(slackFormatted, maxTotalLength);
+        }
       }
 
       // Handle large messages: split into multiple sections if needed
@@ -386,6 +394,10 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
   /**
    * Split text into sections that fit within Slack's 3000 char limit
    * Breaks at newlines to preserve markdown formatting
+   *
+   * Issue #59: Enhanced to handle Gemini-style responses without line breaks
+   * - Forces split at maxLength even when there are no newlines
+   * - Tries to find safe break points (space, punctuation) within long lines
    */
   private splitIntoSections(text: string, maxLength: number): string[] {
     if (!text || text.length <= maxLength) {
@@ -407,14 +419,18 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
           currentSection = '';
         }
 
-        // If a single line is longer than maxLength, split it
+        // If a single line is longer than maxLength, split it smartly
         if (lineWithNewline.length > maxLength) {
-          let remainingLine = lineWithNewline;
-          while (remainingLine.length > maxLength) {
-            sections.push(remainingLine.substring(0, maxLength));
-            remainingLine = remainingLine.substring(maxLength);
+          const splitLines = this.forceSplitLongLine(lineWithNewline, maxLength);
+          // Add all but the last segment as complete sections
+          for (let i = 0; i < splitLines.length - 1; i++) {
+            const segment = splitLines[i];
+            if (segment) {
+              sections.push(segment.trimEnd());
+            }
           }
-          currentSection = remainingLine;
+          // Keep the last segment as current section (may combine with next line)
+          currentSection = splitLines[splitLines.length - 1] ?? '';
         } else {
           currentSection = lineWithNewline;
         }
@@ -428,6 +444,133 @@ export class SlackMessageFormatter extends BaseMessageFormatter {
       sections.push(currentSection.trimEnd());
     }
 
-    return sections;
+    // Final safety check: ensure NO section exceeds maxLength
+    // This handles edge cases where combining left a section too long
+    return this.ensureMaxLength(sections, maxLength);
+  }
+
+  /**
+   * Force split a long line at safe break points
+   * Issue #59: Gemini often generates code/text without line breaks
+   *
+   * Priority for break points:
+   * 1. Space character (word boundary)
+   * 2. Punctuation (., ,, ;, :, ], ), })
+   * 3. Hard cut at maxLength (last resort)
+   */
+  private forceSplitLongLine(line: string, maxLength: number): string[] {
+    const segments: string[] = [];
+    let remaining = line;
+
+    while (remaining.length > maxLength) {
+      // Find best break point within maxLength
+      let breakPoint = this.findBestBreakPoint(remaining, maxLength);
+
+      // If no good break point found, hard cut
+      if (breakPoint <= 0) {
+        breakPoint = maxLength;
+      }
+
+      segments.push(remaining.substring(0, breakPoint));
+      remaining = remaining.substring(breakPoint);
+
+      // Skip leading spaces after break (clean up)
+      if (remaining.startsWith(' ')) {
+        remaining = remaining.trimStart();
+      }
+    }
+
+    if (remaining) {
+      segments.push(remaining);
+    }
+
+    return segments;
+  }
+
+  /**
+   * Find the best break point within maxLength
+   * Returns position to break at, or 0 if no good break point found
+   */
+  private findBestBreakPoint(text: string, maxLength: number): number {
+    // Search from maxLength backwards for a safe break point
+    // Look in the last 20% of the allowed range to avoid very short segments
+    const searchStart = Math.floor(maxLength * 0.8);
+
+    // Priority 1: Last space before maxLength (word boundary)
+    const lastSpace = text.lastIndexOf(' ', maxLength);
+    if (lastSpace >= searchStart) {
+      return lastSpace + 1; // Include the space in current segment
+    }
+
+    // Priority 2: Punctuation marks
+    const punctuation = ['. ', ', ', '; ', ': ', '] ', ') ', '} '];
+    for (const punct of punctuation) {
+      const pos = text.lastIndexOf(punct, maxLength);
+      if (pos >= searchStart) {
+        return pos + punct.length;
+      }
+    }
+
+    // Priority 3: Any space (even earlier in the string)
+    if (lastSpace > 0) {
+      return lastSpace + 1;
+    }
+
+    // No good break point found, will hard cut
+    return 0;
+  }
+
+  /**
+   * Ensure all sections are within maxLength
+   * Final safety net for edge cases
+   */
+  private ensureMaxLength(sections: string[], maxLength: number): string[] {
+    const result: string[] = [];
+
+    for (const section of sections) {
+      if (section.length <= maxLength) {
+        result.push(section);
+      } else {
+        // Section still too long, force split again
+        const splits = this.forceSplitLongLine(section, maxLength);
+        result.push(...splits.map((s) => s.trimEnd()).filter((s) => s));
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Truncate at mrkdwn level (post-conversion)
+   * Issue #59: When md-to-slack conversion increases length beyond limit
+   */
+  private truncateAtMrkdwnLevel(text: string, maxLength: number): string {
+    if (text.length <= maxLength) {
+      return text;
+    }
+
+    // Try to break at a paragraph or sentence
+    const searchStart = Math.max(0, maxLength - 500);
+    let breakPoint = maxLength;
+
+    // Try paragraph break first
+    const lastDoubleNewline = text.lastIndexOf('\n\n', maxLength);
+    if (lastDoubleNewline > searchStart) {
+      breakPoint = lastDoubleNewline;
+    } else {
+      // Try single newline
+      const lastNewline = text.lastIndexOf('\n', maxLength);
+      if (lastNewline > searchStart) {
+        breakPoint = lastNewline;
+      } else {
+        // Try sentence end
+        const lastPeriod = text.lastIndexOf('. ', maxLength);
+        if (lastPeriod > searchStart) {
+          breakPoint = lastPeriod + 1;
+        }
+      }
+    }
+
+    return text.substring(0, breakPoint) + '\n\n_[Truncated due to Slack limits]_';
   }
 }
