@@ -308,12 +308,17 @@ cd /Users/doha/git/crewx/worktree/release-0.6.0
 # 3. Increment RC version (rc.0 → rc.1 → rc.2...)
 # Example: going from 0.6.0-rc.2 to 0.6.0-rc.3
 
-# Update all package versions
-sed -i '' 's/"version": "0\.6\.0-rc\.2"/"version": "0.6.0-rc.3"/' package.json packages/*/package.json
+# Update all package versions - use flexible pattern for any version
+sed -i '' 's/"version": "[^"]*"/"version": "X.Y.Z-rc.N"/' package.json packages/*/package.json
 
 # Update inter-package dependencies
-sed -i '' 's/"@sowonai\/crewx-sdk": "\^0\.6\.0-rc\.2"/"@sowonai\/crewx-sdk": "^0.6.0-rc.3"/' packages/cli/package.json
-sed -i '' 's/"@sowonai\/crewx-cli": "\^0\.6\.0-rc\.2"/"@sowonai\/crewx-cli": "^0.6.0-rc.3"/' packages/crewx/package.json
+# IMPORTANT: Use flexible pattern to handle both with/without caret (^)
+sed -i '' 's/"@sowonai\/crewx-sdk": "\^*[^"]*"/"@sowonai\/crewx-sdk": "^X.Y.Z-rc.N"/' packages/cli/package.json
+sed -i '' 's/"@sowonai\/crewx-cli": "\^*[^"]*"/"@sowonai\/crewx-cli": "X.Y.Z-rc.N"/' packages/crewx/package.json
+
+# VERIFY: Always check dependency was updated correctly
+echo "=== Verify dependency sync ===" && \
+grep -E '"@sowonai/crewx-(cli|sdk)"' packages/*/package.json
 
 # Commit version bump with description of fixes
 git add package.json packages/*/package.json
