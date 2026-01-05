@@ -75,6 +75,8 @@ export interface SpanRecord {
  * Task creation input
  */
 export interface CreateTaskInput {
+  /** Optional external ID. If provided, used as task ID; otherwise, auto-generated. */
+  id?: string;
   agent_id: string;
   user_id?: string;
   prompt: string;
@@ -331,13 +333,14 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
   /**
    * Create a new task record
    * Phase 3b: Token estimation removed - will be populated via JSON parsing in future
+   * Issue #77: Uses external id if provided, otherwise generates one
    */
   createTask(input: CreateTaskInput): string | null {
     if (!this.db) {
       return null;
     }
 
-    const id = this.generateId();
+    const id = input.id ?? this.generateId();
     const now = this.now();
 
     // Phase 3a: Merge provider_version into metadata if provided
