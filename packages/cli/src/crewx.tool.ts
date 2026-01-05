@@ -19,6 +19,7 @@ import { RemoteAgentService } from './services/remote-agent.service';
 import { ProviderBridgeService, type ProviderBridgeAgentRuntime } from './services/provider-bridge.service';
 import { SkillLoaderService } from './services/skill-loader.service';
 import { TracingService } from './services/tracing.service';
+import { CREWX_VERSION } from './version';
 
 @Injectable()
 export class CrewXTool implements OnModuleInit {
@@ -785,14 +786,17 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       // Phase 3a: Pass extended fields to TracingService
       // Phase 3b: Add trace_id, parent_task_id, caller_agent_id for chain tracing
       // Issue #77: Pass taskId from TaskManagementService to ensure ID consistency
+      // Get model from agent config if not explicitly provided
+      const resolvedModel = model ?? agent?.inline?.model ?? undefined;
+
       traceTaskId = this.tracingService?.createTask({
         id: taskId,  // Use same ID as TaskManagementService for consistency
         agent_id: agentId,
         prompt: query,
         mode: 'query',
-        model: model ?? undefined,
+        model: resolvedModel,
         platform: platform ?? 'cli',
-        crewx_version: process.env.npm_package_version ?? '0.8.0',
+        crewx_version: CREWX_VERSION,
         trace_id: traceId,
         parent_task_id: inheritedParentTaskId,
         caller_agent_id: inheritedCallerAgentId,
@@ -1343,14 +1347,17 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       // Phase 3a: Pass extended fields to TracingService
       // Phase 3b: Add trace_id, parent_task_id, caller_agent_id for chain tracing
       // Issue #77: Pass taskId from TaskManagementService to ensure ID consistency
+      // Get model from agent config if not explicitly provided
+      const resolvedModel = model ?? agent?.inline?.model ?? undefined;
+
       traceTaskId = this.tracingService?.createTask({
         id: taskId,  // Use same ID as TaskManagementService for consistency
         agent_id: agentId,
         prompt: task,
         mode: 'execute',
-        model: model ?? undefined,
+        model: resolvedModel,
         platform: platform ?? 'cli',
-        crewx_version: process.env.npm_package_version ?? '0.8.0',
+        crewx_version: CREWX_VERSION,
         trace_id: traceId,
         parent_task_id: inheritedParentTaskId,
         caller_agent_id: inheritedCallerAgentId,
