@@ -1,5 +1,5 @@
 import { PREFIX_TOOL_NAME, SERVER_NAME, getErrorMessage, getErrorStack, getTimeoutConfig, LayoutLoader, LayoutRenderer, RenderContext, AgentInfo, type ProviderResolutionResult, type ConversationMessage } from '@sowonai/crewx-sdk';
-import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, Optional } from '@nestjs/common';
 import { McpTool } from '@sowonai/nestjs-mcp-adapter';
 import { z } from 'zod';
 import * as fs from 'fs';
@@ -18,6 +18,7 @@ import { AgentLoaderService } from './services/agent-loader.service';
 import { RemoteAgentService } from './services/remote-agent.service';
 import { ProviderBridgeService, type ProviderBridgeAgentRuntime } from './services/provider-bridge.service';
 import { SkillLoaderService } from './services/skill-loader.service';
+import { TracingService } from './services/tracing.service';
 
 @Injectable()
 export class CrewXTool implements OnModuleInit {
@@ -128,6 +129,7 @@ export class CrewXTool implements OnModuleInit {
     private readonly skillLoaderService: SkillLoaderService,
     @Inject('LAYOUT_LOADER') private readonly layoutLoader: LayoutLoader,
     @Inject('LAYOUT_RENDERER') private readonly layoutRenderer: LayoutRenderer,
+    @Optional() private readonly tracingService?: TracingService,
   ) {}
 
   /**
@@ -750,6 +752,7 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
 
     // Load agent first to get correct provider
     let taskId: string;
+    let traceTaskId: string | null = null;
     try {
       // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
       const agents = await this.agentLoaderService.getAllAgents();
@@ -769,6 +772,14 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       });
       const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${agentDescriptor}` });
+
+      // Start tracing (graceful - won't crash if DB unavailable)
+      traceTaskId = this.tracingService?.createTask({
+        agent_id: agentId,
+        prompt: query,
+        mode: 'query',
+        metadata: { model, platform, provider: agentProvider },
+      }) ?? null;
 
       this.logger.log(`[${taskId}] Querying agent ${agentId}: ${query.substring(0, 50)}...`);
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Query: ${query.substring(0, 100)}...` });
@@ -1110,15 +1121,24 @@ ${query}
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Query completed. Success: ${response.success}` });
       this.taskManagementService.completeTask(taskId, response, response.success);
 
+      // Complete tracing (graceful - won't crash if DB unavailable)
+      if (traceTaskId) {
+        if (response.success) {
+          this.tracingService?.completeTask(traceTaskId, response.content);
+        } else {
+          this.tracingService?.failTask(traceTaskId, response.error || 'Unknown error');
+        }
+      }
+
       // Compose MCP response text (simple format for Slack)
-      const responseText = response.success 
-        ? response.content 
+      const responseText = response.success
+        ? response.content
         : `❌ **Error**\n\`\`\`${response.error}\`\`\`\n\nAgent: ${agentId} (${response.provider}) · Task ID: \`${taskId}\``;
 
       return {
         content: [
-          { 
-            type: 'text', 
+          {
+            type: 'text',
             text: responseText
           }
         ],
@@ -1135,6 +1155,11 @@ ${query}
 
     } catch (error) {
       const errorMessage = getErrorMessage(error);
+
+      // Fail tracing (graceful - won't crash if DB unavailable)
+      if (traceTaskId) {
+        this.tracingService?.failTask(traceTaskId, errorMessage);
+      }
 
       // Only log to task if taskId was successfully created
       if (taskId!) {
@@ -1266,6 +1291,7 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
 
     // Load agent first to get correct provider
     let taskId: string;
+    let traceTaskId: string | null = null;
     try {
       // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
       const agents = await this.agentLoaderService.getAllAgents();
@@ -1285,6 +1311,14 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
       });
       const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${agentDescriptor}` });
+
+      // Start tracing (graceful - won't crash if DB unavailable)
+      traceTaskId = this.tracingService?.createTask({
+        agent_id: agentId,
+        prompt: task,
+        mode: 'execute',
+        metadata: { model, platform, provider: agentProvider },
+      }) ?? null;
 
       this.logger.log(`[${taskId}] Executing agent ${agentId}: ${task.substring(0, 50)}...`);
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Task: ${task.substring(0, 100)}...` });
@@ -1618,6 +1652,15 @@ Task: ${task}
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Execution completed. Success: ${response.success}` });
       this.taskManagementService.completeTask(taskId, response, response.success);
 
+      // Complete tracing (graceful - won't crash if DB unavailable)
+      if (traceTaskId) {
+        if (response.success) {
+          this.tracingService?.completeTask(traceTaskId, response.content);
+        } else {
+          this.tracingService?.failTask(traceTaskId, response.error || 'Unknown error');
+        }
+      }
+
       // Compose MCP response text - Clean format for Slack
       // Only show the actual AI response content, not metadata
       const responseText = response.success ? response.content : `❌ Execution Failed: ${response.error}`;
@@ -1641,6 +1684,11 @@ Task: ${task}
 
     } catch (error) {
       const errorMessage = getErrorMessage(error);
+
+      // Fail tracing (graceful - won't crash if DB unavailable)
+      if (traceTaskId) {
+        this.tracingService?.failTask(traceTaskId, errorMessage);
+      }
 
       // Only log to task if taskId was successfully created
       if (taskId!) {
