@@ -40,6 +40,16 @@ export interface TaskRecord {
   completed_at?: string;
   duration_ms?: number;
   metadata?: Record<string, unknown>;
+  /** Phase 3a: Extended fields */
+  trace_id?: string;
+  parent_task_id?: string;
+  caller_agent_id?: string;
+  model?: string;
+  platform?: string;
+  crewx_version?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  cost_usd?: number;
 }
 
 /**
@@ -70,6 +80,16 @@ export interface CreateTaskInput {
   prompt: string;
   mode: 'query' | 'execute';
   metadata?: Record<string, unknown>;
+  /** Phase 3a: Extended fields */
+  trace_id?: string;
+  parent_task_id?: string;
+  caller_agent_id?: string;
+  model?: string;
+  platform?: 'cli' | 'slack' | 'mcp';
+  crewx_version?: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  cost_usd?: number;
 }
 
 /**
@@ -191,12 +211,82 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
         CREATE INDEX IF NOT EXISTS idx_spans_parent_span_id ON spans(parent_span_id);
       `);
 
+      // Phase 3a: Run schema migration for new columns
+      this.migrateSchemaPhase3a();
+
       this.logger.log(`Tracing database initialized at ${this.dbPath}`);
     } catch (error) {
       this.logger.error(
         `Failed to initialize tracing database: ${error instanceof Error ? error.message : String(error)}`,
       );
       // Don't throw - tracing is non-critical, app should continue without it
+    }
+  }
+
+  /**
+   * Check if a column exists in a table
+   */
+  private columnExists(tableName: string, columnName: string): boolean {
+    if (!this.db) return false;
+    try {
+      const result = this.db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+      return result.some(col => col.name === columnName);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Phase 3a: Migrate schema to add new columns for enhanced tracing
+   * Uses columnExists check to safely add columns only if they don't exist
+   */
+  private migrateSchemaPhase3a(): void {
+    if (!this.db) return;
+
+    const newColumns = [
+      { name: 'trace_id', type: 'TEXT' },
+      { name: 'parent_task_id', type: 'TEXT' },
+      { name: 'caller_agent_id', type: 'TEXT' },
+      { name: 'model', type: 'TEXT' },
+      { name: 'platform', type: 'TEXT', default: "'cli'" },
+      { name: 'crewx_version', type: 'TEXT' },
+      { name: 'input_tokens', type: 'INTEGER', default: '0' },
+      { name: 'output_tokens', type: 'INTEGER', default: '0' },
+      { name: 'cost_usd', type: 'REAL', default: '0' },
+    ];
+
+    let migratedCount = 0;
+
+    for (const col of newColumns) {
+      if (!this.columnExists('tasks', col.name)) {
+        try {
+          const defaultClause = col.default ? ` DEFAULT ${col.default}` : '';
+          this.db.exec(`ALTER TABLE tasks ADD COLUMN ${col.name} ${col.type}${defaultClause}`);
+          migratedCount++;
+          this.logger.debug(`Added column tasks.${col.name}`);
+        } catch (error) {
+          this.logger.warn(`Failed to add column ${col.name}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+    }
+
+    // Create indexes for new columns (if they don't exist)
+    const indexes = [
+      { name: 'idx_tasks_trace_id', column: 'trace_id' },
+      { name: 'idx_tasks_parent_task_id', column: 'parent_task_id' },
+      { name: 'idx_tasks_crewx_version', column: 'crewx_version' },
+    ];
+
+    for (const idx of indexes) {
+      try {
+        this.db.exec(`CREATE INDEX IF NOT EXISTS ${idx.name} ON tasks(${idx.column})`);
+      } catch (error) {
+        this.logger.warn(`Failed to create index ${idx.name}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    if (migratedCount > 0) {
+      this.logger.log(`Phase 3a migration: Added ${migratedCount} new columns to tasks table`);
     }
   }
 
@@ -230,6 +320,15 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Estimate token count from text (chars * 0.4 approximation)
+   * More accurate parsing (JSON extraction) is a future enhancement
+   */
+  private estimateTokens(text: string): number {
+    if (!text) return 0;
+    return Math.ceil(text.length * 0.4);
+  }
+
+  /**
    * Create a new task record
    */
   createTask(input: CreateTaskInput): string | null {
@@ -240,10 +339,21 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
     const id = this.generateId();
     const now = this.now();
 
+    // Phase 3a: Estimate input tokens from prompt
+    const inputTokens = input.input_tokens ?? this.estimateTokens(input.prompt);
+
+    // Phase 3a: Merge provider_version into metadata if provided
+    const metadata = input.metadata ? { ...input.metadata } : {};
+    // Note: provider_version can be added to metadata by the caller
+
     try {
       const stmt = this.db.prepare(`
-        INSERT INTO tasks (id, agent_id, user_id, prompt, mode, status, started_at, metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (
+          id, agent_id, user_id, prompt, mode, status, started_at, metadata,
+          trace_id, parent_task_id, caller_agent_id, model, platform, crewx_version,
+          input_tokens, output_tokens, cost_usd
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -254,10 +364,19 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
         input.mode,
         TaskStatus.RUNNING,
         now,
-        input.metadata ? JSON.stringify(input.metadata) : null,
+        Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
+        input.trace_id ?? null,
+        input.parent_task_id ?? null,
+        input.caller_agent_id ?? null,
+        input.model ?? null,
+        input.platform ?? 'cli',
+        input.crewx_version ?? null,
+        inputTokens,
+        input.output_tokens ?? 0,
+        input.cost_usd ?? 0,
       );
 
-      this.logger.debug(`Task created: ${id} for agent ${input.agent_id}`);
+      this.logger.debug(`Task created: ${id} for agent ${input.agent_id} (model: ${input.model ?? 'default'})`);
       return id;
     } catch (error) {
       this.logger.error(
@@ -269,6 +388,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Complete a task with success
+   * Phase 3a: Also updates output_tokens based on result length
    */
   completeTask(taskId: string, result?: string): boolean {
     if (!this.db) {
@@ -277,14 +397,18 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const now = this.now();
+      // Phase 3a: Estimate output tokens from result
+      const outputTokens = this.estimateTokens(result ?? '');
+
       const stmt = this.db.prepare(`
         UPDATE tasks
         SET status = ?, result = ?, completed_at = ?,
-            duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)
+            duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER),
+            output_tokens = ?
         WHERE id = ?
       `);
 
-      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, taskId);
+      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, outputTokens, taskId);
       return info.changes > 0;
     } catch (error) {
       this.logger.error(
