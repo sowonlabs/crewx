@@ -44,6 +44,8 @@ export interface AIResponse {
     toolInput: any;
     toolResult: any;
   };
+  /** Phase 4: Process ID of the spawned CLI process */
+  pid?: number;
 }
 
 export interface AIProvider {

@@ -801,6 +801,7 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
         parent_task_id: inheritedParentTaskId,
         caller_agent_id: inheritedCallerAgentId,
         metadata: { provider: agentProvider, provider_version: undefined }, // provider_version will be captured in future
+        command: process.argv.join(' '),  // Phase 4: CLI command executed
       }) ?? null;
 
       this.logger.log(`[${taskId}] Querying agent ${agentId}: ${query.substring(0, 50)}...`);
@@ -981,6 +982,11 @@ ${query}
 </user_query>`;
       }
 
+      // Phase 4: Update trace with rendered prompt
+      if (traceTaskId) {
+        this.tracingService?.updateTaskRenderedPrompt(traceTaskId, fullPrompt);
+      }
+
       let runtimeResult: ProviderBridgeAgentRuntime;
       let providerResolution: ProviderResolutionResult;
       let providerInput: string | undefined;
@@ -1138,7 +1144,13 @@ ${query}
         provider: agentResult.metadata?.provider ?? resolvedProviderName,
         taskId: agentResult.metadata?.taskId ?? taskId,
         error: agentResult.metadata?.error,
+        pid: agentResult.metadata?.pid as number | undefined,
       };
+
+      // Phase 4: Update PID in trace record
+      if (traceTaskId && response.pid) {
+        this.tracingService?.updateTaskPid(traceTaskId, response.pid);
+      }
 
       // Handle task completion
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Query completed. Success: ${response.success}` });
@@ -1362,6 +1374,7 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
         parent_task_id: inheritedParentTaskId,
         caller_agent_id: inheritedCallerAgentId,
         metadata: { provider: agentProvider, provider_version: undefined }, // provider_version will be captured in future
+        command: process.argv.join(' '),  // Phase 4: CLI command executed
       }) ?? null;
 
       this.logger.log(`[${taskId}] Executing agent ${agentId}: ${task.substring(0, 50)}...`);
@@ -1522,7 +1535,7 @@ Working Directory: ${workingDir}`;
       }
 
       // Build full prompt (context already formatted by template)
-      const fullPrompt = context 
+      const fullPrompt = context
         ? `${systemPrompt}
 ${context}
 
@@ -1532,6 +1545,11 @@ Task: ${task}
 
 Task: ${task}
 `;
+
+      // Phase 4: Update trace with rendered prompt
+      if (traceTaskId) {
+        this.tracingService?.updateTaskRenderedPrompt(traceTaskId, fullPrompt);
+      }
 
       let runtimeResult: ProviderBridgeAgentRuntime;
       let providerResolution: ProviderResolutionResult;
@@ -1691,7 +1709,13 @@ Task: ${task}
         provider: agentResult.metadata?.provider ?? resolvedProviderName,
         taskId: agentResult.metadata?.taskId ?? taskId,
         error: agentResult.metadata?.error,
+        pid: agentResult.metadata?.pid as number | undefined,
       };
+
+      // Phase 4: Update PID in trace record
+      if (traceTaskId && response.pid) {
+        this.tracingService?.updateTaskPid(traceTaskId, response.pid);
+      }
 
       // Handle task completion
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Execution completed. Success: ${response.success}` });
