@@ -516,7 +516,7 @@ Started: ${timestamp}
         }
 
         const startTime = Date.now();
-        let firstOutputAt: number | null = null;
+        let firstOutputAt: number | undefined = undefined;
 
         const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
@@ -534,7 +534,7 @@ Started: ${timestamp}
 
         child.stdout.on('data', (data: any) => {
           const output = data.toString();
-          if (firstOutputAt === null) {
+          if (firstOutputAt === undefined) {
             firstOutputAt = Date.now();
           }
           stdout += output;
@@ -543,7 +543,7 @@ Started: ${timestamp}
 
         child.stderr.on('data', (data: any) => {
           const output = data.toString();
-          if (firstOutputAt === null) {
+          if (firstOutputAt === undefined) {
             firstOutputAt = Date.now();
           }
           stderr += output;
@@ -554,7 +554,7 @@ Started: ${timestamp}
           exitCode = code;
           const completedAt = Date.now();
           const durationMs = completedAt - startTime;
-          const timeToFirstOutputMs = firstOutputAt !== null ? firstOutputAt - startTime : null;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'INFO', `Process closed with exit code: ${exitCode}`);
 
           if (stderr) {
@@ -636,7 +636,7 @@ Started: ${timestamp}
 
         child.on('error', (error: any) => {
           const durationMs = Date.now() - startTime;
-          const timeToFirstOutputMs = firstOutputAt !== null ? firstOutputAt - startTime : null;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'ERROR', `Process error: ${error.message}`);
           resolve({
             content: '',
@@ -671,7 +671,7 @@ Started: ${timestamp}
         // Timeout handling
         const timeout = setTimeout(() => {
           const durationMs = Date.now() - startTime;
-          const timeToFirstOutputMs = firstOutputAt !== null ? firstOutputAt - startTime : null;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           child.kill();
           resolve({
             content: '',
@@ -792,7 +792,7 @@ Started: ${timestamp}
         }
 
         const startTime = Date.now();
-        let firstOutputAt: number | null = null;
+        let firstOutputAt: number | undefined = undefined;
 
         const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
@@ -810,7 +810,7 @@ Started: ${timestamp}
 
         child.stdout.on('data', (data: any) => {
           const output = data.toString();
-          if (firstOutputAt === null) {
+          if (firstOutputAt === undefined) {
             firstOutputAt = Date.now();
           }
           stdout += output;
@@ -819,7 +819,7 @@ Started: ${timestamp}
 
         child.stderr.on('data', (data: any) => {
           const output = data.toString();
-          if (firstOutputAt === null) {
+          if (firstOutputAt === undefined) {
             firstOutputAt = Date.now();
           }
           stderr += output;
@@ -830,7 +830,7 @@ Started: ${timestamp}
           exitCode = code;
           const completedAt = Date.now();
           const durationMs = completedAt - startTime;
-          const timeToFirstOutputMs = firstOutputAt !== null ? firstOutputAt - startTime : null;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'INFO', `Process closed with exit code: ${exitCode}`);
 
           if (stderr) {
@@ -909,7 +909,7 @@ Started: ${timestamp}
 
         child.on('error', (error: any) => {
           const durationMs = Date.now() - startTime;
-          const timeToFirstOutputMs = firstOutputAt !== null ? firstOutputAt - startTime : null;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'ERROR', `Process error: ${error.message}`);
           resolve({
             content: '',
@@ -944,7 +944,7 @@ Started: ${timestamp}
         // Timeout handling
         const timeout = setTimeout(() => {
           const durationMs = Date.now() - startTime;
-          const timeToFirstOutputMs = firstOutputAt !== null ? firstOutputAt - startTime : null;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           child.kill();
           resolve({
             content: '',
