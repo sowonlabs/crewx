@@ -46,6 +46,14 @@ export interface AIResponse {
   };
   /** Phase 4: Process ID of the spawned CLI process */
   pid?: number;
+  /** Exit code reported by the CLI process (null if unavailable). */
+  exitCode?: number | null;
+  /** Total duration from spawn to completion in milliseconds. */
+  durationMs?: number;
+  /** Time from spawn to first stdout/stderr output in milliseconds. */
+  timeToFirstOutputMs?: number;
+  /** Length of the prompt in characters. */
+  promptLength?: number;
 }
 
 export interface AIProvider {

@@ -63,6 +63,8 @@ export interface TaskRecord {
   pid?: number;
   rendered_prompt?: string;
   command?: string;
+  coding_agent_command?: string;
+  exit_code?: number;
   logs?: TaskLogEntry[];
 }
 
@@ -110,6 +112,8 @@ export interface CreateTaskInput {
   pid?: number;
   rendered_prompt?: string;
   command?: string;
+  coding_agent_command?: string;
+  exit_code?: number;
 }
 
 /**
@@ -317,7 +321,9 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
    * Phase 4: Migrate schema to add enhanced task tracking columns
    * - pid: Process ID for running tasks
    * - rendered_prompt: Full rendered prompt (10MB limit handled in createTask)
-   * - command: CLI command executed
+   * - command: CrewX CLI command executed
+   * - coding_agent_command: Underlying coding agent CLI command executed
+   * - exit_code: CLI process exit code
    * - logs: JSON array of log entries for real-time storage
    */
   private migrateSchemaPhase4(): void {
@@ -327,6 +333,8 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
       { name: 'pid', type: 'INTEGER' },
       { name: 'rendered_prompt', type: 'TEXT' },
       { name: 'command', type: 'TEXT' },
+      { name: 'coding_agent_command', type: 'TEXT' },
+      { name: 'exit_code', type: 'INTEGER' },
       { name: 'logs', type: 'TEXT' }, // JSON array
     ];
 
@@ -398,7 +406,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
    * Create a new task record
    * Phase 3b: Token estimation removed - will be populated via JSON parsing in future
    * Issue #77: Uses external id if provided, otherwise generates one
-   * Phase 4: Added pid, rendered_prompt, command fields
+   * Phase 4: Added pid, rendered_prompt, command, coding_agent_command, exit_code fields
    */
   createTask(input: CreateTaskInput): string | null {
     if (!this.db) {
@@ -426,9 +434,9 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
           id, agent_id, user_id, prompt, mode, status, started_at, metadata,
           trace_id, parent_task_id, caller_agent_id, model, platform, crewx_version,
           input_tokens, output_tokens, cost_usd,
-          pid, rendered_prompt, command, logs
+          pid, rendered_prompt, command, coding_agent_command, exit_code, logs
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -451,7 +459,9 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
         input.cost_usd ?? 0,
         input.pid ?? null,  // Phase 4: Process ID
         renderedPrompt,     // Phase 4: Rendered prompt (with 10MB limit)
-        input.command ?? null, // Phase 4: CLI command
+        input.command ?? null, // Phase 4: CrewX CLI command
+        input.coding_agent_command ?? null, // Phase 4: Coding agent CLI command
+        input.exit_code ?? null,
         '[]',               // Phase 4: Initialize logs as empty JSON array
       );
 
@@ -469,7 +479,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
    * Complete a task with success
    * Phase 3b: output_tokens left at 0 - will be populated via JSON parsing in future
    */
-  completeTask(taskId: string, result?: string): boolean {
+  completeTask(taskId: string, result?: string, exitCode?: number | null): boolean {
     if (!this.db) {
       return false;
     }
@@ -481,11 +491,12 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
         UPDATE tasks
         SET status = ?, result = ?, completed_at = ?,
             duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER),
-            output_tokens = ?
+            output_tokens = ?,
+            exit_code = ?
         WHERE id = ?
       `);
 
-      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, 0, taskId);
+      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, 0, exitCode ?? null, taskId);
       return info.changes > 0;
     } catch (error) {
       this.logger.error(
@@ -498,7 +509,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
   /**
    * Fail a task with error
    */
-  failTask(taskId: string, error: string): boolean {
+  failTask(taskId: string, error: string, exitCode?: number | null): boolean {
     if (!this.db) {
       return false;
     }
@@ -508,11 +519,12 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
       const stmt = this.db.prepare(`
         UPDATE tasks
         SET status = ?, error = ?, completed_at = ?,
-            duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER)
+            duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER),
+            exit_code = ?
         WHERE id = ?
       `);
 
-      const info = stmt.run(TaskStatus.FAILED, error, now, now, taskId);
+      const info = stmt.run(TaskStatus.FAILED, error, now, now, exitCode ?? null, taskId);
       return info.changes > 0;
     } catch (error: unknown) {
       this.logger.error(
@@ -546,6 +558,35 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error(
         `Failed to update PID for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Phase 4: Update coding agent command
+   * Stores the underlying CLI command executed for the coding agent
+   */
+  updateTaskCodingAgentCommand(taskId: string, command: string): boolean {
+    if (!this.db) {
+      return false;
+    }
+
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE tasks
+        SET coding_agent_command = ?
+        WHERE id = ?
+      `);
+
+      const info = stmt.run(command, taskId);
+      if (info.changes > 0) {
+        this.logger.debug(`Updated task ${taskId} with coding agent command`);
+      }
+      return info.changes > 0;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update coding agent command for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
       );
       return false;
     }

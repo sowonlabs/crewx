@@ -987,6 +987,12 @@ ${query}
         this.tracingService?.updateTaskRenderedPrompt(traceTaskId, fullPrompt);
       }
 
+      const promptLength = fullPrompt.length;
+      this.taskManagementService.addTaskLog(taskId, {
+        level: 'info',
+        message: `Prompt length: ${promptLength} characters`,
+      });
+
       let runtimeResult: ProviderBridgeAgentRuntime;
       let providerResolution: ProviderResolutionResult;
       let providerInput: string | undefined;
@@ -1145,11 +1151,53 @@ ${query}
         taskId: agentResult.metadata?.taskId ?? taskId,
         error: agentResult.metadata?.error,
         pid: agentResult.metadata?.pid as number | undefined,
+        command: agentResult.metadata?.command as string | undefined,
+        exitCode: agentResult.metadata?.exitCode as number | null | undefined,
+        durationMs: agentResult.metadata?.durationMs as number | undefined,
+        timeToFirstOutputMs: agentResult.metadata?.timeToFirstOutputMs as number | null | undefined,
       };
 
       // Phase 4: Update PID in trace record
       if (traceTaskId && response.pid) {
         this.tracingService?.updateTaskPid(traceTaskId, response.pid);
+      }
+
+      if (traceTaskId && response.command) {
+        this.tracingService?.updateTaskCodingAgentCommand(traceTaskId, response.command);
+      }
+
+      if (response.command) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Coding agent command: ${response.command}`,
+        });
+      }
+      if (response.pid !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `PID: ${response.pid ?? 'unknown'}`,
+        });
+      }
+      if (response.exitCode !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Exit code: ${response.exitCode ?? 'unknown'}`,
+        });
+      }
+      if (response.durationMs !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Duration: ${response.durationMs}ms`,
+        });
+      }
+      if (response.timeToFirstOutputMs !== undefined) {
+        const firstResponseText = response.timeToFirstOutputMs === null
+          ? 'unknown'
+          : `${response.timeToFirstOutputMs}ms`;
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `First response: ${firstResponseText}`,
+        });
       }
 
       // Handle task completion
@@ -1159,9 +1207,9 @@ ${query}
       // Complete tracing (graceful - won't crash if DB unavailable)
       if (traceTaskId) {
         if (response.success) {
-          this.tracingService?.completeTask(traceTaskId, response.content);
+          this.tracingService?.completeTask(traceTaskId, response.content, response.exitCode);
         } else {
-          this.tracingService?.failTask(traceTaskId, response.error || 'Unknown error');
+          this.tracingService?.failTask(traceTaskId, response.error || 'Unknown error', response.exitCode);
         }
       }
 
@@ -1551,6 +1599,12 @@ Task: ${task}
         this.tracingService?.updateTaskRenderedPrompt(traceTaskId, fullPrompt);
       }
 
+      const promptLength = fullPrompt.length;
+      this.taskManagementService.addTaskLog(taskId, {
+        level: 'info',
+        message: `Prompt length: ${promptLength} characters`,
+      });
+
       let runtimeResult: ProviderBridgeAgentRuntime;
       let providerResolution: ProviderResolutionResult;
       let providerInput: string | undefined;
@@ -1710,11 +1764,53 @@ Task: ${task}
         taskId: agentResult.metadata?.taskId ?? taskId,
         error: agentResult.metadata?.error,
         pid: agentResult.metadata?.pid as number | undefined,
+        command: agentResult.metadata?.command as string | undefined,
+        exitCode: agentResult.metadata?.exitCode as number | null | undefined,
+        durationMs: agentResult.metadata?.durationMs as number | undefined,
+        timeToFirstOutputMs: agentResult.metadata?.timeToFirstOutputMs as number | null | undefined,
       };
 
       // Phase 4: Update PID in trace record
       if (traceTaskId && response.pid) {
         this.tracingService?.updateTaskPid(traceTaskId, response.pid);
+      }
+
+      if (traceTaskId && response.command) {
+        this.tracingService?.updateTaskCodingAgentCommand(traceTaskId, response.command);
+      }
+
+      if (response.command) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Coding agent command: ${response.command}`,
+        });
+      }
+      if (response.pid !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `PID: ${response.pid ?? 'unknown'}`,
+        });
+      }
+      if (response.exitCode !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Exit code: ${response.exitCode ?? 'unknown'}`,
+        });
+      }
+      if (response.durationMs !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Duration: ${response.durationMs}ms`,
+        });
+      }
+      if (response.timeToFirstOutputMs !== undefined) {
+        const firstResponseText = response.timeToFirstOutputMs === null
+          ? 'unknown'
+          : `${response.timeToFirstOutputMs}ms`;
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `First response: ${firstResponseText}`,
+        });
       }
 
       // Handle task completion
@@ -1724,9 +1820,9 @@ Task: ${task}
       // Complete tracing (graceful - won't crash if DB unavailable)
       if (traceTaskId) {
         if (response.success) {
-          this.tracingService?.completeTask(traceTaskId, response.content);
+          this.tracingService?.completeTask(traceTaskId, response.content, response.exitCode);
         } else {
-          this.tracingService?.failTask(traceTaskId, response.error || 'Unknown error');
+          this.tracingService?.failTask(traceTaskId, response.error || 'Unknown error', response.exitCode);
         }
       }
 

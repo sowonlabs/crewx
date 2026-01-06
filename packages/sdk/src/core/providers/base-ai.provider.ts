@@ -439,6 +439,7 @@ Started: ${timestamp}
     
     // Use command name directly - let the shell find it in PATH
     const executablePath = this.getCliCommand();
+    const promptLength = prompt.length;
 
     try {
       // Determine model to use (options.model > default_model)
@@ -476,12 +477,12 @@ Started: ${timestamp}
       // Create task log file
       this.createTaskLogFile(taskId, this.name, command, options.agentId, modelToUse);
       this.appendTaskLog(taskId, 'INFO', `Starting ${this.name} query mode`);
-      this.appendTaskLog(taskId, 'INFO', `Prompt length: ${prompt.length} characters`);
+      this.appendTaskLog(taskId, 'INFO', `Prompt length: ${promptLength} characters`);
       
       // Log prompt content (entire content for debugging)
       this.appendTaskLog(taskId, 'INFO', `Prompt content:\n${prompt}`);
 
-      this.logger.log(`Executing ${this.name} with prompt (length: ${prompt.length})`);
+      this.logger.log(`Executing ${this.name} with prompt (length: ${promptLength})`);
 
       return new Promise((resolve) => {
         // Set UTF-8 encoding to handle Korean/Unicode correctly across all platforms
@@ -514,6 +515,9 @@ Started: ${timestamp}
           useShell = true;
         }
 
+        const startTime = Date.now();
+        let firstOutputAt: number | undefined = undefined;
+
         const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
           cwd: options.workingDirectory || process.cwd(),
@@ -530,18 +534,27 @@ Started: ${timestamp}
 
         child.stdout.on('data', (data: any) => {
           const output = data.toString();
+          if (firstOutputAt === undefined) {
+            firstOutputAt = Date.now();
+          }
           stdout += output;
           this.appendTaskLog(taskId, 'STDOUT', output);
         });
 
         child.stderr.on('data', (data: any) => {
           const output = data.toString();
+          if (firstOutputAt === undefined) {
+            firstOutputAt = Date.now();
+          }
           stderr += output;
           this.appendTaskLog(taskId, 'STDERR', output);
         });
 
         child.on('close', (code: any) => {
           exitCode = code;
+          const completedAt = Date.now();
+          const durationMs = completedAt - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'INFO', `Process closed with exit code: ${exitCode}`);
 
           if (stderr) {
@@ -560,6 +573,10 @@ Started: ${timestamp}
               success: true,
               taskId,
               pid: childPid,
+              exitCode,
+              durationMs,
+              timeToFirstOutputMs,
+              promptLength,
             });
             return;
           }
@@ -577,6 +594,10 @@ Started: ${timestamp}
               error: `${this.name} CLI failed: ${errorMessage}`,
               taskId,
               pid: childPid,
+              exitCode,
+              durationMs,
+              timeToFirstOutputMs,
+              promptLength,
             });
             return;
           }
@@ -606,10 +627,16 @@ Started: ${timestamp}
             success: true,
             taskId,
             pid: childPid,
+            exitCode,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         });
 
         child.on('error', (error: any) => {
+          const durationMs = Date.now() - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'ERROR', `Process error: ${error.message}`);
           resolve({
             content: '',
@@ -619,6 +646,10 @@ Started: ${timestamp}
             error: error.code === 'ENOENT' ? this.getNotInstalledMessage() : error.message,
             taskId,
             pid: childPid,
+            exitCode: null,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         });
 
@@ -639,6 +670,8 @@ Started: ${timestamp}
 
         // Timeout handling
         const timeout = setTimeout(() => {
+          const durationMs = Date.now() - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           child.kill();
           resolve({
             content: '',
@@ -648,6 +681,10 @@ Started: ${timestamp}
             error: `${this.name} CLI timeout`,
             taskId,
             pid: childPid,
+            exitCode: null,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         }, options.timeout || this.getDefaultQueryTimeout());
 
@@ -663,6 +700,8 @@ Started: ${timestamp}
         error: error.message || 'Unknown error occurred',
         taskId,
         // No pid available in catch block
+        exitCode: null,
+        promptLength,
       };
     }
   }
@@ -672,6 +711,7 @@ Started: ${timestamp}
     
     // Use command name directly - let the shell find it in PATH
     const executablePath = this.getCliCommand();
+    const promptLength = prompt.length;
 
     try {
       // Determine model to use (options.model > default_model)
@@ -710,7 +750,7 @@ Started: ${timestamp}
       this.appendTaskLog(taskId, 'INFO', `Execute Args: ${JSON.stringify(this.getExecuteArgs())}`);
       this.appendTaskLog(taskId, 'INFO', `Final Args: ${JSON.stringify(args)}`);
       this.appendTaskLog(taskId, 'INFO', `Starting ${this.name} execute mode`);
-      this.appendTaskLog(taskId, 'INFO', `Prompt length: ${prompt.length} characters`);
+      this.appendTaskLog(taskId, 'INFO', `Prompt length: ${promptLength} characters`);
 
       // Log prompt content
       const promptPreview = prompt.length > this.logConfig.promptMaxLength ?
@@ -718,7 +758,7 @@ Started: ${timestamp}
         prompt;
       this.appendTaskLog(taskId, 'INFO', `Prompt content:\n${promptPreview}`);
 
-      this.logger.log(`Executing ${this.name} in execute mode (length: ${prompt.length})`);
+      this.logger.log(`Executing ${this.name} in execute mode (length: ${promptLength})`);
 
       return new Promise((resolve) => {
         // Set UTF-8 encoding to handle Korean/Unicode correctly across all platforms
@@ -751,6 +791,9 @@ Started: ${timestamp}
           useShell = true;
         }
 
+        const startTime = Date.now();
+        let firstOutputAt: number | undefined = undefined;
+
         const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
           cwd: options.workingDirectory || process.cwd(),
@@ -767,18 +810,27 @@ Started: ${timestamp}
 
         child.stdout.on('data', (data: any) => {
           const output = data.toString();
+          if (firstOutputAt === undefined) {
+            firstOutputAt = Date.now();
+          }
           stdout += output;
           this.appendTaskLog(taskId, 'STDOUT', output);
         });
 
         child.stderr.on('data', (data: any) => {
           const output = data.toString();
+          if (firstOutputAt === undefined) {
+            firstOutputAt = Date.now();
+          }
           stderr += output;
           this.appendTaskLog(taskId, 'STDERR', output);
         });
 
         child.on('close', (code: any) => {
           exitCode = code;
+          const completedAt = Date.now();
+          const durationMs = completedAt - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'INFO', `Process closed with exit code: ${exitCode}`);
 
           if (stderr) {
@@ -797,6 +849,10 @@ Started: ${timestamp}
               success: true,
               taskId,
               pid: childPid,
+              exitCode,
+              durationMs,
+              timeToFirstOutputMs,
+              promptLength,
             });
             return;
           }
@@ -814,6 +870,10 @@ Started: ${timestamp}
               error: `${this.name} CLI execute failed: ${errorMessage}`,
               taskId,
               pid: childPid,
+              exitCode,
+              durationMs,
+              timeToFirstOutputMs,
+              promptLength,
             });
             return;
           }
@@ -840,10 +900,16 @@ Started: ${timestamp}
             success: true,
             taskId,
             pid: childPid,
+            exitCode,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         });
 
         child.on('error', (error: any) => {
+          const durationMs = Date.now() - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'ERROR', `Process error: ${error.message}`);
           resolve({
             content: '',
@@ -853,6 +919,10 @@ Started: ${timestamp}
             error: error.code === 'ENOENT' ? this.getNotInstalledMessage() : error.message,
             taskId,
             pid: childPid,
+            exitCode: null,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         });
 
@@ -873,6 +943,8 @@ Started: ${timestamp}
 
         // Timeout handling
         const timeout = setTimeout(() => {
+          const durationMs = Date.now() - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           child.kill();
           resolve({
             content: '',
@@ -882,6 +954,10 @@ Started: ${timestamp}
             error: `${this.name} CLI execute timeout`,
             taskId,
             pid: childPid,
+            exitCode: null,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         }, options.timeout || this.getDefaultExecuteTimeout());
 
@@ -897,6 +973,8 @@ Started: ${timestamp}
         error: error.message || 'Unknown error occurred',
         taskId,
         // No pid available in catch block
+        exitCode: null,
+        promptLength,
       };
     }
   }
