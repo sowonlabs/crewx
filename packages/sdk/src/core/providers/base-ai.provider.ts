@@ -521,6 +521,9 @@ Started: ${timestamp}
           shell: useShell,
         } as any);
 
+        // Phase 4: Capture process ID for task tracking
+        const childPid = child.pid;
+
         let stdout = '';
         let stderr = '';
         let exitCode: number | null = null;
@@ -556,6 +559,7 @@ Started: ${timestamp}
               command,
               success: true,
               taskId,
+              pid: childPid,
             });
             return;
           }
@@ -572,6 +576,7 @@ Started: ${timestamp}
               success: false,
               error: `${this.name} CLI failed: ${errorMessage}`,
               taskId,
+              pid: childPid,
             });
             return;
           }
@@ -600,6 +605,7 @@ Started: ${timestamp}
             command,
             success: true,
             taskId,
+            pid: childPid,
           });
         });
 
@@ -612,6 +618,7 @@ Started: ${timestamp}
             success: false,
             error: error.code === 'ENOENT' ? this.getNotInstalledMessage() : error.message,
             taskId,
+            pid: childPid,
           });
         });
 
@@ -640,6 +647,7 @@ Started: ${timestamp}
             success: false,
             error: `${this.name} CLI timeout`,
             taskId,
+            pid: childPid,
           });
         }, options.timeout || this.getDefaultQueryTimeout());
 
@@ -654,6 +662,7 @@ Started: ${timestamp}
         success: false,
         error: error.message || 'Unknown error occurred',
         taskId,
+        // No pid available in catch block
       };
     }
   }
@@ -749,6 +758,9 @@ Started: ${timestamp}
           shell: useShell,
         } as any);
 
+        // Phase 4: Capture process ID for task tracking
+        const childPid = child.pid;
+
         let stdout = '';
         let stderr = '';
         let exitCode: number | null = null;
@@ -784,6 +796,7 @@ Started: ${timestamp}
               command,
               success: true,
               taskId,
+              pid: childPid,
             });
             return;
           }
@@ -800,6 +813,7 @@ Started: ${timestamp}
               success: false,
               error: `${this.name} CLI execute failed: ${errorMessage}`,
               taskId,
+              pid: childPid,
             });
             return;
           }
@@ -825,6 +839,7 @@ Started: ${timestamp}
             command,
             success: true,
             taskId,
+            pid: childPid,
           });
         });
 
@@ -837,6 +852,7 @@ Started: ${timestamp}
             success: false,
             error: error.code === 'ENOENT' ? this.getNotInstalledMessage() : error.message,
             taskId,
+            pid: childPid,
           });
         });
 
@@ -865,6 +881,7 @@ Started: ${timestamp}
             success: false,
             error: `${this.name} CLI execute timeout`,
             taskId,
+            pid: childPid,
           });
         }, options.timeout || this.getDefaultExecuteTimeout());
 
@@ -879,6 +896,7 @@ Started: ${timestamp}
         success: false,
         error: error.message || 'Unknown error occurred',
         taskId,
+        // No pid available in catch block
       };
     }
   }

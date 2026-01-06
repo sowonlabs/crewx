@@ -25,6 +25,15 @@ export enum SpanKind {
 }
 
 /**
+ * Task log entry interface (Phase 4)
+ */
+export interface TaskLogEntry {
+  timestamp: string;
+  level: 'info' | 'warn' | 'error' | 'stdout' | 'stderr';
+  message: string;
+}
+
+/**
  * Task record interface
  */
 export interface TaskRecord {
@@ -50,6 +59,11 @@ export interface TaskRecord {
   input_tokens?: number;
   output_tokens?: number;
   cost_usd?: number;
+  /** Phase 4: Enhanced task tracking */
+  pid?: number;
+  rendered_prompt?: string;
+  command?: string;
+  logs?: TaskLogEntry[];
 }
 
 /**
@@ -92,6 +106,10 @@ export interface CreateTaskInput {
   input_tokens?: number;
   output_tokens?: number;
   cost_usd?: number;
+  /** Phase 4: Enhanced task tracking */
+  pid?: number;
+  rendered_prompt?: string;
+  command?: string;
 }
 
 /**
@@ -216,6 +234,9 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
       // Phase 3a: Run schema migration for new columns
       this.migrateSchemaPhase3a();
 
+      // Phase 4: Run schema migration for enhanced task tracking
+      this.migrateSchemaPhase4();
+
       this.logger.log(`Tracing database initialized at ${this.dbPath}`);
     } catch (error) {
       this.logger.error(
@@ -293,6 +314,49 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Phase 4: Migrate schema to add enhanced task tracking columns
+   * - pid: Process ID for running tasks
+   * - rendered_prompt: Full rendered prompt (10MB limit handled in createTask)
+   * - command: CLI command executed
+   * - logs: JSON array of log entries for real-time storage
+   */
+  private migrateSchemaPhase4(): void {
+    if (!this.db) return;
+
+    const newColumns = [
+      { name: 'pid', type: 'INTEGER' },
+      { name: 'rendered_prompt', type: 'TEXT' },
+      { name: 'command', type: 'TEXT' },
+      { name: 'logs', type: 'TEXT' }, // JSON array
+    ];
+
+    let migratedCount = 0;
+
+    for (const col of newColumns) {
+      if (!this.columnExists('tasks', col.name)) {
+        try {
+          this.db.exec(`ALTER TABLE tasks ADD COLUMN ${col.name} ${col.type}`);
+          migratedCount++;
+          this.logger.debug(`Added column tasks.${col.name}`);
+        } catch (error) {
+          this.logger.warn(`Failed to add column ${col.name}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+    }
+
+    // Create index for pid (useful for finding running tasks by process)
+    try {
+      this.db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_pid ON tasks(pid)`);
+    } catch (error) {
+      this.logger.warn(`Failed to create index idx_tasks_pid: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    if (migratedCount > 0) {
+      this.logger.log(`Phase 4 migration: Added ${migratedCount} new columns to tasks table`);
+    }
+  }
+
+  /**
    * Close database connection
    */
   close(): void {
@@ -334,6 +398,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
    * Create a new task record
    * Phase 3b: Token estimation removed - will be populated via JSON parsing in future
    * Issue #77: Uses external id if provided, otherwise generates one
+   * Phase 4: Added pid, rendered_prompt, command fields
    */
   createTask(input: CreateTaskInput): string | null {
     if (!this.db) {
@@ -347,14 +412,23 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
     const metadata = input.metadata ? { ...input.metadata } : {};
     // Note: provider_version can be added to metadata by the caller
 
+    // Phase 4: Truncate rendered_prompt if exceeds 10MB limit
+    const MAX_RENDERED_PROMPT_SIZE = 10 * 1024 * 1024; // 10MB
+    let renderedPrompt = input.rendered_prompt ?? null;
+    if (renderedPrompt && renderedPrompt.length > MAX_RENDERED_PROMPT_SIZE) {
+      renderedPrompt = renderedPrompt.slice(0, MAX_RENDERED_PROMPT_SIZE) + '\n[TRUNCATED]';
+      this.logger.warn(`Rendered prompt for task ${id} truncated to 10MB limit`);
+    }
+
     try {
       const stmt = this.db.prepare(`
         INSERT INTO tasks (
           id, agent_id, user_id, prompt, mode, status, started_at, metadata,
           trace_id, parent_task_id, caller_agent_id, model, platform, crewx_version,
-          input_tokens, output_tokens, cost_usd
+          input_tokens, output_tokens, cost_usd,
+          pid, rendered_prompt, command, logs
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -375,6 +449,10 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
         input.input_tokens ?? 0,  // Phase 3b: Token counting deferred to future JSON parsing
         input.output_tokens ?? 0,
         input.cost_usd ?? 0,
+        input.pid ?? null,  // Phase 4: Process ID
+        renderedPrompt,     // Phase 4: Rendered prompt (with 10MB limit)
+        input.command ?? null, // Phase 4: CLI command
+        '[]',               // Phase 4: Initialize logs as empty JSON array
       );
 
       this.logger.debug(`Task created: ${id} for agent ${input.agent_id} (model: ${input.model ?? 'default'})`);
@@ -445,7 +523,117 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Phase 4: Update task PID (process ID)
+   * Used to track which process is running a task
+   */
+  updateTaskPid(taskId: string, pid: number): boolean {
+    if (!this.db) {
+      return false;
+    }
+
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE tasks
+        SET pid = ?
+        WHERE id = ?
+      `);
+
+      const info = stmt.run(pid, taskId);
+      if (info.changes > 0) {
+        this.logger.debug(`Updated task ${taskId} with PID ${pid}`);
+      }
+      return info.changes > 0;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update PID for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Phase 4: Update task rendered_prompt
+   * Used to store the full rendered prompt after it's built
+   */
+  updateTaskRenderedPrompt(taskId: string, renderedPrompt: string): boolean {
+    if (!this.db) {
+      return false;
+    }
+
+    try {
+      // Apply 10MB limit
+      const MAX_RENDERED_PROMPT_SIZE = 10 * 1024 * 1024;
+      let truncatedPrompt = renderedPrompt;
+      if (renderedPrompt.length > MAX_RENDERED_PROMPT_SIZE) {
+        truncatedPrompt = renderedPrompt.slice(0, MAX_RENDERED_PROMPT_SIZE) + '\n[TRUNCATED]';
+        this.logger.warn(`Rendered prompt for task ${taskId} truncated to 10MB limit`);
+      }
+
+      const stmt = this.db.prepare(`
+        UPDATE tasks
+        SET rendered_prompt = ?
+        WHERE id = ?
+      `);
+
+      const info = stmt.run(truncatedPrompt, taskId);
+      return info.changes > 0;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update rendered_prompt for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Phase 4: Append a log entry to a task's logs array
+   * Stores logs in real-time as JSON array in the logs column
+   */
+  appendTaskLog(taskId: string, entry: TaskLogEntry): boolean {
+    if (!this.db) {
+      return false;
+    }
+
+    try {
+      // First, get existing logs
+      const getStmt = this.db.prepare('SELECT logs FROM tasks WHERE id = ?');
+      const row = getStmt.get(taskId) as { logs: string | null } | undefined;
+
+      if (!row) {
+        this.logger.warn(`Task ${taskId} not found when appending log`);
+        return false;
+      }
+
+      // Parse existing logs or create empty array
+      let logs: TaskLogEntry[] = [];
+      if (row.logs) {
+        try {
+          logs = JSON.parse(row.logs);
+        } catch {
+          // If parsing fails, start fresh
+          logs = [];
+        }
+      }
+
+      // Append new entry
+      logs.push(entry);
+
+      // Update the logs column
+      const updateStmt = this.db.prepare('UPDATE tasks SET logs = ? WHERE id = ?');
+      const info = updateStmt.run(JSON.stringify(logs), taskId);
+
+      return info.changes > 0;
+    } catch (error) {
+      this.logger.error(
+        `Failed to append log for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return false;
+    }
+  }
+
+  /**
    * Get a task by ID
+   * Phase 4: Parse logs JSON column
    */
   getTask(taskId: string): TaskRecord | null {
     if (!this.db) {
@@ -463,6 +651,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
       return {
         ...row,
         metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+        logs: row.logs ? JSON.parse(row.logs) : undefined,
       };
     } catch (error) {
       this.logger.error(
@@ -501,6 +690,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
       return rows.map((row) => ({
         ...row,
         metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+        logs: row.logs ? JSON.parse(row.logs) : undefined,
       }));
     } catch (error) {
       this.logger.error(
