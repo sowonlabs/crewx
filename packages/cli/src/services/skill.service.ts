@@ -9,7 +9,7 @@ export interface SkillMetadata {
   name: string;
   description: string;
   version: string;
-  entryPoint: string;
+  entryPoint: string | null;
   path: string;
   source?: 'custom' | 'installed' | 'template';
 }
@@ -156,15 +156,14 @@ export class SkillService {
                         
                         const entryPoint = this.detectEntryPoint(skillPath, dir.name);
 
-                        if (entryPoint) {
-                            skills.push({
-                                name: manifest.metadata.name || dir.name,
-                                description: manifest.metadata.description || '',
-                                version: manifest.metadata.version || '0.0.0',
-                                entryPoint,
-                                path: skillPath,
-                            });
-                        }
+                        // Guide mode: include skills without entryPoint (document-only skills)
+                        skills.push({
+                            name: manifest.metadata.name || dir.name,
+                            description: manifest.metadata.description || '',
+                            version: manifest.metadata.version || '0.0.0',
+                            entryPoint: entryPoint || null,
+                            path: skillPath,
+                        });
                     } catch (e) {
                         this.logger.debug(`Failed to parse SKILL.md in ${skillPath}: ${e}`);
                     }
@@ -207,7 +206,16 @@ export class SkillService {
         throw new Error(`Skill '${name}' not found`);
     }
 
-    const entryPath = path.join(skill.path, skill.entryPoint);
+    // Guide mode: if no entryPoint, output SKILL.md content
+    if (!skill.entryPoint) {
+      const skillMdPath = path.join(skill.path, 'SKILL.md');
+      const content = fs.readFileSync(skillMdPath, 'utf-8');
+      console.log(content);
+      return { code: 0, output: content };
+    }
+
+    const entryPoint = skill.entryPoint!;  // Already checked for null above
+    const entryPath = path.join(skill.path, entryPoint);
 
     // Phase 3c: Get task_id from environment variable for span tracking
     const taskId = process.env.CREWX_TASK_ID;
@@ -228,21 +236,21 @@ export class SkillService {
         let command: string;
         let cmdArgs: string[];
 
-        if (skill.entryPoint.endsWith('.js')) {
+        if (entryPoint.endsWith('.js')) {
             command = 'node';
             cmdArgs = [entryPath, ...args];
-        } else if (skill.entryPoint.endsWith('.sh')) {
+        } else if (entryPoint.endsWith('.sh')) {
             command = 'sh';
             cmdArgs = [entryPath, ...args];
-        } else if (skill.entryPoint.endsWith('.py')) {
+        } else if (entryPoint.endsWith('.py')) {
             command = 'python3';
             cmdArgs = [entryPath, ...args];
         } else {
              // Complete span with error before rejecting
              if (spanId && this.tracingService) {
-               this.tracingService.failSpan(spanId, `Unsupported entry point: ${skill.entryPoint}`);
+               this.tracingService.failSpan(spanId, `Unsupported entry point: ${entryPoint}`);
              }
-             reject(new Error(`Unsupported entry point: ${skill.entryPoint}`));
+             reject(new Error(`Unsupported entry point: ${entryPoint}`));
              return;
         }
 
