@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { CliOptions } from '../cli-options';
 import { SkillService } from '../services/skill.service';
+import { TracingService, SpanKind } from '../services/tracing.service';
 
 export async function handleSkill(app: any, args: CliOptions) {
   const logger = new Logger('SkillHandler');
@@ -192,9 +193,54 @@ export async function handleSkill(app: any, args: CliOptions) {
       }
   }
 
+  // Issue #84: Create span for CLI subprocess tracking
+  // When agent runs `crewx skill run <name>`, create span if CREWX_TASK_ID is set
+  const taskId = process.env.CREWX_TASK_ID;
+  let tracingService: TracingService | null = null;
+  let spanId: string | null = null;
+
+  if (taskId) {
+    try {
+      tracingService = new TracingService();
+      tracingService.onModuleInit();
+
+      if (tracingService.isEnabled()) {
+        spanId = tracingService.createSpan({
+          task_id: taskId,
+          name: `skill:${skillName}`,
+          kind: SpanKind.INTERNAL,
+          input: JSON.stringify({ skill: skillName, args: skillArgs }),
+          attributes: {
+            source: 'cli',
+            command: `crewx skill run ${skillName} ${skillArgs.join(' ')}`.trim(),
+          },
+        });
+
+        // Mark that span was created by CLI handler to prevent duplicate in skill.service.ts
+        if (spanId) {
+          process.env.CREWX_SKILL_SPAN_CREATED = 'true';
+        }
+      }
+    } catch (error) {
+      logger.warn(`Failed to initialize tracing for skill: ${error}`);
+    }
+  }
+
   try {
-    await skillService.execute(skillName!, skillArgs);
+    const result = await skillService.execute(skillName!, skillArgs);
+
+    // Complete span on success
+    if (spanId && tracingService) {
+      tracingService.completeSpan(spanId, JSON.stringify({
+        code: result.code,
+        output_length: result.output?.length || 0,
+      }));
+    }
   } catch (error) {
+    // Fail span on error
+    if (spanId && tracingService) {
+      tracingService.failSpan(spanId, String(error));
+    }
     logger.error(`Failed to execute skill '${skillName}': ${error}`);
     process.exit(1);
   }

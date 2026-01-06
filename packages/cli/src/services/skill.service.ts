@@ -218,12 +218,14 @@ export class SkillService {
     const entryPath = path.join(skill.path, entryPoint);
 
     // Phase 3c: Get task_id from environment variable for span tracking
+    // Issue #84: Skip span creation if CLI handler already created one
     const taskId = process.env.CREWX_TASK_ID;
+    const spanAlreadyCreated = process.env.CREWX_SKILL_SPAN_CREATED === 'true';
     let spanId: string | null = null;
     const startTime = Date.now();
 
-    // Create span if we have a task_id and tracing is enabled
-    if (taskId && this.tracingService?.isEnabled()) {
+    // Create span if we have a task_id, tracing is enabled, and no span was created by CLI handler
+    if (taskId && this.tracingService?.isEnabled() && !spanAlreadyCreated) {
       spanId = this.tracingService.createSpan({
         task_id: taskId,
         name: `skill:${name}`,
