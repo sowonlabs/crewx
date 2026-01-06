@@ -58,6 +58,31 @@ Every version commit should tell the user story, not the mechanical story.
 
 **⚠️ WARNING: RC versions (X.X.X-rc.Y) must NEVER be merged to main branch!**
 
+## ⚠️ CRITICAL: Check Status Before Any Work
+
+**MANDATORY: Always check project status FIRST before starting any task.**
+
+```bash
+# 1. Run status skill to see current PR/Issue state
+crewx skill run status
+
+# 2. Check specific PR state if needed
+gh pr view <PR-number> --json state,mergedAt
+```
+
+**Status Check Logic:**
+- PR state `MERGED` → Already done, **SKIP** (report to Dev Lead)
+- PR state `OPEN` → Proceed with workflow
+- PR state `CLOSED` → Rejected, **SKIP** (report to Dev Lead)
+- Issue `status:merged` → Already merged, **SKIP**
+
+**Why This Matters:**
+- Prevents duplicate cross-review calls
+- Avoids wasted agent resources
+- Maintains clean audit trail in traces.db
+
+---
+
 ## Workflow Index
 
 **Primary Workflow (NEW - Use This):**
@@ -132,40 +157,50 @@ When reporting to Dev Lead, include:
 
 **Steps:**
 ```bash
-# 1. Verify the PR number and reviewer assignment
+# 0. CRITICAL: Check current status FIRST (prevents duplicate work)
+crewx skill run status
+# Look for PR state in output - if already merged/closed, SKIP and report
+
+# 1. Check PR state directly
+gh pr view 23 --json state,mergedAt
+# If state is "MERGED" → STOP, report "PR already merged" to Dev Lead
+# If state is "CLOSED" → STOP, report "PR was closed/rejected" to Dev Lead
+# If state is "OPEN" → Continue with workflow
+
+# 2. Verify the PR number and reviewer assignment
 # Dev Lead will provide: PR number, target branch, reviewer agent name
 # Example command from Dev Lead:
 # crewx x "@crewx_release_manager Merge PR #23 for issue #22 to release/0.7.8 after cross-review by @crewx_gemini_dev"
 
-# 2. Navigate to the target release worktree
+# 3. Navigate to the target release worktree
 cd /Users/doha/git/crewx/worktree/release-0.7.8
 
-# 3. Check PR details
+# 4. Check PR details
 gh pr view 23
 
-# 4. CRITICAL: Trigger cross-review by calling the reviewer agent
+# 5. CRITICAL: Trigger cross-review by calling the reviewer agent
 # Use CrewX CLI to delegate review task
 crewx q "@crewx_gemini_dev Review PR #23 for issue #22. Check for critical issues: logic errors, security vulnerabilities, performance problems, missing error handling. Ignore code style."
 
-# 5. Wait for reviewer response
+# 6. Wait for reviewer response
 # Reviewer will respond with:
 # - ✅ LGTM (approved) → proceed to merge
 # - ❌ Changes requested → report to Dev Lead, DO NOT merge
 
-# 6. If approved, merge the PR
+# 7. If approved, merge the PR
 gh pr merge 23 --merge --delete-branch
 
-# 7. Verify merge success
+# 8. Verify merge success
 git log --oneline -5
 
-# 8. Update GitHub issue
+# 9. Update GitHub issue
 gh issue comment 22 --body "✅ PR #23 merged to release/0.7.8 after cross-review approval by @crewx_gemini_dev"
 
-# 9. Return to main directory (브랜치 변경 금지!)
+# 10. Return to main directory (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
 # ❌ git checkout 절대 사용 금지 - Dev Lead만 브랜치 관리
 
-# 10. Report to Dev Lead
+# 11. Report to Dev Lead
 # - ✅ PR #23 reviewed by @crewx_gemini_dev (approved)
 # - ✅ Merged to release/0.7.8
 # - ✅ Issue #22 updated
