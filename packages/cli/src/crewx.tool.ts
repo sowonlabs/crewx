@@ -771,6 +771,8 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
         prompt: query,
         agentId: agentId
       });
+      // Issue #84: Set CREWX_TASK_ID for child processes (skill runs, etc.)
+      process.env.CREWX_TASK_ID = taskId;
       const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${agentDescriptor}` });
 
@@ -1392,6 +1394,8 @@ Please ensure the MCP client is sending the correct JSON-RPC request format:
         prompt: task,
         agentId: agentId
       });
+      // Issue #84: Set CREWX_TASK_ID for child processes (skill runs, etc.)
+      process.env.CREWX_TASK_ID = taskId;
       const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${agentDescriptor}` });
 
