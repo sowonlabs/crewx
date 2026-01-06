@@ -306,7 +306,7 @@ agents:
     description: "CrewX Senior Developer (Codex-powered)"
     options:
       query: ["exec", "--experimental-json"]
-      execute: ["exec", "-s", "workspace-write",  "--experimental-json"]
+      execute: ["exec", "--dangerously-bypass-approvals-and-sandbox", "--experimental-json"]
     skills:
       include:
         - tsserver
