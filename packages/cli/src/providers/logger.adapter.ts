@@ -75,7 +75,6 @@ export function createTaskLogHandler(tracingService?: TracingService): ProviderT
 
   const TASK_CACHE_LIMIT = 1000;
   const knownTasks = new Map<string, true>();
-  const missingTasks = new Map<string, true>();
 
   const touchTask = (cache: Map<string, true>, taskId: string): boolean => {
     if (!cache.has(taskId)) {
@@ -100,14 +99,9 @@ export function createTaskLogHandler(tracingService?: TracingService): ProviderT
   };
 
   return (entry: ProviderTaskLogEntry) => {
-    if (touchTask(missingTasks, entry.taskId)) {
-      return;
-    }
-
     if (!touchTask(knownTasks, entry.taskId)) {
       const task = tracingService.getTask(entry.taskId);
       if (!task) {
-        rememberTask(missingTasks, entry.taskId);
         return;
       }
       rememberTask(knownTasks, entry.taskId);
