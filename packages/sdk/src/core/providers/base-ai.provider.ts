@@ -4,7 +4,7 @@ import { join } from 'path';
 import { getTimeoutConfig, type TimeoutConfig } from '../../config/timeout.config';
 import { getLogConfig, type LogConfig } from '../../config/log.config';
 import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.interface';
-import type { BaseAIProviderOptions, LoggerLike } from './base-ai.types';
+import type { BaseAIProviderOptions, LoggerLike, ProviderTaskLogHandler } from './base-ai.types';
 import type { ToolCallHandler } from './tool-call.types';
 
 /**
@@ -35,6 +35,7 @@ export abstract class BaseAIProvider implements AIProvider {
   protected toolCallHandler?: ToolCallHandler;
   private readonly logsDir: string;
   private readonly crewxVersion: string;
+  private readonly taskLogHandler?: ProviderTaskLogHandler;
   private cachedPath: string | null = null;
   protected readonly timeoutConfig: TimeoutConfig;
   protected readonly logConfig: LogConfig;
@@ -46,6 +47,7 @@ export abstract class BaseAIProvider implements AIProvider {
     this.logConfig = options.logConfig ?? getLogConfig();
     this.logsDir = options.logsDir ?? join(process.cwd(), '.crewx', 'logs');
     this.crewxVersion = options.crewxVersion ?? 'unknown';
+    this.taskLogHandler = options.taskLogHandler;
 
     // Create log directory
     try {
@@ -423,14 +425,30 @@ Started: ${timestamp}
   }
 
   protected appendTaskLog(taskId: string, level: 'STDOUT' | 'STDERR' | 'INFO' | 'ERROR', message: string): void {
+    const safeTaskId = taskId.replace(/[\\/]/g, '_');
+    const logFile = join(this.logsDir, `${safeTaskId}.log`);
+    const timestamp = new Date();
+    const logEntry = `[${timestamp.toLocaleString()}] ${level}: ${message}\n`;
+
     try {
-      const safeTaskId = taskId.replace(/[\\/]/g, '_');
-      const logFile = join(this.logsDir, `${safeTaskId}.log`);
-      const timestamp = new Date().toLocaleString();
-      const logEntry = `[${timestamp}] ${level}: ${message}\n`;
       appendFileSync(logFile, logEntry, 'utf8');
     } catch (error) {
       this.logger.error(`Failed to append to task log ${taskId}:`, error);
+    }
+
+    if (this.taskLogHandler) {
+      try {
+        this.taskLogHandler({
+          taskId,
+          timestamp: timestamp.toISOString(),
+          level,
+          message,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Task log handler failed for ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
   }
 
