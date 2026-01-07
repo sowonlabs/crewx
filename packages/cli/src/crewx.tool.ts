@@ -1082,6 +1082,17 @@ ${query}
       const runtimeMessages = this.toConversationMessages(messages);
 
       let agentResult;
+      let pidRecorded = false;
+      const handleProcessStart = (pid: number) => {
+        if (!traceTaskId) {
+          return;
+        }
+
+        const updated = this.tracingService?.updateTaskPid(traceTaskId, pid) ?? false;
+        if (updated) {
+          pidRecorded = true;
+        }
+      };
       try {
         // Intercept console.log during provider execution to capture logs
         const originalLog = console.log;
@@ -1115,6 +1126,7 @@ ${query}
               securityKey,
               pipedContext: structuredPayload,
               traceId,
+              onProcessStart: handleProcessStart,
             },
           });
         } finally {
@@ -1160,7 +1172,7 @@ ${query}
       };
 
       // Phase 4: Update PID in trace record
-      if (traceTaskId && response.pid) {
+      if (traceTaskId && response.pid && !pidRecorded) {
         this.tracingService?.updateTaskPid(traceTaskId, response.pid);
       }
 
@@ -1697,6 +1709,17 @@ Task: ${task}
       const runtimeMessages = this.toConversationMessages(messages);
 
       let agentResult;
+      let pidRecorded = false;
+      const handleProcessStart = (pid: number) => {
+        if (!traceTaskId) {
+          return;
+        }
+
+        const updated = this.tracingService?.updateTaskPid(traceTaskId, pid) ?? false;
+        if (updated) {
+          pidRecorded = true;
+        }
+      };
       try {
         // Intercept console.log during provider execution to capture logs
         const originalLog = console.log;
@@ -1730,6 +1753,7 @@ Task: ${task}
               pipedContext: structuredPayload,
               securityKey,
               traceId,
+              onProcessStart: handleProcessStart,
             },
           });
         } finally {
@@ -1775,7 +1799,7 @@ Task: ${task}
       };
 
       // Phase 4: Update PID in trace record
-      if (traceTaskId && response.pid) {
+      if (traceTaskId && response.pid && !pidRecorded) {
         this.tracingService?.updateTaskPid(traceTaskId, response.pid);
       }
 

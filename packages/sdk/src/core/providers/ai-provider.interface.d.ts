@@ -27,6 +27,8 @@ export interface AIQueryOptions {
     pipedContext?: string;
     /** Phase 3b: Trace ID for call chain tracking */
     traceId?: string;
+    /** Phase 4: Callback invoked when the CLI process starts */
+    onProcessStart?: (pid: number) => void;
 }
 export interface AIResponse {
     content: string;
