@@ -90,6 +90,9 @@ export type {
   BaseAIProviderOptions,
   LoggerLike,
   AIProviderConfig,
+  ProviderTaskLogEntry,
+  ProviderTaskLogHandler,
+  ProviderTaskLogLevel,
 } from './core/providers/base-ai.types';
 export type {
   PluginProviderConfig,

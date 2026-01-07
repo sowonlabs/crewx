@@ -6,7 +6,8 @@
  */
 
 import { Logger } from '@nestjs/common';
-import type { LoggerLike } from '@sowonai/crewx-sdk';
+import type { LoggerLike, ProviderTaskLogEntry, ProviderTaskLogHandler } from '@sowonai/crewx-sdk';
+import type { TaskLogEntry, TracingService } from '../services/tracing.service';
 
 /**
  * Create a logger function that wraps a NestJS Logger instance
@@ -64,5 +65,40 @@ export function createLoggerAdapter(context: string): LoggerLike {
         }
       }
     },
+  };
+}
+
+export function createTaskLogHandler(tracingService?: TracingService): ProviderTaskLogHandler | undefined {
+  if (!tracingService) {
+    return undefined;
+  }
+
+  const knownTasks = new Set<string>();
+  const missingTasks = new Set<string>();
+
+  return (entry: ProviderTaskLogEntry) => {
+    if (missingTasks.has(entry.taskId)) {
+      return;
+    }
+
+    if (!knownTasks.has(entry.taskId)) {
+      const task = tracingService.getTask(entry.taskId);
+      if (!task) {
+        missingTasks.add(entry.taskId);
+        return;
+      }
+      knownTasks.add(entry.taskId);
+    }
+
+    if (entry.level !== 'STDOUT' && entry.level !== 'STDERR') {
+      return;
+    }
+
+    const level: TaskLogEntry['level'] = entry.level === 'STDOUT' ? 'stdout' : 'stderr';
+    tracingService.appendTaskLog(entry.taskId, {
+      timestamp: entry.timestamp,
+      level,
+      message: entry.message,
+    });
   };
 }

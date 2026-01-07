@@ -5,7 +5,7 @@ import {
   type AIResponse,
 } from './ai-provider.interface';
 import { getTimeoutConfig } from '../../config/timeout.config';
-import type { LoggerLike } from './base-ai.types';
+import type { LoggerLike, ProviderTaskLogHandler } from './base-ai.types';
 import { APIProviderConfig, API_PROVIDER_TYPES, APIProviderType } from '../../types/api-provider.types';
 
 class ConsoleLogger implements LoggerLike {
@@ -80,6 +80,7 @@ export type DynamicProviderConfig = PluginProviderConfig | RemoteProviderConfig 
 export interface DynamicProviderFactoryOptions {
   logger?: LoggerLike;
   crewxVersion?: string;
+  taskLogHandler?: ProviderTaskLogHandler;
 }
 
 /**
@@ -91,10 +92,12 @@ export class BaseDynamicProviderFactory {
   protected readonly logger: LoggerLike;
   protected readonly timeoutConfig = getTimeoutConfig();
   protected readonly crewxVersion: string;
+  protected readonly taskLogHandler?: ProviderTaskLogHandler;
 
   constructor(options: DynamicProviderFactoryOptions = {}) {
     this.logger = options.logger ?? new ConsoleLogger('DynamicProviderFactory');
     this.crewxVersion = options.crewxVersion ?? 'unknown';
+    this.taskLogHandler = options.taskLogHandler;
   }
 
   /**
@@ -181,6 +184,7 @@ export class BaseDynamicProviderFactory {
       constructor() {
         super(`DynamicProvider:${ProviderNamespace.PLUGIN}/${config.id}`, {
           crewxVersion: factory.crewxVersion,
+          taskLogHandler: factory.taskLogHandler,
         });
       }
 
@@ -290,6 +294,7 @@ export class BaseDynamicProviderFactory {
       constructor() {
         super(`RemoteProvider:${ProviderNamespace.REMOTE}/${config.id}`, {
           crewxVersion: factory.crewxVersion,
+          taskLogHandler: factory.taskLogHandler,
         });
       }
 
@@ -668,7 +673,9 @@ export class BaseDynamicProviderFactory {
       readonly name = config.provider;
 
       constructor() {
-        super(`APIProvider:${config.provider}`);
+        super(`APIProvider:${config.provider}`, {
+          taskLogHandler: factory.taskLogHandler,
+        });
       }
 
       protected getCliCommand(): string {
