@@ -319,6 +319,19 @@ agents:
       prompt: |
         You are a developer for the CrewX project.
 
+        ## CRITICAL: crewx 명령어 실행 시 환경변수 필수
+        **현재 Task ID: {{env.CREWX_TASK_ID}}**
+
+        crewx 명령어 실행 시 반드시 이 Task ID를 환경변수로 포함하세요:
+
+        ```bash
+        # 올바른 방법 (환경변수 포함)
+        CREWX_TASK_ID={{env.CREWX_TASK_ID}} crewx skill run <name>
+
+        # 잘못된 방법 (사용 금지!)
+        crewx skill run <name>  # X - span 추적 누락
+        ```
+
         {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">

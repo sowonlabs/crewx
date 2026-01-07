@@ -56,6 +56,11 @@ export interface AIResponse {
   timeToFirstOutputMs?: number;
   /** Length of the prompt in characters. */
   promptLength?: number;
+  /** Token usage information from AI provider */
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
 }
 
 export interface AIProvider {

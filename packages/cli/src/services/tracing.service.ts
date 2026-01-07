@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional, Inject } f
 import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
+import { calculateCost } from '@sowonai/crewx-sdk/config/pricing';
 
 /**
  * Task status enum
@@ -477,9 +478,14 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Complete a task with success
-   * Phase 3b: output_tokens left at 0 - will be populated via JSON parsing in future
+   * Now accepts usage information to populate token counts and cost
    */
-  completeTask(taskId: string, result?: string, exitCode?: number | null): boolean {
+  completeTask(
+    taskId: string,
+    result?: string,
+    exitCode?: number | null,
+    usage?: { inputTokens: number; outputTokens: number },
+  ): boolean {
     if (!this.db) {
       return false;
     }
@@ -487,16 +493,43 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
     try {
       const now = this.now();
 
+      // Get model from task to calculate cost
+      const task = this.getTask(taskId);
+      const model = task?.model ?? null;
+
+      // Calculate cost if usage is provided
+      let inputTokens = 0;
+      let outputTokens = 0;
+      let costUsd = 0;
+
+      if (usage) {
+        inputTokens = usage.inputTokens;
+        outputTokens = usage.outputTokens;
+        costUsd = calculateCost(inputTokens, outputTokens, model);
+      }
+
       const stmt = this.db.prepare(`
         UPDATE tasks
         SET status = ?, result = ?, completed_at = ?,
             duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER),
+            input_tokens = ?,
             output_tokens = ?,
+            cost_usd = ?,
             exit_code = ?
         WHERE id = ?
       `);
 
-      const info = stmt.run(TaskStatus.SUCCESS, result ?? null, now, now, 0, exitCode ?? null, taskId);
+      const info = stmt.run(
+        TaskStatus.SUCCESS,
+        result ?? null,
+        now,
+        now,
+        inputTokens,
+        outputTokens,
+        costUsd,
+        exitCode ?? null,
+        taskId,
+      );
       return info.changes > 0;
     } catch (error) {
       this.logger.error(
@@ -508,23 +541,58 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Fail a task with error
+   * Now accepts usage information to populate token counts and cost even for failed tasks
    */
-  failTask(taskId: string, error: string, exitCode?: number | null): boolean {
+  failTask(
+    taskId: string,
+    error: string,
+    exitCode?: number | null,
+    usage?: { inputTokens: number; outputTokens: number },
+  ): boolean {
     if (!this.db) {
       return false;
     }
 
     try {
       const now = this.now();
+
+      // Get model from task to calculate cost
+      const task = this.getTask(taskId);
+      const model = task?.model ?? null;
+
+      // Calculate cost if usage is provided (failed tasks can still have costs)
+      let inputTokens = 0;
+      let outputTokens = 0;
+      let costUsd = 0;
+
+      if (usage) {
+        inputTokens = usage.inputTokens;
+        outputTokens = usage.outputTokens;
+        costUsd = calculateCost(inputTokens, outputTokens, model);
+      }
+
       const stmt = this.db.prepare(`
         UPDATE tasks
         SET status = ?, error = ?, completed_at = ?,
             duration_ms = CAST((julianday(?) - julianday(started_at)) * 86400000 AS INTEGER),
+            input_tokens = ?,
+            output_tokens = ?,
+            cost_usd = ?,
             exit_code = ?
         WHERE id = ?
       `);
 
-      const info = stmt.run(TaskStatus.FAILED, error, now, now, exitCode ?? null, taskId);
+      const info = stmt.run(
+        TaskStatus.FAILED,
+        error,
+        now,
+        now,
+        inputTokens,
+        outputTokens,
+        costUsd,
+        exitCode ?? null,
+        taskId,
+      );
       return info.changes > 0;
     } catch (error: unknown) {
       this.logger.error(

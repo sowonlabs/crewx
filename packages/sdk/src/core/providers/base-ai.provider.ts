@@ -256,6 +256,60 @@ export abstract class BaseAIProvider implements AIProvider {
   }
 
   /**
+   * Parse usage information from provider output
+   * Tries to extract token usage from stdout (JSON format)
+   *
+   * @param stdout The stdout from the provider CLI
+   * @returns Usage object with inputTokens and outputTokens, or undefined if not found
+   */
+  protected parseUsage(stdout: string): { inputTokens: number; outputTokens: number } | undefined {
+    if (!stdout || !stdout.trim()) {
+      return undefined;
+    }
+
+    try {
+      // Try to parse as JSON Lines (JSONL) - used by Claude with --output-format stream-json
+      const lines = stdout.split('\n').filter(line => line.trim());
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+
+          // Claude format: {"type":"usage","input_tokens":123,"output_tokens":456}
+          if (parsed.type === 'usage' && parsed.input_tokens !== undefined && parsed.output_tokens !== undefined) {
+            return {
+              inputTokens: parsed.input_tokens,
+              outputTokens: parsed.output_tokens,
+            };
+          }
+
+          // Alternative format: direct usage object
+          if (parsed.usage?.input_tokens !== undefined && parsed.usage?.output_tokens !== undefined) {
+            return {
+              inputTokens: parsed.usage.input_tokens,
+              outputTokens: parsed.usage.output_tokens,
+            };
+          }
+        } catch (e) {
+          // Not valid JSON, continue to next line
+        }
+      }
+
+      // Try parsing entire stdout as single JSON
+      const parsed = JSON.parse(stdout);
+      if (parsed.usage?.input_tokens !== undefined && parsed.usage?.output_tokens !== undefined) {
+        return {
+          inputTokens: parsed.usage.input_tokens,
+          outputTokens: parsed.usage.output_tokens,
+        };
+      }
+    } catch (e) {
+      // Failed to parse, return undefined
+    }
+
+    return undefined;
+  }
+
+  /**
    * Parse provider-specific error messages to provide better user feedback
    */
   /**
@@ -584,6 +638,8 @@ Started: ${timestamp}
           if (exitCode === 0 && stdout && stdout.trim().length > 0) {
             // Filter out tool_use JSON blocks from the response
             const filteredContent = this.filterToolUseFromResponse(stdout.trim());
+            // Parse usage information from stdout
+            const usage = this.parseUsage(stdout);
             this.appendTaskLog(taskId, 'INFO', `${this.name} query completed successfully`);
             resolve({
               content: filteredContent,
@@ -596,6 +652,7 @@ Started: ${timestamp}
               durationMs,
               timeToFirstOutputMs,
               promptLength,
+              usage,
             });
             return;
           }
@@ -638,6 +695,8 @@ Started: ${timestamp}
 
           // Filter out tool_use JSON blocks from the response
           const filteredContent = this.filterToolUseFromResponse(parsedContent);
+          // Parse usage information from stdout
+          const usage = this.parseUsage(stdout);
 
           resolve({
             content: filteredContent,
@@ -650,6 +709,7 @@ Started: ${timestamp}
             durationMs,
             timeToFirstOutputMs,
             promptLength,
+            usage,
           });
         });
 
@@ -861,6 +921,8 @@ Started: ${timestamp}
           if (exitCode === 0 && stdout && stdout.trim().length > 0) {
             // Filter out tool_use JSON blocks from the response
             const filteredContent = this.filterToolUseFromResponse(stdout.trim());
+            // Parse usage information from stdout
+            const usage = this.parseUsage(stdout);
             this.appendTaskLog(taskId, 'INFO', `${this.name} execution completed successfully`);
             resolve({
               content: filteredContent,
@@ -873,6 +935,7 @@ Started: ${timestamp}
               durationMs,
               timeToFirstOutputMs,
               promptLength,
+              usage,
             });
             return;
           }
@@ -913,6 +976,9 @@ Started: ${timestamp}
             this.appendTaskLog(taskId, 'INFO', 'Plain text output (not JSON)');
           }
 
+          // Parse usage information from stdout
+          const usage = this.parseUsage(stdout);
+
           resolve({
             content: parsedContent,
             provider: this.name,
@@ -924,6 +990,7 @@ Started: ${timestamp}
             durationMs,
             timeToFirstOutputMs,
             promptLength,
+            usage,
           });
         });
 
