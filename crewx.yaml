@@ -11,6 +11,36 @@ skills:
 
 # Plugin Providers
 providers:
+  # ============================================
+  # Remote Providers (소원랩스 본사)
+  # ============================================
+
+  # CTO - 기술 의사결정, 아키텍처
+  - id: remote_cto
+    type: remote
+    location: "file:///Users/doha/git/crewx-sowonlabs/crewx.yaml"
+    external_agent_id: "cto"
+    display_name: "CTO (소원랩스)"
+    description: "기술 의사결정, 아키텍처 검토, 기술 방향성"
+    timeout:
+      query: 600000
+      execute: 1200000
+
+  # CPO - 제품 전략, PRD, UX
+  - id: remote_cpo
+    type: remote
+    location: "file:///Users/doha/git/crewx-sowonlabs/crewx.yaml"
+    external_agent_id: "cpo"
+    display_name: "CPO (소원랩스)"
+    description: "제품 전략, PRD 관리, UX 의사결정"
+    timeout:
+      query: 600000
+      execute: 1200000
+
+  # ============================================
+  # Plugin Providers
+  # ============================================
+
   # Crush AI Assistant
   - id: crush
     type: plugin
@@ -37,9 +67,9 @@ documents:
     type: "markdown"
 
   # Development Workflow Overview (QA Lead, Release Manager)
-  development-workflow:
-    path: "docs/process/development-workflow.md"
-    summary: "Bug status flow, RC process, branch strategy"
+  release-workflow:
+    path: "docs/process/release-workflow.md"
+    summary: "RC versioning, release process, branch strategy"
     type: "markdown"
 
   # Test Report Structure (Tester, QA Lead)
@@ -72,28 +102,16 @@ documents:
     summary: "Tester role definition, test execution guidelines, and reporting standards"
     type: "markdown"
 
-  # Claude Developer Role
-  dev-claude:
-    path: "docs/prompts/dev-claude.md"
-    summary: "Claude-powered developer role, coding standards, and best practices"
+  # Development Process (Common for Dev Lead & Developers)
+  dev-common:
+    path: "docs/prompts/dev-common.md"
+    summary: "Common development process - workflow diagram, status labels, code review"
     type: "markdown"
 
-  # Codex Developer Role
-  dev-codex:
-    path: "docs/prompts/dev-codex.md"
-    summary: "Codex-powered developer role, coding standards, and best practices"
-    type: "markdown"
-
-  # Crush Developer Role
-  dev-crush:
-    path: "docs/prompts/dev-crush.md"
-    summary: "Crush-powered developer role with multi-model support, coding standards, and language policy"
-    type: "markdown"
-
-  # Gemini Developer Role
-  dev-gemini:
-    path: "docs/prompts/dev-gemini.md"
-    summary: "Gemini-powered developer role, coding standards, and best practices"
+  # Developer Role
+  dev:
+    path: "docs/prompts/dev.md"
+    summary: "Developer role - worktree workflow, coding standards, issue handling"
     type: "markdown"
 
   # Dev Lead Role
@@ -108,11 +126,25 @@ documents:
     summary: "Critical rules and checklist for modifying template-related code"
     type: "markdown"
 
-  # tsserver Skill Guide (for all developers)
-  tsserver-skill:
-    path: "docs/guides/tsserver-skill.md"
-    summary: "TypeScript code intelligence using tsserver"
-    type: "markdown"
+  # Global Notice (required for all agents)
+  notice: |
+    <NOTICE>
+    ## Before Starting Work (Required)
+
+    1. **Check Project Status**
+    ```bash
+    node skills/status/status.js
+    ```
+    - Do NOT use status.md (deprecated)
+    - GitHub is the single source of truth
+
+    2. **Check Memory** (if you have memory-v2 skill)
+    ```bash
+    node skills/memory-v2/memory-v2.js index {{agent_id}}
+    ```
+    - Review past decisions and context before starting
+    - Save important decisions during work
+    </NOTICE>
 
   # Project Structure (for all developers)
   project-structure: |
@@ -154,6 +186,31 @@ documents:
 
 # Add your custom agents below:
 agents:
+  # ============================================
+  # Remote Agents (소원랩스 본사)
+  # ============================================
+
+  # CTO - 기술 의사결정, 아키텍처
+  - id: "cto"
+    name: "CTO (소원랩스)"
+    role: "CTO"
+    team: "소원랩스 본사"
+    description: "기술 의사결정, 아키텍처 검토, 기술 방향성"
+    working_directory: "/Users/doha/git/crewx-sowonlabs"
+    provider: remote/remote_cto
+
+  # CPO - 제품 전략, PRD, UX
+  - id: "cpo"
+    name: "CPO (소원랩스)"
+    role: "CPO"
+    team: "소원랩스 본사"
+    description: "제품 전략, PRD 관리, UX 의사결정"
+    working_directory: "/Users/doha/git/crewx-sowonlabs"
+    provider: remote/remote_cpo
+
+  # ============================================
+  # CrewX 개발팀
+  # ============================================
   - id: "crewx_claude_dev"
     name: "CrewX Developer"
     role: "Lead Developer"
@@ -165,12 +222,17 @@ agents:
     skills:
       include:
         - tsserver
+        - memory-v2
+        - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "opus"
       prompt: |
         You are a developer for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -180,17 +242,18 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="dev-claude">
-        {{{documents.dev-claude.content}}}
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
+        </document>
+
+        <document name="dev">
+        {{{documents.dev.content}}}
         </document>
 
         <document name="template-modification-rules">
         {{{documents.template-modification-rules.content}}}
         </document>
 
-        <document name="tsserver-skill">
-        {{{documents.tsserver-skill.content}}}
-        </document>
 
   - id: "crewx_gemini_dev"
     name: "CrewX Gemini Developer"
@@ -203,12 +266,17 @@ agents:
     skills:
       include:
         - tsserver
+        - memory-v2
+        - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/gemini"
       model: "gemini-3-pro-preview"
       prompt: |
         You are a developer for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -218,17 +286,18 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="dev-gemini">
-        {{{documents.dev-gemini.content}}}
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
+        </document>
+
+        <document name="dev">
+        {{{documents.dev.content}}}
         </document>
 
         <document name="template-modification-rules">
         {{{documents.template-modification-rules.content}}}
         </document>
 
-        <document name="tsserver-skill">
-        {{{documents.tsserver-skill.content}}}
-        </document>
 
   - id: "crewx_codex_dev"
     name: "CrewX Codex Developer"
@@ -237,15 +306,33 @@ agents:
     description: "CrewX Senior Developer (Codex-powered)"
     options:
       query: ["exec", "--experimental-json"]
-      execute: ["exec", "-s", "workspace-write",  "--experimental-json"]
+      execute: ["exec", "--dangerously-bypass-approvals-and-sandbox", "--experimental-json"]
     skills:
       include:
         - tsserver
+        - memory-v2
+        - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/codex"
       prompt: |
         You are a developer for the CrewX project.
+
+        ## CRITICAL: crewx 명령어 실행 시 환경변수 필수
+        **현재 Task ID: {{env.CREWX_TASK_ID}}**
+
+        crewx 명령어 실행 시 반드시 이 Task ID를 환경변수로 포함하세요:
+
+        ```bash
+        # 올바른 방법 (환경변수 포함)
+        CREWX_TASK_ID={{env.CREWX_TASK_ID}} crewx skill run <name>
+
+        # 잘못된 방법 (사용 금지!)
+        crewx skill run <name>  # X - span 추적 누락
+        ```
+
+        {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -255,17 +342,18 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="dev-codex">
-        {{{documents.dev-codex.content}}}
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
+        </document>
+
+        <document name="dev">
+        {{{documents.dev.content}}}
         </document>
 
         <document name="template-modification-rules">
         {{{documents.template-modification-rules.content}}}
         </document>
 
-        <document name="tsserver-skill">
-        {{{documents.tsserver-skill.content}}}
-        </document>
 
   - id: "crewx_crush_dev"
     name: "CrewX Crush Developer"
@@ -275,11 +363,21 @@ agents:
     skills:
       include:
         - tsserver
+        - memory-v2
+        - status
+        - meeting
     inline:
       type: "agent"
       provider: "plugin/crush"
       prompt: |
         You are a developer for the CrewX project.
+
+        ## Language Policy (CRITICAL)
+        **ALWAYS respond in the same language as the user's message:**
+        - Korean question → Korean answer
+        - English question → English answer
+
+        {{{documents.notice.content}}}
 
         <document name="project-structure" type="codebase-map">
         {{{documents.project-structure.content}}}
@@ -289,8 +387,12 @@ agents:
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="dev-crush">
-        {{{documents.dev-crush.content}}}
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
+        </document>
+
+        <document name="dev">
+        {{{documents.dev.content}}}
         </document>
 
         <document name="template-modification-rules">
@@ -305,6 +407,12 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - wbs
+        - memory-v2
+        - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -312,12 +420,14 @@ agents:
       prompt: |
         You are the QA Team Lead for the CrewX project.
 
+        {{{documents.notice.content}}}
+
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="development-workflow">
-        {{{documents.development-workflow.content}}}
+        <document name="release-workflow">
+        {{{documents.release-workflow.content}}}
         </document>
 
         <document name="report-structure">
@@ -349,12 +459,18 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
       prompt: |
         You are a testing expert for the CrewX project.
+
+        {{{documents.notice.content}}}
 
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
@@ -376,6 +492,10 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - memory-v2
+        - status
     inline:
       type: "agent"
       provider: "cli/claude"
@@ -383,12 +503,14 @@ agents:
       prompt: |
         You are the Release Manager for the CrewX project.
 
+        {{{documents.notice.content}}}
+
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
         </document>
 
-        <document name="development-workflow">
-        {{{documents.development-workflow.content}}}
+        <document name="release-workflow">
+        {{{documents.release-workflow.content}}}
         </document>
 
         <document name="rc-versioning">
@@ -407,21 +529,37 @@ agents:
     options:
       query: ["--verbose"]
       execute: ["--verbose", "--dangerously-skip-permissions"]
+    skills:
+      include:
+        - wbs
+        - memory-v2
+        - status
+        - meeting
     inline:
       type: "agent"
       provider: "cli/claude"
       model: "sonnet"
+      layout:
+        id: "crewx/default"
+        props:
+          showManual: false
       prompt: |
         You are the Dev Lead for the CrewX project.
-        
+
+        {{{documents.notice.content}}}
+
         <document name="dev-lead">
         {{{documents.dev-lead.content}}}
         </document>
-        
-        <document name="development-workflow">
-        {{{documents.development-workflow.content}}}
+
+        <document name="dev-common">
+        {{{documents.dev-common.content}}}
         </document>
-        
+
+        <document name="release-workflow">
+        {{{documents.release-workflow.content}}}
+        </document>
+
         <document name="branch-protection">
         {{{documents.branch-protection.content}}}
         </document>

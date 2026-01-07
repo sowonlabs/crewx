@@ -35,4 +35,3 @@ worktree/
 /.env.local
 
 .npmrc
-start-slack.sh

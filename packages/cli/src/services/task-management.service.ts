@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CREWX_VERSION } from '../version';
+import { TracingService, TaskLogEntry } from './tracing.service';
 
 // Task log interface
 export interface TaskLog {
@@ -44,7 +45,9 @@ export class TaskManagementService {
   private readonly taskLogs = new Map<string, TaskLog>();
   private readonly logsDir = path.join(process.cwd(), '.crewx', 'logs');
 
-  constructor() {
+  constructor(
+    @Optional() @Inject(forwardRef(() => TracingService)) private readonly tracingService?: TracingService,
+  ) {
     // Ensure logs directory exists
     this.ensureLogsDirectory();
   }
@@ -89,6 +92,7 @@ export class TaskManagementService {
 
   /**
    * Add a log entry to a task
+   * Phase 4: Also stores log in TracingService for real-time persistence
    */
   addTaskLog(taskId: string, log: { level: 'info' | 'warn' | 'error'; message: string }): void {
     const task = this.taskLogs.get(taskId);
@@ -97,12 +101,22 @@ export class TaskManagementService {
         timestamp: new Date(),
         ...log
       };
-      
+
       task.logs.push(logEntry);
-      
+
       // Append to log file
       this.appendToLogFile(taskId, logEntry);
-      
+
+      // Phase 4: Real-time log bridge to TracingService
+      if (this.tracingService) {
+        const tracingLogEntry: TaskLogEntry = {
+          timestamp: logEntry.timestamp.toISOString(),
+          level: log.level,
+          message: log.message,
+        };
+        this.tracingService.appendTaskLog(taskId, tracingLogEntry);
+      }
+
       this.logger.debug(`Added log to task ${taskId}: [${log.level.toUpperCase()}] ${log.message}`);
     } else {
       this.logger.warn(`Attempted to add log to non-existent task: ${taskId}`);

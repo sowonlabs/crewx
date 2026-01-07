@@ -321,6 +321,11 @@ export class AgentRuntime {
         context: request.context,
         messageCount: request.messages?.length ?? 0,
         model,
+        pid: aiResponse.pid,
+        exitCode: aiResponse.exitCode,
+        durationMs: aiResponse.durationMs,
+        timeToFirstOutputMs: aiResponse.timeToFirstOutputMs,
+        promptLength: aiResponse.promptLength,
       },
     };
   }

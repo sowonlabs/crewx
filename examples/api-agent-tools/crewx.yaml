@@ -8,6 +8,7 @@ agents:
     provider: api/openai
     model: gpt-4o
     temperature: 0.7
+    maxSteps: 10  # Maximum agent loop iterations (default: 10)
     tools: [weather, company_search, calculator]
     inline:
       prompt: |
