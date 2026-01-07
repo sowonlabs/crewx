@@ -490,6 +490,7 @@ Started: ${timestamp}
           LANG: 'en_US.UTF-8',
           LC_ALL: 'en_US.UTF-8',
           ...this.getEnv(),
+          ...(options.env || {}), // Issue #91: Merge custom environment variables from agent config
         };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
@@ -504,7 +505,7 @@ Started: ${timestamp}
           // On Windows, if executable doesn't have extension, spawn needs shell
           useShell = true;
         }
-        
+
         const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
           cwd: options.workingDirectory || process.cwd(),
@@ -709,6 +710,7 @@ Started: ${timestamp}
           LANG: 'en_US.UTF-8',
           LC_ALL: 'en_US.UTF-8',
           ...this.getEnv(),
+          ...(options.env || {}), // Issue #91: Merge custom environment variables from agent config
         };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';

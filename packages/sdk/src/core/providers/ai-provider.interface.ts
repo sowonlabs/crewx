@@ -27,6 +27,7 @@ export interface AIQueryOptions {
   agentId?: string;
   messages?: Array<{ text: string; isAssistant: boolean; metadata?: Record<string, any> }>;
   pipedContext?: string;
+  env?: Record<string, string>; // Issue #91: Custom environment variables to pass to spawned process
 }
 
 export interface AIResponse {

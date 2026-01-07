@@ -33,6 +33,58 @@ export class CrewXTool implements OnModuleInit {
   }
 
   /**
+   * Process Handlebars templates in agent env values
+   * Issue #91: Supports {{agent.id}}, {{agent.name}}, {{env.VAR_NAME}}, etc.
+   * @param env - Raw env object from agent config (may contain Handlebars templates)
+   * @param agent - Agent info for template context
+   * @returns Processed env object with templates resolved
+   */
+  private async processAgentEnv(
+    env: Record<string, string> | undefined,
+    agent: AgentInfo
+  ): Promise<Record<string, string> | undefined> {
+    if (!env || Object.keys(env).length === 0) {
+      return undefined;
+    }
+
+    const Handlebars = await import('handlebars');
+    const processedEnv: Record<string, string> = {};
+
+    // Build context for Handlebars
+    const context = {
+      agent: {
+        id: agent.id,
+        name: agent.name || agent.id,
+        role: agent.role || '',
+        team: agent.team || '',
+        description: agent.description || '',
+        workingDirectory: agent.workingDirectory,
+        provider: Array.isArray(agent.provider) ? agent.provider[0] : agent.provider,
+        model: agent.inline?.model || '',
+      },
+      env: process.env,
+    };
+
+    for (const [key, value] of Object.entries(env)) {
+      try {
+        // Only process if value contains Handlebars syntax
+        if (value.includes('{{')) {
+          const template = Handlebars.compile(value);
+          processedEnv[key] = template(context);
+        } else {
+          processedEnv[key] = value;
+        }
+      } catch (error) {
+        // On template error, use raw value
+        this.logger.warn(`Failed to process env template for ${key}: ${getErrorMessage(error)}`);
+        processedEnv[key] = value;
+      }
+    }
+
+    return processedEnv;
+  }
+
+  /**
    * Build tools context for template processing
    * @returns Tools context object with list, json, and count
    */
@@ -934,6 +986,9 @@ ${query}
           originalLog.apply(console, args);
         };
 
+        // Issue #91: Process agent env templates and pass to provider
+        const processedEnv = await this.processAgentEnv(agent.env, agent);
+
         try {
           agentResult = await runtimeResult.runtime.agent.query({
             agentId,
@@ -948,6 +1003,7 @@ ${query}
               taskId,
               securityKey,
               pipedContext: structuredPayload,
+              env: processedEnv, // Issue #91: Pass processed env to provider
             },
           });
         } finally {
@@ -1389,6 +1445,9 @@ Task: ${task}
           originalLog.apply(console, args);
         };
 
+        // Issue #91: Process agent env templates and pass to provider
+        const processedEnv = await this.processAgentEnv(agent.env, agent);
+
         try {
           agentResult = await runtimeResult.runtime.agent.execute({
             agentId,
@@ -1403,6 +1462,7 @@ Task: ${task}
               taskId,
               pipedContext: structuredPayload,
               securityKey,
+              env: processedEnv, // Issue #91: Pass processed env to provider
             },
           });
         } finally {
