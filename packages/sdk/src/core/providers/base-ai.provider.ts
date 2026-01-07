@@ -572,6 +572,7 @@ Started: ${timestamp}
           CREWX_PARENT_TASK_ID: taskId, // Current task becomes parent for child calls
           CREWX_CALLER_AGENT_ID: options.agentId || process.env.CREWX_CALLER_AGENT_ID || '',
           ...this.getEnv(),
+          ...(options.env || {}), // Issue #91: Merge custom environment variables from agent config
         };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
@@ -855,6 +856,7 @@ Started: ${timestamp}
           CREWX_PARENT_TASK_ID: taskId, // Current task becomes parent for child calls
           CREWX_CALLER_AGENT_ID: options.agentId || process.env.CREWX_CALLER_AGENT_ID || '',
           ...this.getEnv(),
+          ...(options.env || {}), // Issue #91: Merge custom environment variables from agent config
         };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
