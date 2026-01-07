@@ -310,6 +310,98 @@ export abstract class BaseAIProvider implements AIProvider {
   }
 
   /**
+   * Extract agent message text from JSONL streams (OpenAI Responses API, Codex JSONL).
+   * Returns null when no agent message is found.
+   */
+  protected extractAgentMessageFromJsonLines(content: string): string | null {
+    if (!content) {
+      return null;
+    }
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const hasJsonlMarkers = /"type"\s*:\s*"(?:thread\.started|item\.completed|turn\.completed|response\.completed)"/.test(trimmed)
+      || /"type"\s*:\s*"(?:agent_message|assistant_message)"/.test(trimmed)
+      || /"item_type"\s*:\s*"assistant_message"/.test(trimmed);
+
+    if (!hasJsonlMarkers) {
+      return null;
+    }
+
+    const lines = trimmed.split('\n').map(line => line.trim()).filter(Boolean);
+    let agentMessage: string | null = null;
+
+    for (const line of lines) {
+      let parsed: any;
+      try {
+        parsed = JSON.parse(line);
+      } catch {
+        continue;
+      }
+
+      const extracted = this.extractAgentMessageFromJsonItem(parsed);
+      if (extracted) {
+        agentMessage = extracted;
+      }
+    }
+
+    return agentMessage;
+  }
+
+  private extractAgentMessageFromJsonItem(parsed: any): string | null {
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+
+    if (
+      parsed?.type === 'item.completed' &&
+      parsed?.item?.type === 'agent_message' &&
+      typeof parsed.item.text === 'string'
+    ) {
+      return parsed.item.text.trim();
+    }
+
+    if (
+      parsed?.type === 'item.completed' &&
+      parsed?.item?.item_type === 'assistant_message' &&
+      typeof parsed.item.text === 'string'
+    ) {
+      return parsed.item.text.trim();
+    }
+
+    if (
+      parsed?.item?.type === 'agent_message' &&
+      typeof parsed.item.text === 'string'
+    ) {
+      return parsed.item.text.trim();
+    }
+
+    if (
+      parsed?.item?.item_type === 'assistant_message' &&
+      typeof parsed.item.text === 'string'
+    ) {
+      return parsed.item.text.trim();
+    }
+
+    if (Array.isArray(parsed?.response?.output)) {
+      const assistantEntries = parsed.response.output.filter(
+        (entry: any) => entry?.type === 'agent_message' || entry?.item_type === 'assistant_message',
+      );
+      if (assistantEntries.length > 0) {
+        const lastMessage = assistantEntries[assistantEntries.length - 1];
+        if (typeof lastMessage?.text === 'string') {
+          return lastMessage.text.trim();
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Parse provider-specific error messages to provide better user feedback
    */
   /**
@@ -318,6 +410,11 @@ export abstract class BaseAIProvider implements AIProvider {
    */
   protected filterToolUseFromResponse(content: string): string {
     if (!content) return content;
+
+    const jsonlMessage = this.extractAgentMessageFromJsonLines(content);
+    if (jsonlMessage) {
+      return jsonlMessage;
+    }
 
     let filteredContent = content;
 
