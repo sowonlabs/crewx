@@ -73,21 +73,44 @@ export function createTaskLogHandler(tracingService?: TracingService): ProviderT
     return undefined;
   }
 
-  const knownTasks = new Set<string>();
-  const missingTasks = new Set<string>();
+  const TASK_CACHE_LIMIT = 1000;
+  const knownTasks = new Map<string, true>();
+  const missingTasks = new Map<string, true>();
+
+  const touchTask = (cache: Map<string, true>, taskId: string): boolean => {
+    if (!cache.has(taskId)) {
+      return false;
+    }
+    cache.delete(taskId);
+    cache.set(taskId, true);
+    return true;
+  };
+
+  const rememberTask = (cache: Map<string, true>, taskId: string): void => {
+    if (cache.has(taskId)) {
+      cache.delete(taskId);
+    }
+    cache.set(taskId, true);
+    if (cache.size > TASK_CACHE_LIMIT) {
+      const oldest = cache.keys().next().value;
+      if (oldest !== undefined) {
+        cache.delete(oldest);
+      }
+    }
+  };
 
   return (entry: ProviderTaskLogEntry) => {
-    if (missingTasks.has(entry.taskId)) {
+    if (touchTask(missingTasks, entry.taskId)) {
       return;
     }
 
-    if (!knownTasks.has(entry.taskId)) {
+    if (!touchTask(knownTasks, entry.taskId)) {
       const task = tracingService.getTask(entry.taskId);
       if (!task) {
-        missingTasks.add(entry.taskId);
+        rememberTask(missingTasks, entry.taskId);
         return;
       }
-      knownTasks.add(entry.taskId);
+      rememberTask(knownTasks, entry.taskId);
     }
 
     if (entry.level !== 'STDOUT' && entry.level !== 'STDERR') {
