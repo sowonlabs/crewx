@@ -527,6 +527,7 @@ Started: ${timestamp}
 
         // Phase 4: Capture process ID for task tracking
         const childPid = child.pid;
+        this.notifyProcessStart(options, childPid);
 
         let stdout = '';
         let stderr = '';
@@ -803,6 +804,7 @@ Started: ${timestamp}
 
         // Phase 4: Capture process ID for task tracking
         const childPid = child.pid;
+        this.notifyProcessStart(options, childPid);
 
         let stdout = '';
         let stderr = '';
@@ -981,6 +983,20 @@ Started: ${timestamp}
 
   protected shouldPipeContext(_options?: AIQueryOptions): boolean {
     return true;
+  }
+
+  private notifyProcessStart(options: AIQueryOptions, pid: number | undefined): void {
+    if (typeof options.onProcessStart !== 'function' || typeof pid !== 'number') {
+      return;
+    }
+
+    try {
+      options.onProcessStart(pid);
+    } catch (error) {
+      this.logger.warn(
+        `onProcessStart callback failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   private buildPipedContext(prompt: string, options?: AIQueryOptions): string | null {
