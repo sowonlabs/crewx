@@ -137,6 +137,78 @@ export async function handleSkill(app: any, args: CliOptions) {
     return;
   }
 
+  // Issue #97: Execute skill command (execute/x)
+  if (action === 'execute' || action === 'x') {
+    const skillName = args.skillTarget;
+    if (!skillName) {
+      console.log('Usage: crewx skill execute <name> \'<command>\'');
+      process.exit(1);
+    }
+
+    // Command should be the first parameter in skillParams
+    // e.g. crewx skill execute memory-v2 'node $SKILL_DIR/memory-v2.js'
+    // skillParams = ['node $SKILL_DIR/memory-v2.js']
+    const command = args.skillParams && args.skillParams.length > 0 ? args.skillParams[0] : undefined;
+
+    if (!command) {
+      console.log('Usage: crewx skill execute <name> \'<command>\'');
+      console.log('Error: Missing command to execute.');
+      process.exit(1);
+    }
+
+    // Issue #84: Create span for CLI subprocess tracking
+    const taskId = process.env.CREWX_TASK_ID;
+    let tracingService: TracingService | null = null;
+    let spanId: string | null = null;
+
+    if (taskId) {
+      try {
+        tracingService = new TracingService();
+        tracingService.onModuleInit();
+
+        if (tracingService.isEnabled()) {
+          spanId = tracingService.createSpan({
+            task_id: taskId,
+            name: `skill:exec:${skillName}`,
+            kind: SpanKind.INTERNAL,
+            input: JSON.stringify({ skill: skillName, command: command }),
+            attributes: {
+              source: 'cli',
+              command: `crewx skill x ${skillName} '${command}'`,
+            },
+          });
+
+          // Mark that span was created by CLI handler
+          if (spanId) {
+            process.env.CREWX_SKILL_SPAN_CREATED = 'true';
+          }
+        }
+      } catch (error) {
+        logger.warn(`Failed to initialize tracing for skill: ${error}`);
+      }
+    }
+
+    try {
+      const result = await skillService.executeShell(skillName, command);
+
+      // Complete span on success
+      if (spanId && tracingService) {
+        tracingService.completeSpan(spanId, JSON.stringify({
+          code: result.code,
+        }));
+      }
+      process.exit(result.code);
+    } catch (error) {
+      // Fail span on error
+      if (spanId && tracingService) {
+        tracingService.failSpan(spanId, String(error));
+      }
+      logger.error(`Failed to execute skill '${skillName}': ${error}`);
+      process.exit(1);
+    }
+    return;
+  }
+
   // Execute skill
   let skillName: string | undefined;
   let isRunCommand = false;
