@@ -1,7 +1,7 @@
 {
   "name": "crewx-monorepo",
   "private": true,
-  "version": "0.8.0-rc.22",
+  "version": "0.8.0-rc.24",
   "license": "Apache-2.0",
   "description": "CrewX monorepo workspace",
   "workspaces": [
