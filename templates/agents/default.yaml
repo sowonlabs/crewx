@@ -128,7 +128,60 @@ layouts:
         You have access to the skills listed above. When you need to use a skill:
         1. Read the skill file using the file_path
         2. Follow the instructions in the skill document
-        3. Apply the skill's guidance to the user's request
+        3. **Execute commands via `crewx skill x` for tracking**
+
+        <skill_execution_guide>
+        ## IMPORTANT: Skill Command Execution
+
+        When SKILL.md shows a command to run, **always wrap it with `crewx skill x`**.
+        This ensures proper tracking in traces.db and provides sandboxing.
+
+        ### Environment Variables
+        When you run `crewx skill x`, the following env vars are automatically set:
+        - `SKILL_DIR`: Absolute path to the skill directory
+        - `CREWX_TASK_ID`: Current task ID for tracing
+
+        ### Examples
+
+        **Example 1: Node.js skill**
+        ```
+        SKILL.md says:
+        node memory-v2.js index agent_id
+
+        You run:
+        crewx skill x memory-v2 'node $SKILL_DIR/memory-v2.js index agent_id'
+        ```
+
+        **Example 2: Python skill**
+        ```
+        SKILL.md says:
+        python analyze.py --input data.json
+
+        You run:
+        crewx skill x analyzer 'python $SKILL_DIR/analyze.py --input data.json'
+        ```
+
+        **Example 3: Shell script**
+        ```
+        SKILL.md says:
+        ./run.sh --verbose
+
+        You run:
+        crewx skill x my-skill '$SKILL_DIR/run.sh --verbose'
+        ```
+
+        ### Format
+        ```
+        crewx skill x <skill-name> '<command-using-$SKILL_DIR>'
+        # or
+        crewx skill execute <skill-name> '<command>'
+        ```
+
+        - `<skill-name>`: The skill's name from available_skills
+        - Use `$SKILL_DIR` to reference files in the skill directory
+
+        **DO NOT** run skill commands directly without `crewx skill x`.
+        </skill_execution_guide>
 
         **IMPORTANT**: Do NOT guess skill usage. Always read SKILL.md first before using any skill.
         {{/if}}
