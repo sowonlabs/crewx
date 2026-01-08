@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional, Inject } f
 import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
-import { calculateCost } from '@sowonai/crewx-sdk/config/pricing';
+import { calculateCost } from '@sowonai/crewx-sdk';
 
 /**
  * Task status enum
