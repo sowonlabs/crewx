@@ -290,6 +290,65 @@ export class SkillService {
     });
   }
 
+  async executeShell(name: string, commandString: string): Promise<{ code: number }> {
+    const skill = await this.getSkill(name);
+    if (!skill) {
+      throw new Error(`Skill '${name}' not found`);
+    }
+
+    // Prepare Environment Variables
+    const taskId = process.env.CREWX_TASK_ID;
+    const env = {
+      ...process.env,
+      SKILL_DIR: skill.path,
+      CREWX_TASK_ID: taskId || '',
+    };
+
+    // Tracing
+    const spanAlreadyCreated = process.env.CREWX_SKILL_SPAN_CREATED === 'true';
+    let spanId: string | null = null;
+    const startTime = Date.now();
+
+    if (taskId && this.tracingService?.isEnabled() && !spanAlreadyCreated) {
+      spanId = this.tracingService.createSpan({
+        task_id: taskId,
+        name: `skill:exec:${name}`,
+        kind: SpanKind.INTERNAL,
+        input: JSON.stringify({ skill: name, command: commandString }),
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      // Execute in project root (cwd: process.cwd())
+      // Use shell: true to allow variable expansion ($SKILL_DIR)
+      const child = spawn(commandString, {
+        cwd: process.cwd(),
+        shell: true,
+        env: env,
+        stdio: 'inherit',
+      });
+
+      child.on('close', (code) => {
+        const durationMs = Date.now() - startTime;
+        if (spanId && this.tracingService) {
+          if (code === 0) {
+            this.tracingService.completeSpan(spanId, JSON.stringify({ code, duration_ms: durationMs }));
+          } else {
+            this.tracingService.failSpan(spanId, `Skill shell exited with code ${code}`);
+          }
+        }
+        resolve({ code: code || 0 });
+      });
+
+      child.on('error', (err) => {
+        if (spanId && this.tracingService) {
+          this.tracingService.failSpan(spanId, err.message);
+        }
+        reject(err);
+      });
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Skill Installation
   // ─────────────────────────────────────────────────────────────────────────
