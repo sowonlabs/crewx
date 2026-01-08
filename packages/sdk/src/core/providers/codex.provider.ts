@@ -94,6 +94,11 @@ export class CodexProvider extends BaseAIProvider {
    * {"type":"item.completed","item":{"item_type":"assistant_message","text":"final response"}}
    */
   private parseJsonlResponse(content: string): string {
+    const trimmed = content.trim();
+    if (!trimmed.startsWith('{') || !trimmed.includes('"type"')) {
+      return content;
+    }
+
     const lines = content.split('\n').map(line => line.trim()).filter(Boolean);
     let assistantMessage: string | null = null;
 
@@ -104,14 +109,14 @@ export class CodexProvider extends BaseAIProvider {
         // Look for item.completed with assistant_message
         if (
           parsed?.type === 'item.completed' &&
-          parsed?.item?.item_type === 'assistant_message' &&
+          (parsed?.item?.item_type === 'assistant_message' || parsed?.item?.type === 'agent_message') &&
           typeof parsed.item.text === 'string'
         ) {
           assistantMessage = parsed.item.text.trim();
         }
         // Also check legacy format
         else if (
-          parsed?.item?.item_type === 'assistant_message' &&
+          (parsed?.item?.item_type === 'assistant_message' || parsed?.item?.type === 'agent_message') &&
           typeof parsed.item.text === 'string'
         ) {
           assistantMessage = parsed.item.text.trim();
@@ -122,7 +127,7 @@ export class CodexProvider extends BaseAIProvider {
           Array.isArray(parsed.response.output)
         ) {
           const assistantEntries = parsed.response.output.filter(
-            (entry: any) => entry?.item_type === 'assistant_message'
+            (entry: any) => entry?.item_type === 'assistant_message' || entry?.type === 'agent_message'
           );
           if (assistantEntries.length > 0) {
             const lastMessage = assistantEntries[assistantEntries.length - 1];
