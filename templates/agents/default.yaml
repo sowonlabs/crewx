@@ -6,7 +6,7 @@ layouts:
     propsSchema:
       showManual:
         type: boolean
-        default: true
+        default: false
       showAgentProfile:
         type: boolean
         default: true
