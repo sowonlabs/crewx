@@ -3,6 +3,77 @@ import { hideBin } from 'yargs/helpers';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Known CLI options - used for unknown option detection
+const KNOWN_OPTIONS = new Set([
+  // Boolean flags
+  'install', 'log', 'http', 'raw', 'force', 'f', 'enable-intelligent-compression',
+  'list', 'l', 'clean', 'mention-only',
+  // String options
+  'protocol', 'host', 'port', 'key', 'params', 'config', 'c', 'template', 't',
+  'template-version', 'allow-tool', 'thread', 'provider', 'provider-config',
+  'agent', 'a', 'mode',
+  // Yargs built-in
+  'help', 'h', 'version', 'v',
+]);
+
+// Known commands - used to validate first positional argument
+const KNOWN_COMMANDS = new Set([
+  'query', 'q', 'execute', 'x', 'doctor', 'init', 'templates', 'template',
+  'agent', 'mcp', 'slack', 'log', 'slack:files', 'help', 'chat', 'skill',
+]);
+
+/**
+ * Detect unknown CLI options and show error message
+ * @param argv - Raw process arguments (process.argv)
+ * @param command - The detected command (if any)
+ * @returns Array of unknown options, empty if all options are valid
+ */
+function detectUnknownOptions(argv: string[], command?: string): string[] {
+  const unknownOptions: string[] = [];
+
+  for (const arg of argv) {
+    // Skip non-option arguments
+    if (!arg.startsWith('-')) continue;
+
+    // Handle --option=value format
+    const optionName = arg.replace(/^-+/, '').split('=')[0];
+
+    // Skip empty option names (edge case: just '--' or '-')
+    if (!optionName) continue;
+
+    // Skip if it's a known option
+    if (KNOWN_OPTIONS.has(optionName)) continue;
+
+    // Check for negated boolean options (--no-xxx)
+    if (optionName.startsWith('no-')) {
+      const baseOption = optionName.slice(3);
+      if (KNOWN_OPTIONS.has(baseOption)) continue;
+    }
+
+    unknownOptions.push(arg);
+  }
+
+  return unknownOptions;
+}
+
+/**
+ * Show error message for unknown options and exit
+ * @param unknownOptions - Array of unknown option strings
+ * @param command - The command being run (for help suggestion)
+ */
+function showUnknownOptionsError(unknownOptions: string[], command?: string): never {
+  const optionList = unknownOptions.join(', ');
+  console.error(`Error: Unknown option${unknownOptions.length > 1 ? 's' : ''}: ${optionList}`);
+
+  if (command && KNOWN_COMMANDS.has(command)) {
+    console.error(`Run 'crewx ${command} --help' to see available options.`);
+  } else {
+    console.error(`Run 'crewx --help' to see available commands and options.`);
+  }
+
+  process.exit(1);
+}
+
 export interface CliOptions {
   install: boolean;
   log: boolean;
@@ -278,6 +349,15 @@ export function parseCliOptions(): CliOptions {
   const primaryCommand = positionalArgs.length > 0 ? String(positionalArgs[0]) : undefined;
   const secondaryCommand = positionalArgs.length > 1 ? String(positionalArgs[1]) : undefined;
   const tertiaryValue = positionalArgs.length > 2 ? String(positionalArgs[2]) : undefined;
+
+  // Check for unknown options (skip if --help or -h is present)
+  const rawArgs = hideBin(process.argv);
+  if (!rawArgs.includes('--help') && !rawArgs.includes('-h')) {
+    const unknownOptions = detectUnknownOptions(rawArgs, primaryCommand);
+    if (unknownOptions.length > 0) {
+      showUnknownOptionsError(unknownOptions, primaryCommand);
+    }
+  }
 
   const resolvedProtocol =
     parsed.http === true ? 'HTTP' : (parsed.protocol as 'STDIO' | 'HTTP');
