@@ -9,7 +9,7 @@ export { ProviderNamespace, BuiltInProviders, ProviderNotAvailableError, } from 
 export type { ProviderNamespaceType, AIProvider, AIQueryOptions, AIResponse, } from './core/providers/ai-provider.interface';
 export { BaseAIProvider } from './core/providers/base-ai.provider';
 export { ClaudeProvider, GeminiProvider, CopilotProvider, CodexProvider, BaseDynamicProviderFactory, MockProvider, createProviderFromConfig, } from './core/providers';
-export type { BaseAIProviderOptions, LoggerLike, AIProviderConfig, } from './core/providers/base-ai.types';
+export type { BaseAIProviderOptions, LoggerLike, AIProviderConfig, ProviderTaskLogEntry, ProviderTaskLogHandler, ProviderTaskLogLevel, } from './core/providers/base-ai.types';
 export type { PluginProviderConfig, RemoteProviderConfig, DynamicProviderConfig, DynamicProviderFactoryOptions, } from './core/providers/dynamic-provider.factory';
 export type { ProviderConfig, ProviderInput, ProviderResolutionResult, } from './types/provider.types';
 export { createCrewxAgent, loadAgentConfigFromYaml, loadAgentConfigFromFile, resolveProvider, } from './core/agent';

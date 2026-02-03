@@ -6,7 +6,7 @@ layouts:
     propsSchema:
       showManual:
         type: boolean
-        default: true
+        default: false
       showAgentProfile:
         type: boolean
         default: true
@@ -128,7 +128,7 @@ layouts:
         You have access to the skills listed above. When you need to use a skill:
         1. Read the skill file using the file_path
         2. Follow the instructions in the skill document
-        3. Apply the skill's guidance to the user's request
+        **IMPORTANT**: Do NOT guess skill usage. Always read SKILL.md first before using any skill.
         {{/if}}
         {{/if}}
 

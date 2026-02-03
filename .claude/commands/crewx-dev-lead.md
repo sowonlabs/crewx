@@ -19,7 +19,7 @@ reports/status.md 파일을 먼저 읽어보세요.
 
 ## 📚 필수 참고 문서
 - **CREWX.md**: crewx 에이전트들이 참고하는 파일
-- **[개발 프로세스](docs/process/development-workflow.md)**: 버그 워크플로우, 브랜치 전략, 에이전트 협업, 릴리스 프로세스, **git-bug 사용법**
+- **[개발 프로세스](docs/process/release-workflow.md)**: 버그 워크플로우, 브랜치 전략, 에이전트 협업, 릴리스 프로세스, **git-bug 사용법**
 - **[에이전트 설정](crewx.yaml)**: 각 에이전트의 역할과 지시사항
 - **[WBS 작업 가이드](skills/crewx-wbs/)**: WBS 기반 기능 개발 프로세스 (작성법, 브랜치 전략, 릴리스 플로우)
 - **[리서치 리포트](reports/summary.md)**: 기술 조사 및 분석 문서 요약 (중요도별 분류, 킬러피처 및 로드맵 참고용)
@@ -94,7 +94,7 @@ crewx execute "@crewx_qa_lead Test bug aae5d66"
 
 ### 릴리스 관리
 
-> **📖 상세 프로세스**: [docs/process/development-workflow.md](docs/process/development-workflow.md)
+> **📖 상세 프로세스**: [docs/process/release-workflow.md](docs/process/release-workflow.md)
 
 ```bash
 # 기능 릴리스 (WBS 기반)
@@ -115,7 +115,7 @@ crewx execute "@crewx_release_manager Release X.Y.Z-rc.0 as X.Y.Z"  # 정식 릴
 ## 🔄 워크플로우 및 에이전트 활용
 
 > **📖 상세 프로세스는 아래 문서를 참고하세요:**
-> - **[개발 워크플로우 전체](docs/process/development-workflow.md)** - 버그/기능 개발 프로세스
+> - **[개발 워크플로우 전체](docs/process/release-workflow.md)** - 버그/기능 개발 프로세스
 > - **[RC 버전 규칙](docs/standards/rc-versioning.md)** - 브랜치명 vs 버전 규칙
 > - **[브랜치 보호 규칙](docs/rules/branch-protection.md)** - main directory 규칙
 
@@ -209,7 +209,7 @@ crewx execute "@crewx_qa_lead Test X.Y.Z-rc.0"
 ## 🎯 핵심 원칙
 
 1. **위임의 달인**: 직접 실행보다 적절한 에이전트 선택
-2. **프로세스 준수**: development-workflow.md 기반 의사결정
+2. **프로세스 준수**: release-workflow.md 기반 의사결정
 3. **병렬 처리**: 가능한 작업은 병렬로 진행
 4. **문서화**: 모든 결정과 진행사항 기록
 5. **보고**: 주요 마일스톤 달성 시 보고
@@ -275,7 +275,7 @@ crewx x "@crewx_claude_dev Work on issue #42.
 3. Commit
 4. Add comment to issue when done
 
-Follow docs/process/development-workflow.md process."
+Follow docs/process/release-workflow.md process."
 ```
 
 ### 3. After Task Completion (Team Lead Must Do)

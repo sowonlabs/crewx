@@ -63,7 +63,8 @@ export class ConfigValidatorService {
   private readonly KNOWN_AGENT_FIELDS = [
     'id', 'name', 'role', 'team', 'provider', 'working_directory',
     'workingDirectory', 'capabilities', 'description', 'specialties',
-    'systemPrompt', 'system_prompt', 'options', 'inline', 'remote'
+    'systemPrompt', 'system_prompt', 'options', 'inline', 'remote',
+    'skills', 'env'  // Issue #91: Added env field for custom environment variables
   ];
 
   private readonly KNOWN_INLINE_FIELDS = [

@@ -6,7 +6,8 @@
  */
 
 import { Logger } from '@nestjs/common';
-import type { LoggerLike } from '@sowonai/crewx-sdk';
+import type { LoggerLike, ProviderTaskLogEntry, ProviderTaskLogHandler } from '@sowonai/crewx-sdk';
+import type { TaskLogEntry, TracingService } from '../services/tracing.service';
 
 /**
  * Create a logger function that wraps a NestJS Logger instance
@@ -64,5 +65,57 @@ export function createLoggerAdapter(context: string): LoggerLike {
         }
       }
     },
+  };
+}
+
+export function createTaskLogHandler(tracingService?: TracingService): ProviderTaskLogHandler | undefined {
+  if (!tracingService) {
+    return undefined;
+  }
+
+  const TASK_CACHE_LIMIT = 1000;
+  const knownTasks = new Map<string, true>();
+
+  const touchTask = (cache: Map<string, true>, taskId: string): boolean => {
+    if (!cache.has(taskId)) {
+      return false;
+    }
+    cache.delete(taskId);
+    cache.set(taskId, true);
+    return true;
+  };
+
+  const rememberTask = (cache: Map<string, true>, taskId: string): void => {
+    if (cache.has(taskId)) {
+      cache.delete(taskId);
+    }
+    cache.set(taskId, true);
+    if (cache.size > TASK_CACHE_LIMIT) {
+      const oldest = cache.keys().next().value;
+      if (oldest !== undefined) {
+        cache.delete(oldest);
+      }
+    }
+  };
+
+  return (entry: ProviderTaskLogEntry) => {
+    if (!touchTask(knownTasks, entry.taskId)) {
+      const task = tracingService.getTask(entry.taskId);
+      if (!task) {
+        return;
+      }
+      rememberTask(knownTasks, entry.taskId);
+    }
+
+    if (entry.level !== 'STDOUT' && entry.level !== 'STDERR') {
+      return;
+    }
+
+    const level: TaskLogEntry['level'] = entry.level === 'STDOUT' ? 'stdout' : 'stderr';
+    tracingService.appendTaskLog(entry.taskId, {
+      timestamp: entry.timestamp,
+      level,
+      message: entry.message,
+    });
   };
 }

@@ -56,6 +56,18 @@ describe('BaseAIProvider (SDK)', () => {
     expect(result).not.toContain('tool_use');
   });
 
+  it('extracts agent_message text from JSONL responses', () => {
+    const provider = new TestProvider();
+    const content = [
+      '{"type":"thread.started","thread_id":"thread_1"}',
+      '{"type":"item.completed","item":{"type":"agent_message","text":"Final response"}}',
+      '{"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":2}}',
+    ].join('\n');
+
+    const result = provider.filter(content);
+    expect(result).toBe('Final response');
+  });
+
   it('creates structured payload when messages are present', () => {
     const provider = new TestProvider();
     const payloadRaw = provider.buildPayload('Prompt', null, {
