@@ -1398,7 +1398,7 @@ Task: ${task}
             model: modelToUse,
             options: {
               workingDirectory: workingDir,
-              timeout: 1_200_000,
+              timeout: this.timeoutConfig.parallel,
               additionalArgs: agentOptions,
               taskId,
               pipedContext: structuredPayload,
