@@ -138,7 +138,7 @@ crewx 이 버그가 뭐지?
 - 대화 히스토리 유지
 - 상호작용 버튼 (상세보기, 재실행)
 
-👉 **[Slack 설정 완전 가이드](./SLACK_INSTALL.md)**
+👉 **[Slack 설정 완전 가이드](./docs/slack-install.md)**
 
 ### 3. MCP Server 모드
 
@@ -625,7 +625,7 @@ crewx logs task_1234567890_abcdef
 - [📝 템플릿 변수](docs/template-variables.md) - 에이전트 설정의 동적 변수
 - [🔧 도구 시스템](docs/tools.md) - 도구 통합 및 생성 가이드
 - [🔧 트러블슈팅](docs/troubleshooting.md) - 일반적인 문제와 해결책
-- [💬 Slack 통합](SLACK_INSTALL.md) - Slack 봇 설정
+- [💬 Slack 통합](docs/slack-install.md) - Slack 봇 설정
 
 ---
 

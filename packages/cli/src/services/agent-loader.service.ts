@@ -294,6 +294,7 @@ export class AgentLoaderService {
             } : undefined,
             remote: this.parseRemoteConfig(agent),
             ...(mergedSkills ? { skills: mergedSkills } : {}),
+            ...(agent.env ? { env: agent.env as Record<string, string> } : {}), // Issue #91: Load env from YAML
           };
         })
       );
@@ -428,6 +429,7 @@ export class AgentLoaderService {
             } : undefined,
             remote: this.parseRemoteConfig(agent),
             ...(mergedSkills ? { skills: mergedSkills } : {}),
+            ...(agent.env ? { env: agent.env as Record<string, string> } : {}), // Issue #91: Load env from YAML
           };
         })
       );

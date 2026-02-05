@@ -8,6 +8,17 @@ export interface LoggerLike {
   error(message: string | Error, ...optionalParams: any[]): void;
 }
 
+export type ProviderTaskLogLevel = 'STDOUT' | 'STDERR' | 'INFO' | 'ERROR';
+
+export interface ProviderTaskLogEntry {
+  taskId: string;
+  timestamp: string;
+  level: ProviderTaskLogLevel;
+  message: string;
+}
+
+export type ProviderTaskLogHandler = (entry: ProviderTaskLogEntry) => void;
+
 export interface BaseAIProviderOptions {
   logger?: LoggerLike;
   toolCallHandler?: ToolCallHandler;
@@ -15,6 +26,7 @@ export interface BaseAIProviderOptions {
   timeoutConfig?: TimeoutConfig;
   logConfig?: LogConfig;
   crewxVersion?: string;
+  taskLogHandler?: ProviderTaskLogHandler;
 }
 
 export type AIProviderConfig = BaseAIProviderOptions;

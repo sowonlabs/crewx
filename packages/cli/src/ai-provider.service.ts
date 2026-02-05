@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import {
   AIProvider,
   AIQueryOptions,
@@ -32,8 +32,9 @@ import {
 import { DynamicProviderFactory } from './providers/dynamic-provider.factory';
 import { ConfigService } from './services/config.service';
 import { ToolCallService } from './services/tool-call.service';
-import { createLoggerAdapter } from './providers/logger.adapter';
+import { createLoggerAdapter, createTaskLogHandler } from './providers/logger.adapter';
 import { CREWX_VERSION } from './version';
+import { TracingService } from './services/tracing.service';
 
 @Injectable()
 export class AIProviderService implements OnModuleInit {
@@ -51,6 +52,7 @@ export class AIProviderService implements OnModuleInit {
     private readonly toolCallService: ToolCallService,
     private readonly dynamicProviderFactory: DynamicProviderFactory,
     private readonly configService: ConfigService,
+    @Optional() private readonly tracingService?: TracingService,
   ) {}
 
   async onModuleInit() {
@@ -63,26 +65,32 @@ export class AIProviderService implements OnModuleInit {
   }
 
   private createBuiltInProviders(): BaseAIProvider[] {
+    const taskLogHandler = createTaskLogHandler(this.tracingService);
+
     return [
       new SdkClaudeProvider({
         logger: createLoggerAdapter('ClaudeProvider'),
         toolCallHandler: this.toolCallService,
         crewxVersion: CREWX_VERSION,
+        taskLogHandler,
       }),
       new SdkGeminiProvider({
         logger: createLoggerAdapter('GeminiProvider'),
         toolCallHandler: this.toolCallService,
         crewxVersion: CREWX_VERSION,
+        taskLogHandler,
       }),
       new SdkCopilotProvider({
         logger: createLoggerAdapter('CopilotProvider'),
         toolCallHandler: this.toolCallService,
         crewxVersion: CREWX_VERSION,
+        taskLogHandler,
       }),
       new SdkCodexProvider({
         logger: createLoggerAdapter('CodexProvider'),
         toolCallHandler: this.toolCallService,
         crewxVersion: CREWX_VERSION,
+        taskLogHandler,
       }),
     ];
   }

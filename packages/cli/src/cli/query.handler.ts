@@ -453,11 +453,8 @@ function formatParallelAgentResults(result: any, mentions: string[], taskText: s
           console.log(`🟢 Status: Success`);
           if (agentResult.response) {
             console.log('📄 Response:');
-            // Truncate very long responses for parallel display
-            const response = agentResult.response.length > 500
-              ? agentResult.response.substring(0, 500) + '...\n[Response truncated - use single agent query for full response]'
-              : agentResult.response;
-            console.log(response);
+            // Show full response (no truncation)
+            console.log(agentResult.response);
           }
         } else {
           console.log(`🔴 Status: Failed`);

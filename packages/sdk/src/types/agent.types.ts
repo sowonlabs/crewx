@@ -130,4 +130,5 @@ export interface AgentInfo {
   };
   remote?: RemoteAgentInfo;
   skills?: SkillsConfig;
+  env?: Record<string, string>; // Issue #91: Custom environment variables for agent (supports Handlebars templates)
 }

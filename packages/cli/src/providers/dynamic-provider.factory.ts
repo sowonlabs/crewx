@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { BaseDynamicProviderFactory } from '@sowonai/crewx-sdk';
-import { createLoggerAdapter } from './logger.adapter';
+import { createLoggerAdapter, createTaskLogHandler } from './logger.adapter';
+import { CREWX_VERSION } from '../version';
+import { TracingService } from '../services/tracing.service';
 
 /**
  * CLI-specific DynamicProviderFactory
@@ -18,9 +20,11 @@ export class DynamicProviderFactory extends BaseDynamicProviderFactory {
     'eval', 'exec', 'source',
   ];
 
-  constructor() {
+  constructor(@Optional() private readonly tracingService?: TracingService) {
     super({
       logger: createLoggerAdapter(DynamicProviderFactory.name),
+      crewxVersion: CREWX_VERSION,
+      taskLogHandler: createTaskLogHandler(tracingService),
     });
   }
 

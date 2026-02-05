@@ -14,6 +14,8 @@ export {
 // Configuration
 export type { TimeoutConfig } from './config/timeout.config';
 export { getTimeoutConfig, getDefaultTimeoutConfig } from './config/timeout.config';
+export type { ModelPricing, PricingTable } from './config/pricing';
+export { MODEL_PRICING, getPricing, calculateCost } from './config/pricing';
 export {
   parseAPIProviderConfig,
   parseMCPServers,
@@ -90,6 +92,9 @@ export type {
   BaseAIProviderOptions,
   LoggerLike,
   AIProviderConfig,
+  ProviderTaskLogEntry,
+  ProviderTaskLogHandler,
+  ProviderTaskLogLevel,
 } from './core/providers/base-ai.types';
 export type {
   PluginProviderConfig,

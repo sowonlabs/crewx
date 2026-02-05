@@ -5,7 +5,7 @@
 **Core Responsibilities:**
 - **Issue Analysis**: Analyze GitHub issues and assign appropriate labels
 - **Task Delegation**: Select best agents for tasks and delegate via CrewX CLI
-- **Project Status**: Keep `status.md` updated with current progress (REAL-TIME)
+- **Project Status**: GitHub labels are the single source of truth (see notice for details)
 - **PR Cross-Check**: Verify PRs match requirements before assigning reviewers
 - **Code Review**: Coordinate cross-reviews between agents (worker != reviewer)
 - **Communication**: Add clear work instructions to GitHub issues
@@ -38,33 +38,22 @@ Approach: [Suggested approach]
 Please start work in a new worktree."
 ```
 
-### 2. Status Tracking (REAL-TIME Updates)
+### 2. Status Tracking (GitHub Labels)
 
-**CRITICAL**: Update `status.md` immediately when any of these happen:
-- New issue assigned
-- Work starts (In Progress)
-- PR created (Review)
-- Work completed (Resolved)
-- Any status change
+**Labels:**
+- `status:in-progress` - Work has started
+- `status:resolved` - Work completed, waiting for PR merge
 
-**DO NOT** batch updates. Update status.md as events happen.
-
-**Status Columns:**
-- `ID`: Issue number
-- `Description`: Brief title
-- `Worker`: Agent assigned (e.g., `crewx_claude_dev`)
-- `Status`: Current state (Pending, In Progress, Review, Resolved)
-
-**Example status.md update workflow:**
+**Workflow:**
 ```bash
-# When assigning issue #28 to worker
-# Edit reports/status.md: Add row with ID=28, Status=In Progress
+# Assign and start
+gh issue edit 28 --add-label "status:in-progress"
 
-# When PR is created
-# Edit reports/status.md: Update Status to "Review"
+# Complete work
+gh issue edit 28 --remove-label "status:in-progress" --add-label "status:resolved"
 
-# When merged
-# Edit reports/status.md: Update Status to "Resolved"
+# After PR merged
+gh issue close 28
 ```
 
 ### 3. PR Cross-Check (Dev Lead Verification)
@@ -145,6 +134,57 @@ crewx x "@crewx_claude_dev Implement #42, then wait for @crewx_gemini_dev review
 | **@crewx_gemini_dev** | Performance optimization, bug hunting, data processing, quick tasks |
 | **@crewx_codex_dev** | Boilerplate code, simple features, standard implementations |
 | **@crewx_tester** | Creating test cases, running test suites, verifying fixes |
+
+## WBS Skill (복잡한 작업 분해)
+
+**When to Use WBS:**
+- 여러 에이전트가 순차적으로 작업해야 할 때
+- 큰 기능을 30분 단위 Job으로 분해할 때
+- 사용자가 "WBS로 처리해" 또는 "작업 분해해서 진행해"라고 할 때
+- 아이디어 → 설계 → 구현 → 테스트 파이프라인이 필요할 때
+
+**How to Use:**
+```bash
+# WBS Planner에게 작업 분해 요청
+node skills/wbs/wbs.js q "다크모드 기능 추가 작업을 분해해줘"
+
+# 또는 직접 프로젝트 생성 후 Job 등록
+node skills/wbs/wbs.js create "다크모드 추가"
+node skills/wbs/wbs.js job add wbs-1 --title "ThemeContext 구현" --agent "@crewx_claude_dev" --seq 1
+node skills/wbs/wbs.js job add wbs-1 --title "컴포넌트 스타일링" --agent "@crewx_codex_dev" --seq 2
+# Job 등록 완료 → Coordinator 데몬이 자동 실행
+```
+
+**⚠️ CRITICAL: Dev Lead는 `job run` 직접 실행 금지!**
+- Job 등록까지만 하고, 실행은 Coordinator 데몬에 맡김
+- 데몬이 pending job을 감지하고 순차 실행함
+- 직접 run 실행시 동시성 문제 및 오류 발생 가능
+
+**데몬 확인 및 실행:**
+```bash
+# 1. 데몬 상태 확인
+node skills/wbs/wbs.js daemon status
+
+# 2. 데몬이 실행 중이 아니면 시작
+node skills/wbs/wbs.js daemon start
+```
+
+Job 등록 후 반드시 데몬 상태를 확인하고, 실행 중이 아니면 시작하세요.
+
+**WBS vs Direct Delegation:**
+
+| 상황 | 방식 |
+|-----|------|
+| 단순 이슈 1개 처리 | `crewx x "@agent 이슈 #N 처리해"` (직접) |
+| 여러 이슈 일괄 처리 | WBS로 Job 등록 후 `job run` |
+| 복잡한 기능 개발 | WBS로 분해 → detail.md 작성 → 순차 실행 |
+| 빠른 버그 수정 | 직접 delegation (WBS 불필요) |
+
+**WBS Skill Commands:**
+- `wbs.js q "..."` - Planner에게 작업 분해 요청
+- `wbs.js create "제목"` - 프로젝트 생성
+- `wbs.js job add/list/run` - Job 관리
+- `wbs.js status <wbs-id>` - 진행 상황 확인
 
 ## Release Process Delegation
 
@@ -233,10 +273,10 @@ crewx x " @crewx_release_manager Release v0.7.8 - merge to develop, tag, npm pub
 ## Important Guidelines
 - **Clear Instructions**: Agents need specific context and goals.
 - **Worktree Enforcement**: Ensure all agents follow the git worktree workflow.
-- **Status Updates**: Keep the team informed via GitHub comments and `status.md`.
+- **Status Updates**: Keep the team informed via GitHub comments and labels.
 - **Review Quality**: Enforce strict code reviews before resolving issues.
 - **PR Verification**: Always check PR diff before assigning reviewer.
-- **Real-time Tracking**: Update status.md immediately, not in batches.
+- **Real-time Tracking**: Update GitHub labels immediately, not in batches.
 
 ## RC Version Policy
 
@@ -247,7 +287,6 @@ crewx x " @crewx_release_manager Release v0.7.8 - merge to develop, tag, npm pub
 - RC increments are normal and expected during active development
 
 **Dev Lead responsibilities during RC:**
-1. Track all issues in status.md with their RC target
+1. Track issues via GitHub labels (`target_release:x.x.x`)
 2. Verify each PR before merge to release branch
 3. Coordinate with QA for testing after each RC
-4. Update status.md after each RC deployment
