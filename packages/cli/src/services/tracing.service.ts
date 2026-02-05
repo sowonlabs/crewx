@@ -89,6 +89,35 @@ export interface SpanRecord {
 }
 
 /**
+ * Tool call record interface (Issue #104 - Hooks Observability)
+ * Records individual tool calls made by Claude Code during agent execution
+ */
+export interface ToolCallRecord {
+  id: string;
+  task_id: string;
+  session_id?: string;
+  tool_name: string;
+  files?: string[];
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  duration_ms?: number;
+  timestamp: string;
+}
+
+/**
+ * Tool call creation input (Issue #104)
+ */
+export interface CreateToolCallInput {
+  task_id: string;
+  session_id?: string;
+  tool_name: string;
+  files?: string[];
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  duration_ms?: number;
+}
+
+/**
  * Task creation input
  */
 export interface CreateTaskInput {
@@ -242,6 +271,9 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
       // Phase 4: Run schema migration for enhanced task tracking
       this.migrateSchemaPhase4();
 
+      // Issue #104: Create tool_calls table for hooks observability
+      this.createToolCallsTable();
+
       this.logger.log(`Tracing database initialized at ${this.dbPath}`);
     } catch (error) {
       this.logger.error(
@@ -362,6 +394,51 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
     if (migratedCount > 0) {
       this.logger.log(`Phase 4 migration: Added ${migratedCount} new columns to tasks table`);
+    }
+  }
+
+  /**
+   * Issue #104: Create tool_calls table for Claude Code hooks observability
+   * This table stores individual tool calls made by Claude Code during agent execution
+   */
+  private createToolCallsTable(): void {
+    if (!this.db) return;
+
+    try {
+      // Check if table already exists
+      const tableExists = this.db.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='tool_calls'"
+      ).get();
+
+      if (!tableExists) {
+        this.db.exec(`
+          CREATE TABLE tool_calls (
+            id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL,
+            session_id TEXT,
+            tool_name TEXT NOT NULL,
+            files TEXT,
+            input TEXT,
+            output TEXT,
+            duration_ms INTEGER,
+            timestamp TEXT NOT NULL,
+            FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+          )
+        `);
+
+        // Create indexes for efficient queries
+        this.db.exec(`
+          CREATE INDEX IF NOT EXISTS idx_tool_calls_task_id ON tool_calls(task_id);
+          CREATE INDEX IF NOT EXISTS idx_tool_calls_tool_name ON tool_calls(tool_name);
+          CREATE INDEX IF NOT EXISTS idx_tool_calls_timestamp ON tool_calls(timestamp);
+        `);
+
+        this.logger.log('Issue #104: Created tool_calls table for hooks observability');
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to create tool_calls table: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -955,6 +1032,112 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Issue #104: Log a tool call from Claude Code hooks
+   * Called by the hooks scripts to record tool usage
+   */
+  logToolCall(input: CreateToolCallInput): string | null {
+    if (!this.db) {
+      return null;
+    }
+
+    const id = this.generateId();
+    const timestamp = this.now();
+
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO tool_calls (
+          id, task_id, session_id, tool_name, files, input, output, duration_ms, timestamp
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        id,
+        input.task_id,
+        input.session_id ?? null,
+        input.tool_name,
+        input.files ? JSON.stringify(input.files) : null,
+        input.input ? JSON.stringify(input.input) : null,
+        input.output ? JSON.stringify(input.output) : null,
+        input.duration_ms ?? null,
+        timestamp,
+      );
+
+      this.logger.debug(`Tool call logged: ${input.tool_name} for task ${input.task_id}`);
+      return id;
+    } catch (error) {
+      this.logger.error(
+        `Failed to log tool call: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Issue #104: Get tool calls for a task
+   * Returns all tool calls made during a task execution
+   */
+  getToolCallsForTask(taskId: string): ToolCallRecord[] {
+    if (!this.db) {
+      return [];
+    }
+
+    try {
+      const stmt = this.db.prepare('SELECT * FROM tool_calls WHERE task_id = ? ORDER BY timestamp ASC');
+      const rows = stmt.all(taskId) as any[];
+
+      return rows.map((row) => ({
+        ...row,
+        files: row.files ? JSON.parse(row.files) : undefined,
+        input: row.input ? JSON.parse(row.input) : undefined,
+        output: row.output ? JSON.parse(row.output) : undefined,
+      }));
+    } catch (error) {
+      this.logger.error(
+        `Failed to get tool calls for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Issue #104: Get tool call statistics for a task
+   * Returns summary of tool usage for a task
+   */
+  getToolCallStats(taskId: string): { totalCalls: number; uniqueTools: number; toolsUsed: string[] } | null {
+    if (!this.db) {
+      return null;
+    }
+
+    try {
+      const statsStmt = this.db.prepare(`
+        SELECT
+          COUNT(*) as total_calls,
+          COUNT(DISTINCT tool_name) as unique_tools
+        FROM tool_calls
+        WHERE task_id = ?
+      `);
+      const stats = statsStmt.get(taskId) as { total_calls: number; unique_tools: number };
+
+      const toolsStmt = this.db.prepare(`
+        SELECT DISTINCT tool_name FROM tool_calls WHERE task_id = ?
+      `);
+      const tools = toolsStmt.all(taskId) as Array<{ tool_name: string }>;
+
+      return {
+        totalCalls: stats.total_calls,
+        uniqueTools: stats.unique_tools,
+        toolsUsed: tools.map(t => t.tool_name),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get tool call stats for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
+  }
+
+  /**
    * Delete old tasks and their spans (cleanup)
    */
   cleanupOldTasks(daysToKeep: number = 30): number {
@@ -986,8 +1169,9 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Get database statistics
+   * Issue #104: Added toolCallCount for hooks observability
    */
-  getStats(): { taskCount: number; spanCount: number; dbSizeBytes: number } | null {
+  getStats(): { taskCount: number; spanCount: number; toolCallCount: number; dbSizeBytes: number } | null {
     if (!this.db) {
       return null;
     }
@@ -999,6 +1183,15 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
       const taskCount = (taskCountStmt.get() as { count: number }).count;
       const spanCount = (spanCountStmt.get() as { count: number }).count;
 
+      // Issue #104: Count tool calls if table exists
+      let toolCallCount = 0;
+      try {
+        const toolCallCountStmt = this.db.prepare('SELECT COUNT(*) as count FROM tool_calls');
+        toolCallCount = (toolCallCountStmt.get() as { count: number }).count;
+      } catch {
+        // Table might not exist yet
+      }
+
       // Get file size
       let dbSizeBytes = 0;
       if (fs.existsSync(this.dbPath)) {
@@ -1006,7 +1199,7 @@ export class TracingService implements OnModuleInit, OnModuleDestroy {
         dbSizeBytes = stats.size;
       }
 
-      return { taskCount, spanCount, dbSizeBytes };
+      return { taskCount, spanCount, toolCallCount, dbSizeBytes };
     } catch (error) {
       this.logger.error(
         `Failed to get stats: ${error instanceof Error ? error.message : String(error)}`,
