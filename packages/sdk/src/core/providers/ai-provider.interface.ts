@@ -42,11 +42,20 @@ export interface AIResponse {
   error?: string;
   taskId?: string;
   model?: string;
+  /** First tool call (backward-compatible) */
   toolCall?: {
     toolName: string;
     toolInput: any;
     toolResult: any;
   };
+  /** All tool calls across all steps (multi-step support) */
+  toolCalls?: Array<{
+    toolName: string;
+    toolInput: any;
+    toolResult: any;
+  }>;
+  /** Number of steps executed by the agent loop */
+  steps?: number;
   /** Phase 4: Process ID of the spawned CLI process */
   pid?: number;
   /** Exit code reported by the CLI process (null if unavailable). */
