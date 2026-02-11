@@ -1,5 +1,5 @@
 import { PREFIX_TOOL_NAME, SERVER_NAME, getErrorMessage, getErrorStack, getTimeoutConfig, LayoutLoader, LayoutRenderer, RenderContext, AgentInfo, type ProviderResolutionResult, type ConversationMessage } from '@sowonai/crewx-sdk';
-import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, Optional } from '@nestjs/common';
 import { McpTool } from '@sowonai/nestjs-mcp-adapter';
 import { z } from 'zod';
 import * as fs from 'fs';
@@ -18,6 +18,8 @@ import { AgentLoaderService } from './services/agent-loader.service';
 import { RemoteAgentService } from './services/remote-agent.service';
 import { ProviderBridgeService, type ProviderBridgeAgentRuntime } from './services/provider-bridge.service';
 import { SkillLoaderService } from './services/skill-loader.service';
+import { TracingService } from './services/tracing.service';
+import { CREWX_VERSION } from './version';
 
 @Injectable()
 export class CrewXTool implements OnModuleInit {
@@ -30,6 +32,58 @@ export class CrewXTool implements OnModuleInit {
    */
   private generateSecurityKey(): string {
     return crypto.randomBytes(8).toString('hex');
+  }
+
+  /**
+   * Process Handlebars templates in agent env values
+   * Issue #91: Supports {{agent.id}}, {{agent.name}}, {{env.VAR_NAME}}, etc.
+   * @param env - Raw env object from agent config (may contain Handlebars templates)
+   * @param agent - Agent info for template context
+   * @returns Processed env object with templates resolved
+   */
+  private async processAgentEnv(
+    env: Record<string, string> | undefined,
+    agent: AgentInfo
+  ): Promise<Record<string, string> | undefined> {
+    if (!env || Object.keys(env).length === 0) {
+      return undefined;
+    }
+
+    const Handlebars = await import('handlebars');
+    const processedEnv: Record<string, string> = {};
+
+    // Build context for Handlebars
+    const context = {
+      agent: {
+        id: agent.id,
+        name: agent.name || agent.id,
+        role: agent.role || '',
+        team: agent.team || '',
+        description: agent.description || '',
+        workingDirectory: agent.workingDirectory,
+        provider: Array.isArray(agent.provider) ? agent.provider[0] : agent.provider,
+        model: agent.inline?.model || '',
+      },
+      env: process.env,
+    };
+
+    for (const [key, value] of Object.entries(env)) {
+      try {
+        // Only process if value contains Handlebars syntax
+        if (value.includes('{{')) {
+          const template = Handlebars.compile(value);
+          processedEnv[key] = template(context);
+        } else {
+          processedEnv[key] = value;
+        }
+      } catch (error) {
+        // On template error, use raw value
+        this.logger.warn(`Failed to process env template for ${key}: ${getErrorMessage(error)}`);
+        processedEnv[key] = value;
+      }
+    }
+
+    return processedEnv;
   }
 
   /**
@@ -128,6 +182,7 @@ export class CrewXTool implements OnModuleInit {
     private readonly skillLoaderService: SkillLoaderService,
     @Inject('LAYOUT_LOADER') private readonly layoutLoader: LayoutLoader,
     @Inject('LAYOUT_RENDERER') private readonly layoutRenderer: LayoutRenderer,
+    @Optional() private readonly tracingService?: TracingService,
   ) {}
 
   /**
@@ -137,6 +192,69 @@ export class CrewXTool implements OnModuleInit {
   onModuleInit() {
     this.toolCallService.setCrewXTool(this);
     this.logger.log('CrewXTool registered to ToolCallService');
+  }
+
+  /**
+   * Get the rendered system prompt for an agent
+   * Used by CLI 'crewx agent prompt' command to debug agent context
+   */
+  async getRenderedAgentPrompt(agentId: string, mockInput?: string): Promise<string> {
+    // 1. Load Agent
+    const agents = await this.agentLoaderService.getAllAgents();
+    const agent = agents.find((a) => a.id === agentId);
+
+    if (!agent) {
+      throw new Error(`Agent '${agentId}' not found.`);
+    }
+
+    // 2. Prepare Context (consistent with queryAgent/executeAgent)
+    const securityKey = this.generateSecurityKey();
+
+    // Load documents for template context
+    const documents: Record<string, { content: string; toc: string; summary: string }> = {};
+    if (this.documentLoaderService.isInitialized()) {
+      const docNames = this.documentLoaderService.getDocumentNames();
+      for (const docName of docNames) {
+        const content = await this.documentLoaderService.getDocumentContent(docName);
+        const toc = await this.documentLoaderService.getDocumentToc(docName);
+        const summary = await this.documentLoaderService.getDocumentSummary(docName);
+        documents[docName] = {
+          content: content || '',
+          toc: toc || '',
+          summary: summary || '',
+        };
+      }
+    }
+
+    const templateContext: RenderContext = {
+      user_input: mockInput || 'Sample input for prompt preview',
+      messages: [],
+      agent: {
+        id: agent.id,
+        name: agent.name || agent.id,
+        provider: (Array.isArray(agent.provider) ? agent.provider[0] : agent.provider) || 'claude',
+        model: agent.inline?.model,
+        workingDirectory: agent.workingDirectory || './',
+        inline: {
+          prompt: agent.inline?.prompt || agent.inline?.system_prompt || agent.systemPrompt || '',
+        },
+        specialties: agent.specialties,
+        capabilities: agent.capabilities,
+        description: agent.description,
+      },
+      documents: documents as any,
+      vars: {
+        security_key: securityKey,
+      },
+      props: {},
+      mode: 'query',
+      platform: 'cli',
+      env: process.env as Record<string, string>,
+      tools: this.buildToolsContext(),
+    };
+
+    // 3. Process Prompt
+    return this.processAgentSystemPrompt(agent, templateContext);
   }
 
   /**
@@ -325,11 +443,14 @@ export class CrewXTool implements OnModuleInit {
     }
   })
   async getTaskLogs(input: { taskId?: string }) {
+    // FIX #39: Validate input before accessing properties
+    const { taskId } = input || {};
+
     this.logger.log('=== getTaskLogs called ===');
-    this.logger.log(`Input taskId: ${input.taskId}`);
-    
+    this.logger.log(`Input taskId: ${taskId}`);
+
     try {
-      const logsContent = this.taskManagementService.getTaskLogsFromFile(input.taskId);
+      const logsContent = this.taskManagementService.getTaskLogsFromFile(taskId);
       
       return {
         content: [{ type: 'text', text: logsContent }],
@@ -627,10 +748,64 @@ agents:
     provider?: string; // NEW: Optional provider specification
     metadata?: Record<string, any>; // NEW: Platform-specific metadata (e.g., Slack channel_id, thread_ts)
   }) {
-    const { agentId, query, context, model, messages, platform, metadata } = args;
+    const { agentId, query, context, model, messages, platform, metadata } = args || {};
+
+    // FIX #39: Validate required parameters before processing
+    // MCP HTTP endpoint may not properly map JSON-RPC arguments to method parameters
+    if (!agentId || !query) {
+      const missingParams: string[] = [];
+      if (!agentId) missingParams.push('agentId');
+      if (!query) missingParams.push('query');
+
+      this.logger.error(`[queryAgent] Missing required parameters: ${missingParams.join(', ')}`);
+      this.logger.debug(`[queryAgent] Received args: ${JSON.stringify(args)}`);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `❌ **Parameter Validation Failed**
+
+**Error:** Missing required parameters: ${missingParams.join(', ')}
+
+**Received Arguments:**
+\`\`\`json
+${JSON.stringify(args, null, 2)}
+\`\`\`
+
+**Expected Parameters:**
+- \`agentId\` (required): Agent ID to query
+- \`query\` (required): Question or request to ask the agent
+
+Please ensure the MCP client is sending the correct JSON-RPC request format:
+\`\`\`json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "crewx_queryAgent",
+    "arguments": {
+      "agentId": "your-agent-id",
+      "query": "your question here"
+    }
+  }
+}
+\`\`\``
+          }
+        ],
+        success: false,
+        error: `Missing required parameters: ${missingParams.join(', ')}`,
+        missingParameters: missingParams,
+        receivedArgs: args,
+        readOnlyMode: true,
+        isError: true
+      };
+    }
 
     // Load agent first to get correct provider
     let taskId: string;
+    let traceTaskId: string | null = null;
     try {
       // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
       const agents = await this.agentLoaderService.getAllAgents();
@@ -648,8 +823,40 @@ agents:
         prompt: query,
         agentId: agentId
       });
+      // Issue #84: Set CREWX_TASK_ID for child processes (skill runs, etc.)
+      process.env.CREWX_TASK_ID = taskId;
       const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started query agent ${agentDescriptor}` });
+
+      // Phase 3b: Chain tracing - inherit or generate trace_id
+      const inheritedTraceId = process.env.CREWX_TRACE_ID;
+      const inheritedParentTaskId = process.env.CREWX_PARENT_TASK_ID;
+      const inheritedCallerAgentId = process.env.CREWX_CALLER_AGENT_ID;
+
+      // Generate new trace_id if not inherited (root request)
+      const traceId = inheritedTraceId || crypto.randomUUID();
+
+      // Start tracing (graceful - won't crash if DB unavailable)
+      // Phase 3a: Pass extended fields to TracingService
+      // Phase 3b: Add trace_id, parent_task_id, caller_agent_id for chain tracing
+      // Issue #77: Pass taskId from TaskManagementService to ensure ID consistency
+      // Get model from agent config if not explicitly provided
+      const resolvedModel = model ?? agent?.inline?.model ?? undefined;
+
+      traceTaskId = this.tracingService?.createTask({
+        id: taskId,  // Use same ID as TaskManagementService for consistency
+        agent_id: agentId,
+        prompt: query,
+        mode: 'query',
+        model: resolvedModel,
+        platform: platform ?? 'cli',
+        crewx_version: CREWX_VERSION,
+        trace_id: traceId,
+        parent_task_id: inheritedParentTaskId,
+        caller_agent_id: inheritedCallerAgentId,
+        metadata: { provider: agentProvider, provider_version: undefined }, // provider_version will be captured in future
+        command: process.argv.join(' '),  // Phase 4: CLI command executed
+      }) ?? null;
 
       this.logger.log(`[${taskId}] Querying agent ${agentId}: ${query.substring(0, 50)}...`);
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Query: ${query.substring(0, 100)}...` });
@@ -829,6 +1036,17 @@ ${query}
 </user_query>`;
       }
 
+      // Phase 4: Update trace with rendered prompt
+      if (traceTaskId) {
+        this.tracingService?.updateTaskRenderedPrompt(traceTaskId, fullPrompt);
+      }
+
+      const promptLength = fullPrompt.length;
+      this.taskManagementService.addTaskLog(taskId, {
+        level: 'info',
+        message: `Prompt length: ${promptLength} characters`,
+      });
+
       let runtimeResult: ProviderBridgeAgentRuntime;
       let providerResolution: ProviderResolutionResult;
       let providerInput: string | undefined;
@@ -916,6 +1134,17 @@ ${query}
       const runtimeMessages = this.toConversationMessages(messages);
 
       let agentResult;
+      let pidRecorded = false;
+      const handleProcessStart = (pid: number) => {
+        if (!traceTaskId) {
+          return;
+        }
+
+        const updated = this.tracingService?.updateTaskPid(traceTaskId, pid) ?? false;
+        if (updated) {
+          pidRecorded = true;
+        }
+      };
       try {
         // Intercept console.log during provider execution to capture logs
         const originalLog = console.log;
@@ -934,6 +1163,9 @@ ${query}
           originalLog.apply(console, args);
         };
 
+        // Issue #91: Process agent env templates and pass to provider
+        const processedEnv = await this.processAgentEnv(agent.env, agent);
+
         try {
           agentResult = await runtimeResult.runtime.agent.query({
             agentId,
@@ -948,6 +1180,9 @@ ${query}
               taskId,
               securityKey,
               pipedContext: structuredPayload,
+              env: processedEnv, // Issue #91: Pass processed env to provider
+              traceId,
+              onProcessStart: handleProcessStart,
             },
           });
         } finally {
@@ -985,21 +1220,78 @@ ${query}
         provider: agentResult.metadata?.provider ?? resolvedProviderName,
         taskId: agentResult.metadata?.taskId ?? taskId,
         error: agentResult.metadata?.error,
+        pid: agentResult.metadata?.pid as number | undefined,
+        command: agentResult.metadata?.command as string | undefined,
+        exitCode: agentResult.metadata?.exitCode as number | null | undefined,
+        durationMs: agentResult.metadata?.durationMs as number | undefined,
+        timeToFirstOutputMs: agentResult.metadata?.timeToFirstOutputMs as number | null | undefined,
       };
+
+      // Phase 4: Update PID in trace record
+      if (traceTaskId && response.pid && !pidRecorded) {
+        this.tracingService?.updateTaskPid(traceTaskId, response.pid);
+      }
+
+      if (traceTaskId && response.command) {
+        this.tracingService?.updateTaskCodingAgentCommand(traceTaskId, response.command);
+      }
+
+      if (response.command) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Coding agent command: ${response.command}`,
+        });
+      }
+      if (response.pid !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `PID: ${response.pid ?? 'unknown'}`,
+        });
+      }
+      if (response.exitCode !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Exit code: ${response.exitCode ?? 'unknown'}`,
+        });
+      }
+      if (response.durationMs !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Duration: ${response.durationMs}ms`,
+        });
+      }
+      if (response.timeToFirstOutputMs !== undefined) {
+        const firstResponseText = response.timeToFirstOutputMs === null
+          ? 'unknown'
+          : `${response.timeToFirstOutputMs}ms`;
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `First response: ${firstResponseText}`,
+        });
+      }
 
       // Handle task completion
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Query completed. Success: ${response.success}` });
       this.taskManagementService.completeTask(taskId, response, response.success);
 
+      // Complete tracing (graceful - won't crash if DB unavailable)
+      if (traceTaskId) {
+        if (response.success) {
+          this.tracingService?.completeTask(traceTaskId, response.content, response.exitCode);
+        } else {
+          this.tracingService?.failTask(traceTaskId, response.error || 'Unknown error', response.exitCode);
+        }
+      }
+
       // Compose MCP response text (simple format for Slack)
-      const responseText = response.success 
-        ? response.content 
+      const responseText = response.success
+        ? response.content
         : `❌ **Error**\n\`\`\`${response.error}\`\`\`\n\nAgent: ${agentId} (${response.provider}) · Task ID: \`${taskId}\``;
 
       return {
         content: [
-          { 
-            type: 'text', 
+          {
+            type: 'text',
             text: responseText
           }
         ],
@@ -1016,6 +1308,11 @@ ${query}
 
     } catch (error) {
       const errorMessage = getErrorMessage(error);
+
+      // Fail tracing (graceful - won't crash if DB unavailable)
+      if (traceTaskId) {
+        this.tracingService?.failTask(traceTaskId, errorMessage);
+      }
 
       // Only log to task if taskId was successfully created
       if (taskId!) {
@@ -1090,10 +1387,64 @@ Read-Only Mode: No files were modified.`
     provider?: string; // NEW: Optional provider specification
     metadata?: Record<string, any>; // NEW: Platform-specific metadata (e.g., Slack channel_id, thread_ts)
   }) {
-    const { agentId, task, projectPath, context, model, messages, platform, metadata } = args;
+    const { agentId, task, projectPath, context, model, messages, platform, metadata } = args || {};
+
+    // FIX #39: Validate required parameters before processing
+    // MCP HTTP endpoint may not properly map JSON-RPC arguments to method parameters
+    if (!agentId || !task) {
+      const missingParams: string[] = [];
+      if (!agentId) missingParams.push('agentId');
+      if (!task) missingParams.push('task');
+
+      this.logger.error(`[executeAgent] Missing required parameters: ${missingParams.join(', ')}`);
+      this.logger.debug(`[executeAgent] Received args: ${JSON.stringify(args)}`);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `❌ **Parameter Validation Failed**
+
+**Error:** Missing required parameters: ${missingParams.join(', ')}
+
+**Received Arguments:**
+\`\`\`json
+${JSON.stringify(args, null, 2)}
+\`\`\`
+
+**Expected Parameters:**
+- \`agentId\` (required): Agent ID to execute
+- \`task\` (required): Task or implementation request for the agent
+
+Please ensure the MCP client is sending the correct JSON-RPC request format:
+\`\`\`json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "crewx_executeAgent",
+    "arguments": {
+      "agentId": "your-agent-id",
+      "task": "your task description here"
+    }
+  }
+}
+\`\`\``
+          }
+        ],
+        success: false,
+        error: `Missing required parameters: ${missingParams.join(', ')}`,
+        missingParameters: missingParams,
+        receivedArgs: args,
+        executionMode: true,
+        isError: true
+      };
+    }
 
     // Load agent first to get correct provider
     let taskId: string;
+    let traceTaskId: string | null = null;
     try {
       // Dynamically load agent configuration using AgentLoaderService (includes plugin providers)
       const agents = await this.agentLoaderService.getAllAgents();
@@ -1111,8 +1462,40 @@ Read-Only Mode: No files were modified.`
         prompt: task,
         agentId: agentId
       });
+      // Issue #84: Set CREWX_TASK_ID for child processes (skill runs, etc.)
+      process.env.CREWX_TASK_ID = taskId;
       const agentDescriptor = model ? `${agentId} (model: ${model})` : agentId;
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Started execute agent ${agentDescriptor}` });
+
+      // Phase 3b: Chain tracing - inherit or generate trace_id
+      const inheritedTraceId = process.env.CREWX_TRACE_ID;
+      const inheritedParentTaskId = process.env.CREWX_PARENT_TASK_ID;
+      const inheritedCallerAgentId = process.env.CREWX_CALLER_AGENT_ID;
+
+      // Generate new trace_id if not inherited (root request)
+      const traceId = inheritedTraceId || crypto.randomUUID();
+
+      // Start tracing (graceful - won't crash if DB unavailable)
+      // Phase 3a: Pass extended fields to TracingService
+      // Phase 3b: Add trace_id, parent_task_id, caller_agent_id for chain tracing
+      // Issue #77: Pass taskId from TaskManagementService to ensure ID consistency
+      // Get model from agent config if not explicitly provided
+      const resolvedModel = model ?? agent?.inline?.model ?? undefined;
+
+      traceTaskId = this.tracingService?.createTask({
+        id: taskId,  // Use same ID as TaskManagementService for consistency
+        agent_id: agentId,
+        prompt: task,
+        mode: 'execute',
+        model: resolvedModel,
+        platform: platform ?? 'cli',
+        crewx_version: CREWX_VERSION,
+        trace_id: traceId,
+        parent_task_id: inheritedParentTaskId,
+        caller_agent_id: inheritedCallerAgentId,
+        metadata: { provider: agentProvider, provider_version: undefined }, // provider_version will be captured in future
+        command: process.argv.join(' '),  // Phase 4: CLI command executed
+      }) ?? null;
 
       this.logger.log(`[${taskId}] Executing agent ${agentId}: ${task.substring(0, 50)}...`);
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Task: ${task.substring(0, 100)}...` });
@@ -1272,7 +1655,7 @@ Working Directory: ${workingDir}`;
       }
 
       // Build full prompt (context already formatted by template)
-      const fullPrompt = context 
+      const fullPrompt = context
         ? `${systemPrompt}
 ${context}
 
@@ -1282,6 +1665,17 @@ Task: ${task}
 
 Task: ${task}
 `;
+
+      // Phase 4: Update trace with rendered prompt
+      if (traceTaskId) {
+        this.tracingService?.updateTaskRenderedPrompt(traceTaskId, fullPrompt);
+      }
+
+      const promptLength = fullPrompt.length;
+      this.taskManagementService.addTaskLog(taskId, {
+        level: 'info',
+        message: `Prompt length: ${promptLength} characters`,
+      });
 
       let runtimeResult: ProviderBridgeAgentRuntime;
       let providerResolution: ProviderResolutionResult;
@@ -1371,6 +1765,17 @@ Task: ${task}
       const runtimeMessages = this.toConversationMessages(messages);
 
       let agentResult;
+      let pidRecorded = false;
+      const handleProcessStart = (pid: number) => {
+        if (!traceTaskId) {
+          return;
+        }
+
+        const updated = this.tracingService?.updateTaskPid(traceTaskId, pid) ?? false;
+        if (updated) {
+          pidRecorded = true;
+        }
+      };
       try {
         // Intercept console.log during provider execution to capture logs
         const originalLog = console.log;
@@ -1389,6 +1794,9 @@ Task: ${task}
           originalLog.apply(console, args);
         };
 
+        // Issue #91: Process agent env templates and pass to provider
+        const processedEnv = await this.processAgentEnv(agent.env, agent);
+
         try {
           agentResult = await runtimeResult.runtime.agent.execute({
             agentId,
@@ -1398,11 +1806,14 @@ Task: ${task}
             model: modelToUse,
             options: {
               workingDirectory: workingDir,
-              timeout: 1_200_000,
+              timeout: this.timeoutConfig.parallel,
               additionalArgs: agentOptions,
               taskId,
               pipedContext: structuredPayload,
               securityKey,
+              env: processedEnv, // Issue #91: Pass processed env to provider
+              traceId,
+              onProcessStart: handleProcessStart,
             },
           });
         } finally {
@@ -1440,11 +1851,68 @@ Task: ${task}
         provider: agentResult.metadata?.provider ?? resolvedProviderName,
         taskId: agentResult.metadata?.taskId ?? taskId,
         error: agentResult.metadata?.error,
+        pid: agentResult.metadata?.pid as number | undefined,
+        command: agentResult.metadata?.command as string | undefined,
+        exitCode: agentResult.metadata?.exitCode as number | null | undefined,
+        durationMs: agentResult.metadata?.durationMs as number | undefined,
+        timeToFirstOutputMs: agentResult.metadata?.timeToFirstOutputMs as number | null | undefined,
       };
+
+      // Phase 4: Update PID in trace record
+      if (traceTaskId && response.pid && !pidRecorded) {
+        this.tracingService?.updateTaskPid(traceTaskId, response.pid);
+      }
+
+      if (traceTaskId && response.command) {
+        this.tracingService?.updateTaskCodingAgentCommand(traceTaskId, response.command);
+      }
+
+      if (response.command) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Coding agent command: ${response.command}`,
+        });
+      }
+      if (response.pid !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `PID: ${response.pid ?? 'unknown'}`,
+        });
+      }
+      if (response.exitCode !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Exit code: ${response.exitCode ?? 'unknown'}`,
+        });
+      }
+      if (response.durationMs !== undefined) {
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `Duration: ${response.durationMs}ms`,
+        });
+      }
+      if (response.timeToFirstOutputMs !== undefined) {
+        const firstResponseText = response.timeToFirstOutputMs === null
+          ? 'unknown'
+          : `${response.timeToFirstOutputMs}ms`;
+        this.taskManagementService.addTaskLog(taskId, {
+          level: 'info',
+          message: `First response: ${firstResponseText}`,
+        });
+      }
 
       // Handle task completion
       this.taskManagementService.addTaskLog(taskId, { level: 'info', message: `Execution completed. Success: ${response.success}` });
       this.taskManagementService.completeTask(taskId, response, response.success);
+
+      // Complete tracing (graceful - won't crash if DB unavailable)
+      if (traceTaskId) {
+        if (response.success) {
+          this.tracingService?.completeTask(traceTaskId, response.content, response.exitCode);
+        } else {
+          this.tracingService?.failTask(traceTaskId, response.error || 'Unknown error', response.exitCode);
+        }
+      }
 
       // Compose MCP response text - Clean format for Slack
       // Only show the actual AI response content, not metadata
@@ -1469,6 +1937,11 @@ Task: ${task}
 
     } catch (error) {
       const errorMessage = getErrorMessage(error);
+
+      // Fail tracing (graceful - won't crash if DB unavailable)
+      if (traceTaskId) {
+        this.tracingService?.failTask(traceTaskId, errorMessage);
+      }
 
       // Only log to task if taskId was successfully created
       if (taskId!) {
@@ -1673,9 +2146,10 @@ Task: ${task}
     }>;
   }) {
     try {
-      const { queries } = args;
-      
-      this.logger.log(`Starting parallel agent queries (${queries.length} queries)`);
+      // FIX #39: Validate args before destructuring
+      const { queries } = args || {};
+
+      this.logger.log(`Starting parallel agent queries (${queries?.length || 0} queries)`);
       
       if (!queries || queries.length === 0) {
         return {
@@ -1711,7 +2185,9 @@ Please provide at least one query in the queries array.
 
       // Log each query
       queries.forEach((q, index) => {
-        this.logger.log(`Query ${index + 1}: ${q.agentId} -> "${q.query.substring(0, 50)}..."`);
+        // FIX #39: Add null check for query before substring
+        const queryPreview = q.query ? q.query.substring(0, 50) : '(no query)';
+        this.logger.log(`Query ${index + 1}: ${q.agentId || '(no agent)'} -> "${queryPreview}..."`);
       });
 
       // Execute queries in parallel using Promise.all to preserve template processing
@@ -1877,9 +2353,10 @@ Read-Only Mode: No files were modified.`
     }>;
   }) {
     try {
-      const { tasks } = args;
-      
-      this.logger.log(`Starting parallel agent execution (${tasks.length} tasks)`);
+      // FIX #39: Validate args before destructuring
+      const { tasks } = args || {};
+
+      this.logger.log(`Starting parallel agent execution (${tasks?.length || 0} tasks)`);
       
       if (!tasks || tasks.length === 0) {
         return {
@@ -1918,7 +2395,9 @@ Please provide at least one task in the tasks array.
 
       // Log each task
       tasks.forEach((t, index) => {
-        this.logger.log(`Task ${index + 1}: ${t.agentId} -> "${t.task.substring(0, 50)}..."`);
+        // FIX #39: Add null check for task before substring
+        const taskPreview = t.task ? t.task.substring(0, 50) : '(no task)';
+        this.logger.log(`Task ${index + 1}: ${t.agentId || '(no agent)'} -> "${taskPreview}..."`);
       });
 
       const startTime = Date.now();

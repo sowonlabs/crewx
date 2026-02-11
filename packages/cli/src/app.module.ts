@@ -30,6 +30,8 @@ import { McpClientService } from './services/mcp-client.service';
 import { RemoteAgentService } from './services/remote-agent.service';
 import { ProviderBridgeService } from './services/provider-bridge.service';
 import { SkillLoaderService } from './services/skill-loader.service';
+import { SkillService } from './services/skill.service';
+import { TracingService } from './services/tracing.service';
 // SDK Layout Services (WBS-13 Phase 1)
 import { LayoutLoader, LayoutRenderer, PropsValidator } from '@sowonai/crewx-sdk';
 import * as path from 'path';
@@ -108,6 +110,7 @@ export class AppModule {
         ToolCallService,
         AgentLoaderService,
         SkillLoaderService,
+        SkillService,
         McpClientService,
         RemoteAgentService,
         ProviderBridgeService,
@@ -118,6 +121,7 @@ export class AppModule {
         DoctorHandler,
         HelpService,
         ConfigService,
+        TracingService,
       ],
       controllers: [McpController, HealthController],
       exports: [AIService, ProjectService, CrewXTool, AIProviderService, ProviderBridgeService],

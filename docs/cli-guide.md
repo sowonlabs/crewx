@@ -205,7 +205,7 @@ crewx slack --agent custom_agent   # Use custom agent
    Or set an environment variable: `CREWX_SLACK_LOG_CONVERSATIONS=true`.  
    When enabled, Slack threads are mirrored to `.crewx/conversations/` just like CLI sessions, which is useful for agent performance reviews.
 
-See [SLACK_INSTALL.md](../SLACK_INSTALL.md) for full setup guide.
+See [slack-install.md](./slack-install.md) for full setup guide.
 
 ## MCP Server Mode
 

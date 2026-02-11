@@ -58,6 +58,31 @@ Every version commit should tell the user story, not the mechanical story.
 
 **⚠️ WARNING: RC versions (X.X.X-rc.Y) must NEVER be merged to main branch!**
 
+## ⚠️ CRITICAL: Check Status Before Any Work
+
+**MANDATORY: Always check project status FIRST before starting any task.**
+
+```bash
+# 1. Run status skill to see current PR/Issue state
+crewx skill run status
+
+# 2. Check specific PR state if needed
+gh pr view <PR-number> --json state,mergedAt
+```
+
+**Status Check Logic:**
+- PR state `MERGED` → Already done, **SKIP** (report to Dev Lead)
+- PR state `OPEN` → Proceed with workflow
+- PR state `CLOSED` → Rejected, **SKIP** (report to Dev Lead)
+- Issue `status:merged` → Already merged, **SKIP**
+
+**Why This Matters:**
+- Prevents duplicate cross-review calls
+- Avoids wasted agent resources
+- Maintains clean audit trail in traces.db
+
+---
+
 ## Workflow Index
 
 **Primary Workflow (NEW - Use This):**
@@ -132,40 +157,50 @@ When reporting to Dev Lead, include:
 
 **Steps:**
 ```bash
-# 1. Verify the PR number and reviewer assignment
+# 0. CRITICAL: Check current status FIRST (prevents duplicate work)
+crewx skill run status
+# Look for PR state in output - if already merged/closed, SKIP and report
+
+# 1. Check PR state directly
+gh pr view 23 --json state,mergedAt
+# If state is "MERGED" → STOP, report "PR already merged" to Dev Lead
+# If state is "CLOSED" → STOP, report "PR was closed/rejected" to Dev Lead
+# If state is "OPEN" → Continue with workflow
+
+# 2. Verify the PR number and reviewer assignment
 # Dev Lead will provide: PR number, target branch, reviewer agent name
 # Example command from Dev Lead:
 # crewx x "@crewx_release_manager Merge PR #23 for issue #22 to release/0.7.8 after cross-review by @crewx_gemini_dev"
 
-# 2. Navigate to the target release worktree
+# 3. Navigate to the target release worktree
 cd /Users/doha/git/crewx/worktree/release-0.7.8
 
-# 3. Check PR details
+# 4. Check PR details
 gh pr view 23
 
-# 4. CRITICAL: Trigger cross-review by calling the reviewer agent
+# 5. CRITICAL: Trigger cross-review by calling the reviewer agent
 # Use CrewX CLI to delegate review task
 crewx q "@crewx_gemini_dev Review PR #23 for issue #22. Check for critical issues: logic errors, security vulnerabilities, performance problems, missing error handling. Ignore code style."
 
-# 5. Wait for reviewer response
+# 6. Wait for reviewer response
 # Reviewer will respond with:
 # - ✅ LGTM (approved) → proceed to merge
 # - ❌ Changes requested → report to Dev Lead, DO NOT merge
 
-# 6. If approved, merge the PR
+# 7. If approved, merge the PR
 gh pr merge 23 --merge --delete-branch
 
-# 7. Verify merge success
+# 8. Verify merge success
 git log --oneline -5
 
-# 8. Update GitHub issue
+# 9. Update GitHub issue
 gh issue comment 22 --body "✅ PR #23 merged to release/0.7.8 after cross-review approval by @crewx_gemini_dev"
 
-# 9. Return to main directory
+# 10. Return to main directory (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
+# ❌ git checkout 절대 사용 금지 - Dev Lead만 브랜치 관리
 
-# 10. Report to Dev Lead
+# 11. Report to Dev Lead
 # - ✅ PR #23 reviewed by @crewx_gemini_dev (approved)
 # - ✅ Merged to release/0.7.8
 # - ✅ Issue #22 updated
@@ -195,10 +230,10 @@ git checkout develop
 # Find all issues with status:resolved label
 gh issue list --label "status:resolved" --state open
 
-# 2. Verify you're in the main repo AND on develop branch
+# 2. Verify you're in the main repo (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
 pwd
+# 현재 브랜치 확인만 하고 변경하지 않음
 
 # 3. Create release worktree from main (branch name WITHOUT rc suffix)
 # Branch: release/0.1.14 (NOT release/0.1.14-rc.0)
@@ -270,9 +305,9 @@ npm run build
 # 11. Check git log to verify all merges
 git log --oneline -20
 
-# 12. CRITICAL: Return to main directory and restore develop branch
+# 12. Return to main directory (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
+# ❌ git checkout 절대 사용 금지 - Dev Lead만 브랜치 관리
 
 # 13. Report to Dev Lead
 # - Release branch created: release/0.1.14
@@ -308,12 +343,17 @@ cd /Users/doha/git/crewx/worktree/release-0.6.0
 # 3. Increment RC version (rc.0 → rc.1 → rc.2...)
 # Example: going from 0.6.0-rc.2 to 0.6.0-rc.3
 
-# Update all package versions
-sed -i '' 's/"version": "0\.6\.0-rc\.2"/"version": "0.6.0-rc.3"/' package.json packages/*/package.json
+# Update all package versions - use flexible pattern for any version
+sed -i '' 's/"version": "[^"]*"/"version": "X.Y.Z-rc.N"/' package.json packages/*/package.json
 
 # Update inter-package dependencies
-sed -i '' 's/"@sowonai\/crewx-sdk": "\^0\.6\.0-rc\.2"/"@sowonai\/crewx-sdk": "^0.6.0-rc.3"/' packages/cli/package.json
-sed -i '' 's/"@sowonai\/crewx-cli": "\^0\.6\.0-rc\.2"/"@sowonai\/crewx-cli": "^0.6.0-rc.3"/' packages/crewx/package.json
+# IMPORTANT: Use flexible pattern to handle both with/without caret (^)
+sed -i '' 's/"@sowonai\/crewx-sdk": "\^*[^"]*"/"@sowonai\/crewx-sdk": "^X.Y.Z-rc.N"/' packages/cli/package.json
+sed -i '' 's/"@sowonai\/crewx-cli": "\^*[^"]*"/"@sowonai\/crewx-cli": "X.Y.Z-rc.N"/' packages/crewx/package.json
+
+# VERIFY: Always check dependency was updated correctly
+echo "=== Verify dependency sync ===" && \
+grep -E '"@sowonai/crewx-(cli|sdk)"' packages/*/package.json
 
 # Commit version bump with description of fixes
 git add package.json packages/*/package.json
@@ -376,9 +416,9 @@ cd /Users/doha/git/crewx/worktree/release-0.6.0
 git tag v0.6.0-rc.3
 git push origin v0.6.0-rc.3
 
-# 6. Return to main directory
+# 6. Return to main directory (브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
+# ❌ git checkout 절대 사용 금지 - Dev Lead만 브랜치 관리
 
 # 7. Report to Dev Lead
 # - ✅ Published ALL 3 packages: 0.6.0-rc.3 to npm with 'next' tag
@@ -450,24 +490,27 @@ git push origin release/0.6.0
 gh pr create --base main --head release/0.6.0 --title "chore: release 0.6.0" --body "Production release 0.6.0"
 gh pr merge --merge
 
-# 6. Direct merge to develop branch (no PR needed)
+# 6. Merge to develop via worktree (메인 브랜치 변경 금지!)
 cd /Users/doha/git/crewx
-git checkout develop
+git worktree add worktree/develop-merge develop
+cd /Users/doha/git/crewx/worktree/develop-merge
 git pull origin develop
 git merge --no-ff release/0.6.0
 git push origin develop
+cd /Users/doha/git/crewx
+git worktree remove worktree/develop-merge
 
-# 7. Create and push git tag
+# 7. Create and push git tag (worktree에서)
+cd /Users/doha/git/crewx/worktree/release-0.6.0
 git tag v0.6.0
 git push origin v0.6.0
 
 # 8. Close resolved GitHub Issues
-# After merging to develop, close all issues included in this release
 gh issue close 42 --comment "Released in v0.6.0"
 gh issue close 35 --comment "Released in v0.6.0"
 
-# 9. Return to develop
-git checkout develop
+# 9. Return to main directory (브랜치 변경 금지!)
+cd /Users/doha/git/crewx
 
 # 10. Report to Dev Lead
 # - Final release 0.6.0 published to npm

@@ -1,0 +1,7 @@
+node_modules/
+.wbs-data.json
+.wbs-plan.session.json
+usage.log
+details/
+.daemon.log
+.daemon.pid

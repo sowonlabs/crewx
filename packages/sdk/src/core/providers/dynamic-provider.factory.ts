@@ -5,7 +5,7 @@ import {
   type AIResponse,
 } from './ai-provider.interface';
 import { getTimeoutConfig } from '../../config/timeout.config';
-import type { LoggerLike } from './base-ai.types';
+import type { LoggerLike, ProviderTaskLogHandler } from './base-ai.types';
 import { APIProviderConfig, API_PROVIDER_TYPES, APIProviderType } from '../../types/api-provider.types';
 
 class ConsoleLogger implements LoggerLike {
@@ -79,6 +79,8 @@ export type DynamicProviderConfig = PluginProviderConfig | RemoteProviderConfig 
 
 export interface DynamicProviderFactoryOptions {
   logger?: LoggerLike;
+  crewxVersion?: string;
+  taskLogHandler?: ProviderTaskLogHandler;
 }
 
 /**
@@ -89,9 +91,13 @@ export interface DynamicProviderFactoryOptions {
 export class BaseDynamicProviderFactory {
   protected readonly logger: LoggerLike;
   protected readonly timeoutConfig = getTimeoutConfig();
+  protected readonly crewxVersion: string;
+  protected readonly taskLogHandler?: ProviderTaskLogHandler;
 
   constructor(options: DynamicProviderFactoryOptions = {}) {
     this.logger = options.logger ?? new ConsoleLogger('DynamicProviderFactory');
+    this.crewxVersion = options.crewxVersion ?? 'unknown';
+    this.taskLogHandler = options.taskLogHandler;
   }
 
   /**
@@ -176,7 +182,10 @@ export class BaseDynamicProviderFactory {
       readonly name = `${ProviderNamespace.PLUGIN}/${config.id}`;
 
       constructor() {
-        super(`DynamicProvider:${ProviderNamespace.PLUGIN}/${config.id}`);
+        super(`DynamicProvider:${ProviderNamespace.PLUGIN}/${config.id}`, {
+          crewxVersion: factory.crewxVersion,
+          taskLogHandler: factory.taskLogHandler,
+        });
       }
 
       protected getCliCommand(): string {
@@ -283,7 +292,10 @@ export class BaseDynamicProviderFactory {
       readonly name = `${ProviderNamespace.REMOTE}/${config.id}`;
 
       constructor() {
-        super(`RemoteProvider:${ProviderNamespace.REMOTE}/${config.id}`);
+        super(`RemoteProvider:${ProviderNamespace.REMOTE}/${config.id}`, {
+          crewxVersion: factory.crewxVersion,
+          taskLogHandler: factory.taskLogHandler,
+        });
       }
 
       protected getCliCommand(): string {
@@ -574,7 +586,7 @@ export class BaseDynamicProviderFactory {
           return '';
         }
 
-        const match = prompt.match(/<user_query key="[^"]+">\s*([\s\S]*?)\s*<\/user_query>/i);
+        const match = prompt.match(/<user_query[^>]*>\s*([\s\S]*?)\s*<\/user_query>/i);
         if (match && match[1]) {
           return match[1].trim();
         }
@@ -661,7 +673,9 @@ export class BaseDynamicProviderFactory {
       readonly name = config.provider;
 
       constructor() {
-        super(`APIProvider:${config.provider}`);
+        super(`APIProvider:${config.provider}`, {
+          taskLogHandler: factory.taskLogHandler,
+        });
       }
 
       protected getCliCommand(): string {

@@ -4,7 +4,7 @@ import { join } from 'path';
 import { getTimeoutConfig, type TimeoutConfig } from '../../config/timeout.config';
 import { getLogConfig, type LogConfig } from '../../config/log.config';
 import type { AIProvider, AIQueryOptions, AIResponse } from './ai-provider.interface';
-import type { BaseAIProviderOptions, LoggerLike } from './base-ai.types';
+import type { BaseAIProviderOptions, LoggerLike, ProviderTaskLogHandler } from './base-ai.types';
 import type { ToolCallHandler } from './tool-call.types';
 
 /**
@@ -35,6 +35,7 @@ export abstract class BaseAIProvider implements AIProvider {
   protected toolCallHandler?: ToolCallHandler;
   private readonly logsDir: string;
   private readonly crewxVersion: string;
+  private readonly taskLogHandler?: ProviderTaskLogHandler;
   private cachedPath: string | null = null;
   protected readonly timeoutConfig: TimeoutConfig;
   protected readonly logConfig: LogConfig;
@@ -46,6 +47,7 @@ export abstract class BaseAIProvider implements AIProvider {
     this.logConfig = options.logConfig ?? getLogConfig();
     this.logsDir = options.logsDir ?? join(process.cwd(), '.crewx', 'logs');
     this.crewxVersion = options.crewxVersion ?? 'unknown';
+    this.taskLogHandler = options.taskLogHandler;
 
     // Create log directory
     try {
@@ -254,6 +256,152 @@ export abstract class BaseAIProvider implements AIProvider {
   }
 
   /**
+   * Parse usage information from provider output
+   * Tries to extract token usage from stdout (JSON format)
+   *
+   * @param stdout The stdout from the provider CLI
+   * @returns Usage object with inputTokens and outputTokens, or undefined if not found
+   */
+  protected parseUsage(stdout: string): { inputTokens: number; outputTokens: number } | undefined {
+    if (!stdout || !stdout.trim()) {
+      return undefined;
+    }
+
+    try {
+      // Try to parse as JSON Lines (JSONL) - used by Claude with --output-format stream-json
+      const lines = stdout.split('\n').filter(line => line.trim());
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+
+          // Claude format: {"type":"usage","input_tokens":123,"output_tokens":456}
+          if (parsed.type === 'usage' && parsed.input_tokens !== undefined && parsed.output_tokens !== undefined) {
+            return {
+              inputTokens: parsed.input_tokens,
+              outputTokens: parsed.output_tokens,
+            };
+          }
+
+          // Alternative format: direct usage object
+          if (parsed.usage?.input_tokens !== undefined && parsed.usage?.output_tokens !== undefined) {
+            return {
+              inputTokens: parsed.usage.input_tokens,
+              outputTokens: parsed.usage.output_tokens,
+            };
+          }
+        } catch (e) {
+          // Not valid JSON, continue to next line
+        }
+      }
+
+      // Try parsing entire stdout as single JSON
+      const parsed = JSON.parse(stdout);
+      if (parsed.usage?.input_tokens !== undefined && parsed.usage?.output_tokens !== undefined) {
+        return {
+          inputTokens: parsed.usage.input_tokens,
+          outputTokens: parsed.usage.output_tokens,
+        };
+      }
+    } catch (e) {
+      // Failed to parse, return undefined
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Extract agent message text from JSONL streams (OpenAI Responses API, Codex JSONL).
+   * Returns null when no agent message is found.
+   */
+  protected extractAgentMessageFromJsonLines(content: string): string | null {
+    if (!content) {
+      return null;
+    }
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const hasJsonlMarkers = /"type"\s*:\s*"(?:thread\.started|item\.completed|turn\.completed|response\.completed)"/.test(trimmed)
+      || /"type"\s*:\s*"(?:agent_message|assistant_message)"/.test(trimmed)
+      || /"item_type"\s*:\s*"assistant_message"/.test(trimmed);
+
+    if (!hasJsonlMarkers) {
+      return null;
+    }
+
+    const lines = trimmed.split('\n').map(line => line.trim()).filter(Boolean);
+    let agentMessage: string | null = null;
+
+    for (const line of lines) {
+      let parsed: any;
+      try {
+        parsed = JSON.parse(line);
+      } catch {
+        continue;
+      }
+
+      const extracted = this.extractAgentMessageFromJsonItem(parsed);
+      if (extracted) {
+        agentMessage = extracted;
+      }
+    }
+
+    return agentMessage;
+  }
+
+  private extractAgentMessageFromJsonItem(parsed: any): string | null {
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+
+    if (
+      parsed?.type === 'item.completed' &&
+      parsed?.item?.type === 'agent_message' &&
+      typeof parsed.item.text === 'string'
+    ) {
+      return parsed.item.text.trim();
+    }
+
+    if (
+      parsed?.type === 'item.completed' &&
+      parsed?.item?.item_type === 'assistant_message' &&
+      typeof parsed.item.text === 'string'
+    ) {
+      return parsed.item.text.trim();
+    }
+
+    if (
+      parsed?.item?.type === 'agent_message' &&
+      typeof parsed.item.text === 'string'
+    ) {
+      return parsed.item.text.trim();
+    }
+
+    if (
+      parsed?.item?.item_type === 'assistant_message' &&
+      typeof parsed.item.text === 'string'
+    ) {
+      return parsed.item.text.trim();
+    }
+
+    if (Array.isArray(parsed?.response?.output)) {
+      const assistantEntries = parsed.response.output.filter(
+        (entry: any) => entry?.type === 'agent_message' || entry?.item_type === 'assistant_message',
+      );
+      if (assistantEntries.length > 0) {
+        const lastMessage = assistantEntries[assistantEntries.length - 1];
+        if (typeof lastMessage?.text === 'string') {
+          return lastMessage.text.trim();
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Parse provider-specific error messages to provide better user feedback
    */
   /**
@@ -262,6 +410,11 @@ export abstract class BaseAIProvider implements AIProvider {
    */
   protected filterToolUseFromResponse(content: string): string {
     if (!content) return content;
+
+    const jsonlMessage = this.extractAgentMessageFromJsonLines(content);
+    if (jsonlMessage) {
+      return jsonlMessage;
+    }
 
     let filteredContent = content;
 
@@ -448,14 +601,30 @@ Started: ${timestamp}
   }
 
   protected appendTaskLog(taskId: string, level: 'STDOUT' | 'STDERR' | 'INFO' | 'ERROR', message: string): void {
+    const safeTaskId = taskId.replace(/[\\/]/g, '_');
+    const logFile = join(this.logsDir, `${safeTaskId}.log`);
+    const timestamp = new Date();
+    const logEntry = `[${timestamp.toLocaleString()}] ${level}: ${message}\n`;
+
     try {
-      const safeTaskId = taskId.replace(/[\\/]/g, '_');
-      const logFile = join(this.logsDir, `${safeTaskId}.log`);
-      const timestamp = new Date().toLocaleString();
-      const logEntry = `[${timestamp}] ${level}: ${message}\n`;
       appendFileSync(logFile, logEntry, 'utf8');
     } catch (error) {
       this.logger.error(`Failed to append to task log ${taskId}:`, error);
+    }
+
+    if (this.taskLogHandler) {
+      try {
+        this.taskLogHandler({
+          taskId,
+          timestamp: timestamp.toISOString(),
+          level,
+          message,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Task log handler failed for ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
   }
 
@@ -464,6 +633,7 @@ Started: ${timestamp}
     
     // Use command name directly - let the shell find it in PATH
     const executablePath = this.getCliCommand();
+    const promptLength = prompt.length;
 
     try {
       // Determine model to use (options.model > default_model)
@@ -501,12 +671,12 @@ Started: ${timestamp}
       // Create task log file
       this.createTaskLogFile(taskId, this.name, command, options.agentId, modelToUse);
       this.appendTaskLog(taskId, 'INFO', `Starting ${this.name} query mode`);
-      this.appendTaskLog(taskId, 'INFO', `Prompt length: ${prompt.length} characters`);
+      this.appendTaskLog(taskId, 'INFO', `Prompt length: ${promptLength} characters`);
       
       // Log prompt content (entire content for debugging)
       this.appendTaskLog(taskId, 'INFO', `Prompt content:\n${prompt}`);
 
-      this.logger.log(`Executing ${this.name} with prompt (length: ${prompt.length})`);
+      this.logger.log(`Executing ${this.name} with prompt (length: ${promptLength})`);
 
       return new Promise((resolve) => {
         // Set UTF-8 encoding to handle Korean/Unicode correctly across all platforms
@@ -514,7 +684,17 @@ Started: ${timestamp}
           ...process.env,
           LANG: 'en_US.UTF-8',
           LC_ALL: 'en_US.UTF-8',
+          CREWX_TASK_ID: taskId,
+          CREWX_AGENT_ID: options.agentId || '',
+          CREWX_USER_ID: process.env.USER || process.env.USERNAME || 'unknown',
+          // Phase 3b: Tracing chain propagation
+          // Pass trace_id, parent_task_id, caller_agent_id to child processes
+          // This enables call chain tracking across agent-to-agent calls
+          CREWX_TRACE_ID: options.traceId || process.env.CREWX_TRACE_ID || '',
+          CREWX_PARENT_TASK_ID: taskId, // Current task becomes parent for child calls
+          CREWX_CALLER_AGENT_ID: options.agentId || process.env.CREWX_CALLER_AGENT_ID || '',
           ...this.getEnv(),
+          ...(options.env || {}), // Issue #91: Merge custom environment variables from agent config
         };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
@@ -529,7 +709,10 @@ Started: ${timestamp}
           // On Windows, if executable doesn't have extension, spawn needs shell
           useShell = true;
         }
-        
+
+        const startTime = Date.now();
+        let firstOutputAt: number | undefined = undefined;
+
         const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
           cwd: options.workingDirectory || process.cwd(),
@@ -537,24 +720,37 @@ Started: ${timestamp}
           shell: useShell,
         } as any);
 
+        // Phase 4: Capture process ID for task tracking
+        const childPid = child.pid;
+        this.notifyProcessStart(options, childPid);
+
         let stdout = '';
         let stderr = '';
         let exitCode: number | null = null;
 
         child.stdout.on('data', (data: any) => {
           const output = data.toString();
+          if (firstOutputAt === undefined) {
+            firstOutputAt = Date.now();
+          }
           stdout += output;
           this.appendTaskLog(taskId, 'STDOUT', output);
         });
 
         child.stderr.on('data', (data: any) => {
           const output = data.toString();
+          if (firstOutputAt === undefined) {
+            firstOutputAt = Date.now();
+          }
           stderr += output;
           this.appendTaskLog(taskId, 'STDERR', output);
         });
 
         child.on('close', (code: any) => {
           exitCode = code;
+          const completedAt = Date.now();
+          const durationMs = completedAt - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'INFO', `Process closed with exit code: ${exitCode}`);
 
           if (stderr) {
@@ -567,6 +763,8 @@ Started: ${timestamp}
             const filteredContent = this.filterRuntimeLogs(
               this.filterToolUseFromResponse(stdout.trim())
             );
+            // Parse usage information from stdout
+            const usage = this.parseUsage(stdout);
             this.appendTaskLog(taskId, 'INFO', `${this.name} query completed successfully`);
             resolve({
               content: filteredContent,
@@ -574,6 +772,12 @@ Started: ${timestamp}
               command,
               success: true,
               taskId,
+              pid: childPid,
+              exitCode,
+              durationMs,
+              timeToFirstOutputMs,
+              promptLength,
+              usage,
             });
             return;
           }
@@ -590,6 +794,11 @@ Started: ${timestamp}
               success: false,
               error: `${this.name} CLI failed: ${errorMessage}`,
               taskId,
+              pid: childPid,
+              exitCode,
+              durationMs,
+              timeToFirstOutputMs,
+              promptLength,
             });
             return;
           }
@@ -613,6 +822,8 @@ Started: ${timestamp}
           const filteredContent = this.filterRuntimeLogs(
             this.filterToolUseFromResponse(parsedContent)
           );
+          // Parse usage information from stdout
+          const usage = this.parseUsage(stdout);
 
           resolve({
             content: filteredContent,
@@ -620,10 +831,18 @@ Started: ${timestamp}
             command,
             success: true,
             taskId,
+            pid: childPid,
+            exitCode,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
+            usage,
           });
         });
 
         child.on('error', (error: any) => {
+          const durationMs = Date.now() - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'ERROR', `Process error: ${error.message}`);
           resolve({
             content: '',
@@ -632,6 +851,11 @@ Started: ${timestamp}
             success: false,
             error: error.code === 'ENOENT' ? this.getNotInstalledMessage() : error.message,
             taskId,
+            pid: childPid,
+            exitCode: null,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         });
 
@@ -652,6 +876,8 @@ Started: ${timestamp}
 
         // Timeout handling
         const timeout = setTimeout(() => {
+          const durationMs = Date.now() - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           child.kill();
           resolve({
             content: '',
@@ -660,6 +886,11 @@ Started: ${timestamp}
             success: false,
             error: `${this.name} CLI timeout`,
             taskId,
+            pid: childPid,
+            exitCode: null,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         }, options.timeout || this.getDefaultQueryTimeout());
 
@@ -674,6 +905,9 @@ Started: ${timestamp}
         success: false,
         error: error.message || 'Unknown error occurred',
         taskId,
+        // No pid available in catch block
+        exitCode: null,
+        promptLength,
       };
     }
   }
@@ -683,6 +917,7 @@ Started: ${timestamp}
     
     // Use command name directly - let the shell find it in PATH
     const executablePath = this.getCliCommand();
+    const promptLength = prompt.length;
 
     try {
       // Determine model to use (options.model > default_model)
@@ -721,7 +956,7 @@ Started: ${timestamp}
       this.appendTaskLog(taskId, 'INFO', `Execute Args: ${JSON.stringify(this.getExecuteArgs())}`);
       this.appendTaskLog(taskId, 'INFO', `Final Args: ${JSON.stringify(args)}`);
       this.appendTaskLog(taskId, 'INFO', `Starting ${this.name} execute mode`);
-      this.appendTaskLog(taskId, 'INFO', `Prompt length: ${prompt.length} characters`);
+      this.appendTaskLog(taskId, 'INFO', `Prompt length: ${promptLength} characters`);
 
       // Log prompt content
       const promptPreview = prompt.length > this.logConfig.promptMaxLength ?
@@ -729,7 +964,7 @@ Started: ${timestamp}
         prompt;
       this.appendTaskLog(taskId, 'INFO', `Prompt content:\n${promptPreview}`);
 
-      this.logger.log(`Executing ${this.name} in execute mode (length: ${prompt.length})`);
+      this.logger.log(`Executing ${this.name} in execute mode (length: ${promptLength})`);
 
       return new Promise((resolve) => {
         // Set UTF-8 encoding to handle Korean/Unicode correctly across all platforms
@@ -737,7 +972,17 @@ Started: ${timestamp}
           ...process.env,
           LANG: 'en_US.UTF-8',
           LC_ALL: 'en_US.UTF-8',
+          CREWX_TASK_ID: taskId,
+          CREWX_AGENT_ID: options.agentId || '',
+          CREWX_USER_ID: process.env.USER || process.env.USERNAME || 'unknown',
+          // Phase 3b: Tracing chain propagation
+          // Pass trace_id, parent_task_id, caller_agent_id to child processes
+          // This enables call chain tracking across agent-to-agent calls
+          CREWX_TRACE_ID: options.traceId || process.env.CREWX_TRACE_ID || '',
+          CREWX_PARENT_TASK_ID: taskId, // Current task becomes parent for child calls
+          CREWX_CALLER_AGENT_ID: options.agentId || process.env.CREWX_CALLER_AGENT_ID || '',
           ...this.getEnv(),
+          ...(options.env || {}), // Issue #91: Merge custom environment variables from agent config
         };
         if (process.platform === 'win32') {
           env.PYTHONIOENCODING = 'utf-8';
@@ -753,6 +998,9 @@ Started: ${timestamp}
           useShell = true;
         }
 
+        const startTime = Date.now();
+        let firstOutputAt: number | undefined = undefined;
+
         const child = spawn(executable, spawnArgs, {
           stdio: ['pipe', 'pipe', 'pipe'],
           cwd: options.workingDirectory || process.cwd(),
@@ -760,24 +1008,37 @@ Started: ${timestamp}
           shell: useShell,
         } as any);
 
+        // Phase 4: Capture process ID for task tracking
+        const childPid = child.pid;
+        this.notifyProcessStart(options, childPid);
+
         let stdout = '';
         let stderr = '';
         let exitCode: number | null = null;
 
         child.stdout.on('data', (data: any) => {
           const output = data.toString();
+          if (firstOutputAt === undefined) {
+            firstOutputAt = Date.now();
+          }
           stdout += output;
           this.appendTaskLog(taskId, 'STDOUT', output);
         });
 
         child.stderr.on('data', (data: any) => {
           const output = data.toString();
+          if (firstOutputAt === undefined) {
+            firstOutputAt = Date.now();
+          }
           stderr += output;
           this.appendTaskLog(taskId, 'STDERR', output);
         });
 
         child.on('close', (code: any) => {
           exitCode = code;
+          const completedAt = Date.now();
+          const durationMs = completedAt - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'INFO', `Process closed with exit code: ${exitCode}`);
 
           if (stderr) {
@@ -790,6 +1051,8 @@ Started: ${timestamp}
             const filteredContent = this.filterRuntimeLogs(
               this.filterToolUseFromResponse(stdout.trim())
             );
+            // Parse usage information from stdout
+            const usage = this.parseUsage(stdout);
             this.appendTaskLog(taskId, 'INFO', `${this.name} execution completed successfully`);
             resolve({
               content: filteredContent,
@@ -797,6 +1060,12 @@ Started: ${timestamp}
               command,
               success: true,
               taskId,
+              pid: childPid,
+              exitCode,
+              durationMs,
+              timeToFirstOutputMs,
+              promptLength,
+              usage,
             });
             return;
           }
@@ -813,6 +1082,11 @@ Started: ${timestamp}
               success: false,
               error: `${this.name} CLI execute failed: ${errorMessage}`,
               taskId,
+              pid: childPid,
+              exitCode,
+              durationMs,
+              timeToFirstOutputMs,
+              promptLength,
             });
             return;
           }
@@ -834,6 +1108,8 @@ Started: ${timestamp}
 
           // Filter out runtime logs from the response
           const filteredContent = this.filterRuntimeLogs(parsedContent);
+          // Parse usage information from stdout
+          const usage = this.parseUsage(stdout);
 
           resolve({
             content: filteredContent,
@@ -841,10 +1117,18 @@ Started: ${timestamp}
             command,
             success: true,
             taskId,
+            pid: childPid,
+            exitCode,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
+            usage,
           });
         });
 
         child.on('error', (error: any) => {
+          const durationMs = Date.now() - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           this.appendTaskLog(taskId, 'ERROR', `Process error: ${error.message}`);
           resolve({
             content: '',
@@ -853,6 +1137,11 @@ Started: ${timestamp}
             success: false,
             error: error.code === 'ENOENT' ? this.getNotInstalledMessage() : error.message,
             taskId,
+            pid: childPid,
+            exitCode: null,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         });
 
@@ -873,6 +1162,8 @@ Started: ${timestamp}
 
         // Timeout handling
         const timeout = setTimeout(() => {
+          const durationMs = Date.now() - startTime;
+          const timeToFirstOutputMs = firstOutputAt !== undefined ? firstOutputAt - startTime : undefined;
           child.kill();
           resolve({
             content: '',
@@ -881,6 +1172,11 @@ Started: ${timestamp}
             success: false,
             error: `${this.name} CLI execute timeout`,
             taskId,
+            pid: childPid,
+            exitCode: null,
+            durationMs,
+            timeToFirstOutputMs,
+            promptLength,
           });
         }, options.timeout || this.getDefaultExecuteTimeout());
 
@@ -895,12 +1191,29 @@ Started: ${timestamp}
         success: false,
         error: error.message || 'Unknown error occurred',
         taskId,
+        // No pid available in catch block
+        exitCode: null,
+        promptLength,
       };
     }
   }
 
   protected shouldPipeContext(_options?: AIQueryOptions): boolean {
     return true;
+  }
+
+  private notifyProcessStart(options: AIQueryOptions, pid: number | undefined): void {
+    if (typeof options.onProcessStart !== 'function' || typeof pid !== 'number') {
+      return;
+    }
+
+    try {
+      options.onProcessStart(pid);
+    } catch (error) {
+      this.logger.warn(
+        `onProcessStart callback failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   private buildPipedContext(prompt: string, options?: AIQueryOptions): string | null {

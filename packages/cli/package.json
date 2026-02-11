@@ -1,6 +1,6 @@
 {
   "name": "@sowonai/crewx-cli",
-  "version": "0.7.8",
+  "version": "0.8.0-rc.28",
   "license": "MIT",
   "engines": {
     "node": ">=20.19.0"
@@ -72,13 +72,14 @@
     "@nestjs/platform-express": "^11.0.0",
     "@slack/bolt": "^4.4.0",
     "@slack/web-api": "^7.10.0",
-    "@sowonai/crewx-sdk": "^0.7.8",
+    "@sowonai/crewx-sdk": "^0.8.0-rc.28",
     "@sowonai/nestjs-mcp-adapter": "^0.1.3",
     "@types/js-yaml": "^4.0.9",
     "@types/mdast": "^4.0.4",
     "@types/unist": "^3.0.3",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "better-sqlite3": "^12.5.0",
     "chalk": "^4.1.2",
     "dotenv": "^17.2.3",
     "execa": "^8.0.1",
@@ -102,6 +103,7 @@
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
     "@types/ajv": "^0.0.5",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.3",
     "@types/node": "^20.19.19",
     "@types/yargs": "^17.0.0",
