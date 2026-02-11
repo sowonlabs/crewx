@@ -21,6 +21,9 @@ const path = require('path');
 const matter = require('gray-matter');
 const { nanoid } = require('nanoid');
 const { execSync } = require('child_process');
+const { search: bm25Search, koreanKeywordSearch } = require('../lib/bm25-search');
+const { buildGraph } = require('./mindmap');
+const { run } = require('../lib/skill-tracer');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const USAGE_LOG = path.join(__dirname, 'usage.log');
@@ -72,26 +75,26 @@ function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getLocalTimestamp() {
+// getLocalTimestamp() 제거됨 - skill-tracer로 통합
+
+function getLocalISO8601() {
   const now = new Date();
+  const offset = -now.getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const offsetHours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+  const offsetMins = String(Math.abs(offset) % 60).padStart(2, '0');
+
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   const h = String(now.getHours()).padStart(2, '0');
   const min = String(now.getMinutes()).padStart(2, '0');
   const s = String(now.getSeconds()).padStart(2, '0');
-  return `${y}-${m}-${d} ${h}:${min}:${s}`;
+
+  return `${y}-${m}-${d}T${h}:${min}:${s}${sign}${offsetHours}:${offsetMins}`;
 }
 
-function logUsage(cmd, agentId, extra) {
-  try {
-    const timestamp = getLocalTimestamp();
-    const logLine = `${timestamp} | [memory-v2] ${cmd} ${agentId || ''} ${extra || ''}\n`;
-    fs.appendFileSync(USAGE_LOG, logLine);
-  } catch (e) {
-    // Silently fail
-  }
-}
+// logUsage() 제거됨 - skill-tracer로 통합
 
 // ============ Frontmatter Parsing (using gray-matter) ============
 
@@ -124,8 +127,15 @@ function loadAllEntries(agentId) {
     entries.push({ file, hasBody, ...data });
   }
 
-  // Sort by date descending
-  entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // Sort by created_at descending (newest first)
+  const toTimestamp = e => {
+    if (e.created_at) return String(e.created_at);
+    // fallback to date if no created_at
+    const d = e.date;
+    const dateStr = d instanceof Date ? d.toISOString().slice(0, 10) : String(d || '');
+    return dateStr + 'T09:00:00+09:00';
+  };
+  entries.sort((a, b) => toTimestamp(b).localeCompare(toTimestamp(a)));
   return entries;
 }
 
@@ -241,6 +251,7 @@ function cmdSave(agentId, summary, category = 'general', options = {}) {
   const frontmatter = stringifyFrontmatter({
     id,
     date,
+    created_at: getLocalISO8601(),
     category,
     tags,
     topic,
@@ -260,6 +271,14 @@ function cmdSave(agentId, summary, category = 'general', options = {}) {
   console.log(`   ID: ${id}`);
   console.log(`   Topic: ${topic}`);
   console.log(`   Category: ${category}`);
+
+  // 마인드맵 자동 갱신 (빠름 ~100ms)
+  try {
+    buildGraph(agentId);
+    console.log(`   🔗 마인드맵 갱신됨`);
+  } catch (e) {
+    // 실패해도 저장은 완료됨
+  }
 }
 
 function cmdIndex(agentId) {
@@ -299,7 +318,11 @@ function cmdRecent(agentId, days = 30) {
   console.log(`## 🔥 최근 ${days}일 (${filtered.length}건)\n`);
   for (const entry of filtered) {
     const detailIcon = entry.hasBody ? ' 📄' : '';
-    console.log(`[${entry.id}] [${entry.date}] [${entry.category}] ${entry.summary}${detailIcon}`);
+    // created_at에서 날짜+시간 추출 (2026-02-03T14:30:00+09:00 → 2026-02-03 14:30)
+    const timestamp = entry.created_at
+      ? String(entry.created_at).slice(0, 16).replace('T', ' ')
+      : entry.date;
+    console.log(`[${entry.id}] [${timestamp}] [${entry.category}] ${entry.summary}${detailIcon}`);
   }
 }
 
@@ -311,18 +334,29 @@ function cmdFind(agentId, keyword) {
   }
 
   const files = fs.readdirSync(entriesDir).filter(f => f.endsWith('.md'));
-  const results = [];
-  const keywordLower = keyword.toLowerCase();
+  const entries = [];
 
   for (const file of files) {
     const content = fs.readFileSync(path.join(entriesDir, file), 'utf-8');
-    const { data } = parseFrontmatter(content);
+    const { data, content: body } = parseFrontmatter(content);
+    entries.push({ file, body, ...data });
+  }
 
-    // Search in summary, tags, content
-    const searchText = `${data.summary || ''} ${(data.tags || []).join(' ')} ${content}`.toLowerCase();
-    if (searchText.includes(keywordLower)) {
-      results.push({ file, ...data });
-    }
+  if (entries.length === 0) {
+    console.log('기억이 없습니다.');
+    return;
+  }
+
+  // Check if query contains Korean (한글)
+  const hasKorean = /[가-힣]/.test(keyword);
+  let results = [];
+
+  if (hasKorean) {
+    // Korean keyword search
+    results = koreanKeywordSearch(entries, keyword, ['summary', 'tags', 'topic', 'body']);
+  } else {
+    // BM25 search for English
+    results = bm25Search(entries, keyword, { summary: 3, tags: 2, topic: 1, body: 1 });
   }
 
   if (results.length === 0) {
@@ -330,9 +364,10 @@ function cmdFind(agentId, keyword) {
     return;
   }
 
-  console.log(`## 🔍 검색 결과: "${keyword}" (${results.length}건)\n`);
+  console.log(`## 🔍 검색 결과: "${keyword}" (${results.length}건, BM25 점수순)\n`);
   for (const entry of results) {
-    console.log(`[${entry.id}] [${entry.date}] [${entry.topic}] ${entry.summary}`);
+    const score = entry._score ? ` [${entry._score}점]` : '';
+    console.log(`[${entry.id}] [${entry.date}] [${entry.topic}]${score} ${entry.summary}`);
   }
 }
 
@@ -359,6 +394,35 @@ function cmdGet(agentId, memoryId) {
       console.log(`- 파일: data/${agentId}/entries/${file}`);
       console.log(`\n---\n`);
       console.log(content.trim());
+
+      // 연관 기억 표시 (graph.json 있으면)
+      const graphPath = path.join(getAgentDir(agentId), 'graph.json');
+      if (fs.existsSync(graphPath)) {
+        try {
+          const graph = JSON.parse(fs.readFileSync(graphPath, 'utf-8'));
+          const relatedEdges = graph.edges
+            .filter(e => e.from === memoryId || e.to === memoryId)
+            .sort((a, b) => b.weight - a.weight)
+            .slice(0, 5);
+
+          if (relatedEdges.length > 0) {
+            const nodeMap = {};
+            graph.nodes.forEach(n => nodeMap[n.id] = n);
+
+            console.log(`\n---\n`);
+            console.log(`## 🔗 연관 기억 (${relatedEdges.length}개)\n`);
+            for (const edge of relatedEdges) {
+              const otherId = edge.from === memoryId ? edge.to : edge.from;
+              const other = nodeMap[otherId];
+              if (other) {
+                console.log(`[${edge.weight}] [${otherId}] ${other.summary.slice(0, 50)}...`);
+              }
+            }
+          }
+        } catch (e) {
+          // graph.json 파싱 실패 시 무시
+        }
+      }
       return;
     }
   }
@@ -425,6 +489,14 @@ function cmdDelete(agentId, memoryId, options = {}) {
   console.log(`🗑️  삭제 완료: ${entry.file}`);
   console.log(`   ID: ${memoryId}`);
   console.log(`   Summary: ${entry.data.summary}`);
+
+  // 마인드맵 자동 갱신
+  try {
+    buildGraph(agentId);
+    console.log(`   🔗 마인드맵 갱신됨`);
+  } catch (e) {
+    // 실패해도 삭제는 완료됨
+  }
 }
 
 function cmdMerge(agentId, memoryId1, memoryId2, options = {}) {
@@ -492,6 +564,14 @@ ${body2 !== '(상세 내용을 여기에 추가)' ? body2 : '(상세 없음)'}`;
   console.log(`   새 파일: ${filename}`);
   console.log(`   병합된 기억: [${memoryId1}] + [${memoryId2}]`);
   console.log(`   Summary: ${mergedSummary}`);
+
+  // 마인드맵 자동 갱신
+  try {
+    buildGraph(agentId);
+    console.log(`   🔗 마인드맵 갱신됨`);
+  } catch (e) {
+    // 실패해도 병합은 완료됨
+  }
 }
 
 function cmdSearch(agentId, query) {
@@ -562,9 +642,6 @@ function main() {
     console.log('Error: agent_id is required');
     process.exit(1);
   }
-
-  // Log usage
-  logUsage(command, agentId, rest.join(' '));
 
   switch (command) {
     case 'save':
@@ -648,4 +725,8 @@ function main() {
   }
 }
 
-main();
+// skill-tracer로 실행 추적 (직접 호출해도 로깅됨)
+run('memory-v2', main, {
+  usageLog: USAGE_LOG,  // usage.log 파일 로그
+  tracesDb: true        // traces.db 기록
+});

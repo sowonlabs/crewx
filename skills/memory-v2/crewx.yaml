@@ -10,10 +10,10 @@ agents:
   - id: "memory_searcher"
     name: "Memory Searcher"
     role: "searcher"
-    description: "Semantic search agent for memory entries using Gemini Flash"
-    provider: "cli/gemini"
+    description: "Semantic search agent for memory entries using Haiku"
+    provider: "cli/claude"
     inline:
-      model: "flash"
+      model: "haiku"
       layout: "crewx/minimal"
       prompt: |
         You are a Memory Searcher Agent. Your job is to find relevant memories from the provided memory list.

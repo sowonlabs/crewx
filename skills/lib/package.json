@@ -1,7 +1,7 @@
 {
-  "name": "memory-v2",
+  "name": "lib",
   "version": "1.0.0",
-  "main": "memory-v2.js",
+  "main": "skill-tracer.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,9 +10,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "gray-matter": "^4.0.3",
-    "nanoid": "^3.3.11",
+    "better-sqlite3": "^12.6.2",
     "wink-bm25-text-search": "^3.1.2",
-    "wink-nlp-utils": "^2.1.0"
+    "wink-nlp-utils": "^2.1.0",
+    "gray-matter": "^4.0.3"
   }
 }

@@ -1,7 +1,7 @@
 ---
 name: memory-v2
 description: 마크다운 + 프론트매터 기반 장기 기억 스킬. 드릴다운 구조로 확장성 있는 기억 관리.
-version: 0.4.1
+version: 0.7.0
 ---
 
 # Memory V2 Skill
@@ -272,6 +272,140 @@ node skills/memory-v2/memory-v2.js save {{agent_id}} "<요약>" <category> --top
 | 조회 | 전체 로드 | 인덱스 → 드릴다운 |
 | 토픽 지원 | 없음 | 있음 |
 | 가독성 | 낮음 | 높음 |
+
+## 마인드맵 (기억 연결 그래프)
+
+기억 간 연관성을 그래프로 관리합니다.
+
+### 그래프 빌드
+
+```bash
+node skills/memory-v2/mindmap.js build <agent_id>
+```
+
+규칙 기반으로 연결 생성:
+- **같은 topic**: weight 0.7 (⚠️ `general` 제외)
+- **공통 tags**: weight 0.4~0.8 (1개=0.4, 2개=0.6, 3개+=0.8)
+- **같은 날짜**: weight 0.3 (기본 OFF)
+- **같은 category**: weight 0.2 (⚠️ `general` 제외)
+
+> **edgeThreshold = 0.3** → 총 weight가 0.3 이상이어야 연결됨
+
+### ⭐ 연결성 높이는 저장 팁
+
+**핵심: `general`을 피하고 구체적으로!**
+
+| 방법 | Weight | 효과 |
+|------|--------|------|
+| topic 지정 | +0.7 | 같은 토픽 기억들 자동 연결 |
+| 태그 2개+ | +0.6 | 토픽 달라도 태그로 연결 |
+| 태그 3개+ | +0.8 | 최대 연결 강도 |
+| category | +0.2 | decision/task 등 구체적으로 |
+
+**❌ 나쁜 예 (연결 안 됨)**
+```bash
+# topic=general, category=general → 연결 0
+node memory-v2.js save agent "Discord 설정 제거" general
+```
+
+**✅ 좋은 예 (강한 연결)**
+```bash
+# topic + category + tags → 최대 연결
+node memory-v2.js save agent "Discord 설정 제거 결정" decision \
+  --topic=discord \
+  --tags=settings,cpo-decision,oauth \
+  --body="CPO 회의 결과..."
+```
+
+**태그 활용 전략:**
+- 관련 기능/모듈명: `discord`, `oauth`, `settings`
+- 회의/결정자: `cpo-decision`, `dev-meeting`
+- 상태: `completed`, `blocked`, `wip`
+
+### 마인드맵 요약 보기
+
+```bash
+node skills/memory-v2/mindmap.js show <agent_id>
+```
+
+토픽별 클러스터, 허브 노드(연결 많은 기억) 등 표시.
+
+### 연결된 기억 조회
+
+```bash
+node skills/memory-v2/mindmap.js related <agent_id> <memory_id>
+```
+
+특정 기억과 연결된 기억들을 weight 순으로 표시.
+
+### 수동 연결 관리
+
+```bash
+# 연결 추가
+node skills/memory-v2/mindmap.js add <agent_id> <from_id> <to_id> [type]
+
+# 연결 제거
+node skills/memory-v2/mindmap.js remove <agent_id> <from_id> <to_id>
+```
+
+### 시각화 (HTML) - 공용 마인드맵
+
+```bash
+node skills/memory-v2/mindmap.js html
+```
+
+**모든 에이전트의 마인드맵을 한 곳에 통합한 공용 시각화**를 생성합니다.
+
+**특징:**
+- 모든 에이전트의 graph.json 데이터를 하나의 HTML에 임베드
+- 드롭다운으로 에이전트 선택 → 해당 그래프로 실시간 전환
+- D3.js force-directed 그래프
+- 토픽별 색상 구분
+- 줌 & 드래그 지원
+- 호버 시 상세 정보 툴팁
+- 노드 크기 = 연결 수
+- 서버 없이 file:// 프로토콜로 바로 열기 가능
+
+**사용법:**
+```bash
+# 1. 공용 HTML 생성 (agent_id 필요 없음)
+node skills/memory-v2/mindmap.js html
+
+# 2. 브라우저에서 열기
+open skills/memory-v2/mindmap.html
+```
+
+**예시:**
+```bash
+# 전체 에이전트 마인드맵 통합 시각화
+node skills/memory-v2/mindmap.js html
+```
+
+### 브라우저에서 열기
+
+```bash
+node skills/memory-v2/mindmap.js open [agent_id]
+```
+
+특정 에이전트의 마인드맵을 브라우저에서 바로 엽니다.
+
+**예시:**
+```bash
+# CTO 마인드맵 열기
+node skills/memory-v2/mindmap.js open cto
+
+# 전체 (기본 에이전트) 열기
+node skills/memory-v2/mindmap.js open
+```
+
+### 저장 위치
+
+```
+data/{agent_id}/graph.json           # 그래프 데이터
+skills/memory-v2/mindmap.html        # 공용 시각화 HTML
+```
+
+---
 
 ## v1 → v2 마이그레이션
 
