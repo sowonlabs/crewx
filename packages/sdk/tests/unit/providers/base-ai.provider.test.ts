@@ -32,6 +32,10 @@ class TestProvider extends BaseAIProvider {
     return this.filterToolUseFromResponse(content);
   }
 
+  public filterRuntime(content: string): string {
+    return this.filterRuntimeLogs(content);
+  }
+
   public buildPayload(prompt: string, context: string | null, options?: AIQueryOptions): string {
     return this.createStructuredPayload(prompt, context, options);
   }
@@ -94,6 +98,51 @@ describe('BaseAIProvider (SDK)', () => {
     const copilotProvider = new TestProvider('cli/copilot');
     const copilotTimeout = (copilotProvider as any).getDefaultExecuteTimeout();
     expect(copilotTimeout).toBeGreaterThan(0);
+  });
+
+  it('filters out [AgentRuntime] log lines from responses', () => {
+    const provider = new TestProvider();
+    const content = [
+      'Loaded layout: crewx/default from default.yaml',
+      '',
+      '[AgentRuntime] Starting query for agent: crewx_claude_dev',
+      'Here is the actual AI response text.',
+      '[AgentRuntime] Query completed for agent: crewx_claude_dev (provider: cli/claude, success: true)',
+    ].join('\n');
+
+    const result = provider.filterRuntime(content);
+    expect(result).toBe('Here is the actual AI response text.');
+    expect(result).not.toContain('[AgentRuntime]');
+    expect(result).not.toContain('Loaded layout');
+  });
+
+  it('returns original content when no runtime logs are present', () => {
+    const provider = new TestProvider();
+    const content = 'Normal AI response without any runtime logs.';
+    const result = provider.filterRuntime(content);
+    expect(result).toBe(content);
+  });
+
+  it('handles empty and falsy input in filterRuntimeLogs', () => {
+    const provider = new TestProvider();
+    expect(provider.filterRuntime('')).toBe('');
+  });
+
+  it('filters mixed runtime logs and preserves multi-line responses', () => {
+    const provider = new TestProvider();
+    const content = [
+      '[AgentRuntime] Starting query for agent: test_agent',
+      'Line 1 of response.',
+      'Loaded layout: crewx/custom from custom.yaml',
+      'Line 2 of response.',
+      '[AgentRuntime] Query completed for agent: test_agent (provider: cli/claude, success: true)',
+    ].join('\n');
+
+    const result = provider.filterRuntime(content);
+    expect(result).toContain('Line 1 of response.');
+    expect(result).toContain('Line 2 of response.');
+    expect(result).not.toContain('[AgentRuntime]');
+    expect(result).not.toContain('Loaded layout');
   });
 
   it('stores injected tool handler for downstream consumers', () => {

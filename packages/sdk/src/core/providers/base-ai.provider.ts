@@ -443,6 +443,31 @@ export abstract class BaseAIProvider implements AIProvider {
     return filteredContent.trim();
   }
 
+  /**
+   * Filter out runtime logs from provider stdout.
+   * Remote providers (file://) capture CrewX runtime logs like [AgentRuntime] and
+   * 'Loaded layout' in stdout alongside the actual AI response. This method strips
+   * those lines so only the real response content remains.
+   */
+  protected filterRuntimeLogs(content: string): string {
+    if (!content) return content;
+
+    const runtimeLogPatterns = [
+      /^\[AgentRuntime\].*$/gm,
+      /^Loaded layout:.*$/gm,
+    ];
+
+    let filtered = content;
+    for (const pattern of runtimeLogPatterns) {
+      filtered = filtered.replace(pattern, '');
+    }
+
+    // Clean up excessive blank lines left after filtering
+    filtered = filtered.replace(/\n{3,}/g, '\n\n');
+
+    return filtered.trim();
+  }
+
   public parseProviderError(
     stderr: string,
     stdout: string,
@@ -734,8 +759,10 @@ Started: ${timestamp}
 
           // If exit code is 0 and we have stdout, it's a success (ignore stderr debug logs)
           if (exitCode === 0 && stdout && stdout.trim().length > 0) {
-            // Filter out tool_use JSON blocks from the response
-            const filteredContent = this.filterToolUseFromResponse(stdout.trim());
+            // Filter out runtime logs and tool_use JSON blocks from the response
+            const filteredContent = this.filterRuntimeLogs(
+              this.filterToolUseFromResponse(stdout.trim())
+            );
             // Parse usage information from stdout
             const usage = this.parseUsage(stdout);
             this.appendTaskLog(taskId, 'INFO', `${this.name} query completed successfully`);
@@ -791,8 +818,10 @@ Started: ${timestamp}
             this.appendTaskLog(taskId, 'INFO', 'Plain text output (not JSON)');
           }
 
-          // Filter out tool_use JSON blocks from the response
-          const filteredContent = this.filterToolUseFromResponse(parsedContent);
+          // Filter out runtime logs and tool_use JSON blocks from the response
+          const filteredContent = this.filterRuntimeLogs(
+            this.filterToolUseFromResponse(parsedContent)
+          );
           // Parse usage information from stdout
           const usage = this.parseUsage(stdout);
 
@@ -1018,8 +1047,10 @@ Started: ${timestamp}
 
           // If exit code is 0 and we have stdout, it's a success (ignore stderr debug logs)
           if (exitCode === 0 && stdout && stdout.trim().length > 0) {
-            // Filter out tool_use JSON blocks from the response
-            const filteredContent = this.filterToolUseFromResponse(stdout.trim());
+            // Filter out runtime logs and tool_use JSON blocks from the response
+            const filteredContent = this.filterRuntimeLogs(
+              this.filterToolUseFromResponse(stdout.trim())
+            );
             // Parse usage information from stdout
             const usage = this.parseUsage(stdout);
             this.appendTaskLog(taskId, 'INFO', `${this.name} execution completed successfully`);
@@ -1075,11 +1106,13 @@ Started: ${timestamp}
             this.appendTaskLog(taskId, 'INFO', 'Plain text output (not JSON)');
           }
 
+          // Filter out runtime logs from the response
+          const filteredContent = this.filterRuntimeLogs(parsedContent);
           // Parse usage information from stdout
           const usage = this.parseUsage(stdout);
 
           resolve({
-            content: parsedContent,
+            content: filteredContent,
             provider: this.name,
             command,
             success: true,
