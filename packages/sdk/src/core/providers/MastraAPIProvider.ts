@@ -313,12 +313,14 @@ export class MastraAPIProvider implements AIProvider {
         tools: mastraTools,
       });
 
-      // Add maxSteps to enable multi-turn agent loop (default: DEFAULT_MAX_STEPS)
-      // Note: toolChoice is NOT forced to 'required' - let the model decide when to use tools
+      // Configure maxSteps to enable multi-turn agent loop (default: DEFAULT_MAX_STEPS)
+      // Note: toolChoice is NOT forced to 'required' - let the model decide when to use tools.
+      // Forcing 'required' causes the loop to break when models return text alongside tool calls,
+      // because Mastra interprets the presence of text content as a stop signal.
       const maxSteps = Math.min(this.config.maxSteps ?? DEFAULT_MAX_STEPS, MAX_STEPS_LIMIT);
       const generateOptions = { maxSteps };
 
-      console.log(`[INFO] Sending request to AI model (maxSteps: ${generateOptions.maxSteps})...`);
+      console.log(`[INFO] Sending request to AI model (maxSteps: ${maxSteps})...`);
       const fullOutput = await agent.generate(prompt, generateOptions);
       console.log(`[INFO] Received response from AI model`);
 
@@ -336,19 +338,39 @@ export class MastraAPIProvider implements AIProvider {
   }
 
   /**
+   * Extract tool name from a Mastra tool call chunk.
+   */
+  private extractToolName(tc: any): string {
+    return tc.payload?.toolName || tc.toolName || 'unknown';
+  }
+
+  /**
+   * Extract tool arguments from a Mastra tool call chunk.
+   */
+  private extractToolArgs(tc: any): any {
+    return tc.payload?.args || tc.args;
+  }
+
+  /**
+   * Extract tool result value from a Mastra tool result chunk.
+   */
+  private extractToolResult(tr: any): any {
+    return tr?.payload?.result || tr?.result;
+  }
+
+  /**
    * Convert Mastra response to CrewX AIResponse
    *
    * Transforms Mastra Agent's full output format to CrewX's unified format.
+   * Handles multi-step tool calling by collecting tool calls from all steps.
    *
-   * @param fullOutput - Mastra getFullOutput() result
+   * @param fullOutput - Mastra Agent.generate() result
    * @param taskId - Task identifier
    * @returns CrewX AIResponse
    */
   private convertResponse(fullOutput: any, taskId: string): AIResponse {
-    // Extract text content (should be directly available now)
     let content = fullOutput.text || '';
 
-    // Build AIResponse
     const response: AIResponse = {
       content,
       provider: this.name,
@@ -358,38 +380,75 @@ export class MastraAPIProvider implements AIProvider {
       model: this.config.model,
     };
 
-    // Add tool call information if available
-    if (fullOutput.toolCalls && fullOutput.toolCalls.length > 0) {
-      const firstToolCall = fullOutput.toolCalls[0];
+    // Collect ALL tool calls across ALL steps for multi-step support.
+    // fullOutput.steps[] contains per-step data; fullOutput.toolCalls[] contains
+    // only the last step's tool calls. We iterate steps to get the full picture.
+    const allToolCalls: Array<{ toolName: string; toolInput: any; toolResult: any }> = [];
+    const steps: any[] = fullOutput.steps || [];
 
-      // Extract tool info from Mastra format
-      const toolName = firstToolCall.payload?.toolName || firstToolCall.toolName;
-      const toolArgs = firstToolCall.payload?.args || firstToolCall.args;
+    for (const step of steps) {
+      const stepToolCalls: any[] = step.toolCalls || [];
+      const stepToolResults: any[] = step.toolResults || [];
 
-      console.log(`[INFO] Tool called: ${toolName}`);
-      console.log(`[INFO] Tool arguments: ${JSON.stringify(toolArgs)}`);
+      for (let i = 0; i < stepToolCalls.length; i++) {
+        const tc = stepToolCalls[i];
+        const tr = stepToolResults[i];
+        const toolName = this.extractToolName(tc);
+        const toolArgs = this.extractToolArgs(tc);
+        const toolResultValue = this.extractToolResult(tr);
 
-      // Find corresponding tool result
-      const firstResult = fullOutput.toolResults?.[0];
-      const toolResultValue = firstResult?.payload?.result || firstResult?.result;
+        console.log(`[INFO] Tool called: ${toolName}`);
 
-      if (toolResultValue) {
-        const resultPreview = typeof toolResultValue === 'string'
-          ? toolResultValue.substring(0, this.logConfig.toolResultMaxLength)
-          : JSON.stringify(toolResultValue).substring(0, this.logConfig.toolResultMaxLength);
-        console.log(`[INFO] Tool result preview: ${resultPreview}${(typeof toolResultValue === 'string' ? toolResultValue.length : JSON.stringify(toolResultValue).length) > this.logConfig.toolResultMaxLength ? '...' : ''}`);
+        if (toolResultValue) {
+          const resultStr = typeof toolResultValue === 'string'
+            ? toolResultValue
+            : JSON.stringify(toolResultValue);
+          const preview = resultStr.substring(0, this.logConfig.toolResultMaxLength);
+          console.log(`[INFO] Tool result preview: ${preview}${resultStr.length > this.logConfig.toolResultMaxLength ? '...' : ''}`);
+        }
+
+        allToolCalls.push({
+          toolName,
+          toolInput: toolArgs,
+          toolResult: toolResultValue,
+        });
       }
+    }
 
-      response.toolCall = {
-        toolName,
-        toolInput: toolArgs,
-        toolResult: toolResultValue,
-      };
+    // Fallback: if no steps but top-level toolCalls exist (single-step case)
+    if (allToolCalls.length === 0 && fullOutput.toolCalls?.length > 0) {
+      for (let i = 0; i < fullOutput.toolCalls.length; i++) {
+        const tc = fullOutput.toolCalls[i];
+        const tr = fullOutput.toolResults?.[i];
+        const toolName = this.extractToolName(tc);
+        const toolArgs = this.extractToolArgs(tc);
+        const toolResultValue = this.extractToolResult(tr);
 
-      // If content is empty but we have tool results, use the tool result as content
-      if (!content && toolResultValue) {
-        content = `Tool '${toolName}' executed successfully:\n\n${toolResultValue}`;
-        response.content = content;
+        console.log(`[INFO] Tool called: ${toolName}`);
+        allToolCalls.push({
+          toolName,
+          toolInput: toolArgs,
+          toolResult: toolResultValue,
+        });
+      }
+    }
+
+    if (allToolCalls.length > 0) {
+      console.log(`[INFO] Total tool calls across ${steps.length} step(s): ${allToolCalls.length}`);
+
+      // Backward-compatible: set first tool call
+      response.toolCall = allToolCalls[0];
+      // Multi-step: set all tool calls
+      response.toolCalls = allToolCalls;
+      response.steps = steps.length;
+
+      // If content is empty but we have tool results, synthesize from last tool result
+      if (!content && allToolCalls.length > 0) {
+        const lastCall = allToolCalls[allToolCalls.length - 1]!;
+        if (lastCall.toolResult) {
+          content = `Tool '${lastCall.toolName}' executed successfully:\n\n${lastCall.toolResult}`;
+          response.content = content;
+        }
       }
     }
 
