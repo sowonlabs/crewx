@@ -862,17 +862,36 @@ Started: ${timestamp}
         // Send prompt via stdin if not in args
         const pipedContext = this.buildPipedContext(prompt, options);
 
-        if (pipedContext && this.shouldPipeContext(options)) {
-          child.stdin.write(pipedContext);
-          if (!pipedContext.endsWith('\n')) {
-            child.stdin.write('\n');
+        // Wrap stdin writes in error handling to prevent EPIPE
+        try {
+          if (pipedContext && this.shouldPipeContext(options)) {
+            child.stdin.write(pipedContext);
+            if (!pipedContext.endsWith('\n')) {
+              child.stdin.write('\n');
+            }
           }
-        }
 
-        if (!this.getPromptInArgs()) {
-          child.stdin.write(prompt);
+          if (!this.getPromptInArgs()) {
+            child.stdin.write(prompt);
+          }
+        } catch (stdinError: any) {
+          // Ignore EPIPE errors on stdin write (subprocess may not read stdin)
+          if (stdinError.code !== 'EPIPE') {
+            this.logger.warn(`stdin write error: ${stdinError.message}`);
+          }
+        } finally {
+          // Use setImmediate to ensure writes complete before ending stdin
+          setImmediate(() => {
+            try {
+              child.stdin.end();
+            } catch (endError: any) {
+              // Ignore errors on stdin.end() (subprocess may have already closed)
+              if (endError.code !== 'EPIPE') {
+                this.logger.warn(`stdin.end() error: ${endError.message}`);
+              }
+            }
+          });
         }
-        child.stdin.end();
 
         // Timeout handling
         const timeout = setTimeout(() => {
@@ -1148,17 +1167,36 @@ Started: ${timestamp}
         // Send prompt via stdin if not in args
         const pipedContext = this.buildPipedContext(prompt, options);
 
-        if (pipedContext && this.shouldPipeContext(options)) {
-          child.stdin.write(pipedContext);
-          if (!pipedContext.endsWith('\n')) {
-            child.stdin.write('\n');
+        // Wrap stdin writes in error handling to prevent EPIPE
+        try {
+          if (pipedContext && this.shouldPipeContext(options)) {
+            child.stdin.write(pipedContext);
+            if (!pipedContext.endsWith('\n')) {
+              child.stdin.write('\n');
+            }
           }
-        }
 
-        if (!this.getPromptInArgs()) {
-          child.stdin.write(prompt);
+          if (!this.getPromptInArgs()) {
+            child.stdin.write(prompt);
+          }
+        } catch (stdinError: any) {
+          // Ignore EPIPE errors on stdin write (subprocess may not read stdin)
+          if (stdinError.code !== 'EPIPE') {
+            this.logger.warn(`stdin write error: ${stdinError.message}`);
+          }
+        } finally {
+          // Use setImmediate to ensure writes complete before ending stdin
+          setImmediate(() => {
+            try {
+              child.stdin.end();
+            } catch (endError: any) {
+              // Ignore errors on stdin.end() (subprocess may have already closed)
+              if (endError.code !== 'EPIPE') {
+                this.logger.warn(`stdin.end() error: ${endError.message}`);
+              }
+            }
+          });
         }
-        child.stdin.end();
 
         // Timeout handling
         const timeout = setTimeout(() => {
