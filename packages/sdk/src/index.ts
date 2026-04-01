@@ -162,6 +162,9 @@ export type {
 } from './types/agent.types';
 export { ExecutionMode, SecurityLevel } from './types/agent.types';
 
+// Workspace utilities
+export { hashWorkspaceId, normalizeWorkspacePath } from './utils/workspace';
+
 // Shared utilities
 export { getErrorMessage, getErrorStack, isError } from './utils/error-utils';
 export {
