@@ -4,19 +4,14 @@ dist/
 **/.crewx/
 *.log
 *.tgz
-.DS_Store
-.env
-.env.*
-!.env.example
-coverage/
-.nyc_output/
-
-# DB / cache
 *.db
 *.db-shm
 *.db-wal
 *.sqlite
-
-# OS
+.env
+.env.*
+!.env.example
 .DS_Store
 Thumbs.db
+coverage/
+.nyc_output/
