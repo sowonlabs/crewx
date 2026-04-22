@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "sourceMap": false,
+    "declarationMap": false,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "paths": {
+      "@crewx/sdk": ["../sdk/dist/index.d.ts"],
+      "@crewx/sdk/hooks": ["../sdk/dist/hooks/index.d.ts"],
+      "@crewx/sdk/tools/node": ["../sdk/dist/tools/node/index.d.ts"],
+      "@crewx/sdk/plugins": ["../sdk/dist/plugins/index.d.ts"],
+      "@crewx/workflow": ["../built-in/workflow/dist/src/engine.d.ts"],
+      "@crewx/workflow/cli": ["../built-in/workflow/dist/cli.d.ts"],
+      "@crewx/memory": ["../built-in/memory/dist/src/engine.d.ts"],
+      "@crewx/memory/cli": ["../built-in/memory/dist/cli.d.ts"],
+      "@crewx/search": ["../built-in/search/dist/src/engine.d.ts"],
+      "@crewx/search/cli": ["../built-in/search/dist/cli.d.ts"],
+      "@crewx/doc": ["../built-in/doc/dist/src/engine.d.ts"],
+      "@crewx/doc/cli": ["../built-in/doc/dist/cli.d.ts"],
+      "@crewx/wbs": ["../built-in/wbs/dist/src/engine.d.ts"],
+      "@crewx/wbs/cli": ["../built-in/wbs/dist/cli.d.ts"],
+      "@crewx/cron": ["../built-in/cron/dist/src/engine.d.ts"],
+      "@crewx/cron/cli": ["../built-in/cron/dist/cli.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tests", "**/*.spec.ts", "**/*.test.ts", "**/__tests__/**"]
+}

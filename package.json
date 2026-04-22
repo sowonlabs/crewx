@@ -1,0 +1,52 @@
+{
+  "name": "@crewx/cli",
+  "version": "0.8.0",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "description": "CrewX CLI — thin wrapper over @crewx/sdk",
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "bin": {
+    "crewx": "bin/crewx"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --config ./vitest.config.ts",
+    "test:watch": "vitest --config ./vitest.config.ts",
+    "lint": "echo 'CLI lint pending' && exit 0"
+  },
+  "dependencies": {
+    "@crewx/sdk": "workspace:*",
+    "@crewx/memory": "workspace:*",
+    "@crewx/search": "workspace:*",
+    "@crewx/doc": "workspace:*",
+    "@crewx/wbs": "workspace:*",
+    "@crewx/cron": "workspace:*",
+    "@crewx/workflow": "workspace:*",
+    "@crewx/skill": "workspace:*",
+    "@crewx/shared": "workspace:*",
+    "@crewx/adapter-slack": "0.1.3",
+    "better-sqlite3": "*"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^3.1.1"
+  }
+}
