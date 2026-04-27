@@ -2,13 +2,13 @@
 
 > Build AI agent teams from your terminal.
 
-[![npm version](https://img.shields.io/npm/v/crewx.svg)](https://www.npmjs.com/package/crewx)
+[![npm version](https://img.shields.io/npm/v/@crewx/cli.svg)](https://www.npmjs.com/package/@crewx/cli)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 ## Installation
 
 ```bash
-npm install -g crewx
+npm install -g @crewx/cli
 ```
 
 ## Quick Start
