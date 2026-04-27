@@ -31,14 +31,14 @@
     "lint": "echo 'CLI lint pending' && exit 0"
   },
   "dependencies": {
-    "@crewx/sdk": "^0.8.0",
+    "@crewx/sdk": "^0.8.1",
     "@crewx/memory": "^0.1.9",
     "@crewx/search": "^0.1.8",
     "@crewx/doc": "^0.1.7",
     "@crewx/wbs": "^0.1.8",
     "@crewx/cron": "^0.1.7",
-    "@crewx/workflow": "^0.3.7",
-    "@crewx/skill": "^0.1.6",
+    "@crewx/workflow": "^0.3.8",
+    "@crewx/skill": "^0.1.7",
     "@crewx/shared": "^0.0.4",
     "@crewx/adapter-slack": "0.1.3",
     "better-sqlite3": "*"
